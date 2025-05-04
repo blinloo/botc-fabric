@@ -20,9 +20,6 @@
 		],
 		"client": [
 			"com.botcfab.BotcFabClient"
-		],
-		"fabric-datagen": [
-			"com.botcfab.BotcFabDataGenerator"
 		]
 	},
 	"mixins": [
