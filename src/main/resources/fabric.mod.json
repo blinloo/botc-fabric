@@ -3,9 +3,9 @@
 	"id": "botc-fab",
 	"version": "${version}",
 	"name": "botc fab",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "This mod enables commands for playing Blood on the Clocktower in Minecraft",
 	"authors": [
-		"Me!"
+		"Ken and Ruby"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
