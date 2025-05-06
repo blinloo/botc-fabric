@@ -107,9 +107,13 @@ public class BotcFab implements ModInitializer {
         PlayerManager playerMgr = srv.getPlayerManager();
         List<ServerPlayerEntity> players = playerMgr.getPlayerList();
         ServerScoreboard scoreboard = srv.getScoreboard();
+        ServerWorld world = context.getSource().getWorld();
         List<String> allTeams = Arrays.asList(TEAMPLAYER, TEAMSTORY, TEAMSPEC);
 
-        //
+        // Set all lamps and status markers to default
+        for (String i : mapCoords.keySet()) {
+            world.setBlockState(mapCoords.get(i).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
+        }
 
         // Create the various teams
         for (String teamName : allTeams) {
@@ -266,7 +270,7 @@ public class BotcFab implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
-                coords = ImportExcelCoordinates.read(path);
+                mapCoords = ImportExcelCoordinates.read(path);
                 return 69;
             }));
         });
