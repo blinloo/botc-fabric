@@ -36,6 +36,8 @@ public class BotcFab implements ModInitializer {
     private static final String STORYTELLER = "storyteller";
     private static final String PLAYER = "player";
     private static final String SPEC = "spectator";
+    private final String path = "C:\\Users\\Ken\\AppData\\Local\\ModOrganizer\\Cyberpunk 2077\\downloads\\BOTC-coords-sheet.csv";
+    Map<String, CoordinateMapper> bigDict = new HashMap<>();
     private static final List<String> LEVER_LOCATIONS = Arrays.asList("-194,-26,35", "-194,-26,32", "-194,-26,29", "-194,-26,26", "-194,-26,23");
     private static final List<String> REDSTONE_BLOCKS = Arrays.asList(
             "-196,-29,35", "-196,-29,32", "-196,-29,29", "-196,-29,26", "-196,-29,23");
@@ -250,6 +252,13 @@ public class BotcFab implements ModInitializer {
         // Proceed with mild caution.
 
         LOGGER.info("Hello Fabric world!");
+
+        Map<String, CoordinateMapper> bigDict = ImportExcelCoordinates.read("C:\\Users\\Ken\\AppData\\Local\\ModOrganizer\\Cyberpunk 2077\\downloads\\BOTC-coords-sheet.csv");
+        LOGGER.info(bigDict.get("Black").toString());
+        LOGGER.info(bigDict.get("Black").ghost.toString());
+
+        LOGGER.info(bigDict.get("Green").toString());
+        LOGGER.info(bigDict.get("Green").ghost.toString());
         ServerTickEvents.END_WORLD_TICK.register((ServerWorld world) -> onWorldTick(world));
         TickScheduler.register();
         // Register the botc init command
@@ -257,13 +266,13 @@ public class BotcFab implements ModInitializer {
             dispatcher.register(CommandManager.literal("botcinit").executes(this::onGameInit));
         });
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
-                //ImportExcelCoordinates.read("V:\\Servers\\BotC Resources\\BOTC-coords-sheet.csv");
-                LOGGER.info(ImportExcelCoordinates.read("V:\\Servers\\BotC Resources\\BOTC-coords-sheet.csv").toString());
-                return 69;
-            }));
-        });
+//        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+//            dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
+//                //ImportExcelCoordinates.read("V:\\Servers\\BotC Resources\\BOTC-coords-sheet.csv");
+//                LOGGER.info(ImportExcelCoordinates.read("V:\\Servers\\BotC Resources\\BOTC-coords-sheet.csv").toString());
+//                return 69;
+//            }));
+//        });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("addSpectator").then(
