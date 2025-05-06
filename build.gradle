@@ -44,7 +44,9 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	
+
+	//CSV Importer
+	implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.13.0'
 }
 
 processResources {

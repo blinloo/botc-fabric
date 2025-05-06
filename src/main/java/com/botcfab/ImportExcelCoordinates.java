@@ -1,46 +1,38 @@
 package com.botcfab;
 
+import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
+import java.io.IOException;
+import java.util.*;
 
 public class ImportExcelCoordinates {
-    public static void main(String[] args) {
-        String fileName = "read_ex.csv";
-        File file = new File(fileName);
-
-        // this gives you a 2-dimensional array of strings
-        List<List<String>> lines = new ArrayList<>();
-        Scanner inputStream;
+    //Takes in csv file of coords and creates hash key of it
+    public static List<Map<String, String>> read(String filePath) {
+        File file = new File(filePath);
+        List<Map<String, String>> response = new LinkedList<Map<String, String>>();
+        CsvMapper mapper = new CsvMapper();
+        CsvSchema schema = CsvSchema.emptySchema().withHeader();
+        Map <String, CoordinateMapper> mc = new HashMap<>();
 
         try {
-            inputStream = new Scanner(file);
+            MappingIterator<Map<String, String>> iterator = mapper.reader(Map.class)
+                    .with(schema)
+                    .readValues(file);
+            while (iterator.hasNext()) {
+                //response.add(iterator.next());
+                Map <String, String> mappies = iterator.next();
+                CoordinateMapper m1 mappies[0]
+                mappies.forEach((k,v) -> {
 
-            while (inputStream.hasNext()) {
-                String line = inputStream.next();
-                String[] values = line.split(",");
-                // this adds the currently parsed line to the 2-dimensional string array
-                lines.add(Arrays.asList(values));
+                });
             }
-
-            inputStream.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            return response;
         }
-
-        // the following code lets you iterate through the 2-dimensional array
-        int lineNo = 1;
-        for (List<String> line : lines) {
-            int columnNo = 1;
-            for (String value : line) {
-                System.out.println("Line " + lineNo + " Column " + columnNo + ": " + value);
-                columnNo++;
-            }
-            lineNo++;
+        catch (IOException e) {
+            return null;
         }
     }
 }

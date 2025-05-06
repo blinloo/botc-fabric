@@ -258,6 +258,14 @@ public class BotcFab implements ModInitializer {
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
+                //ImportExcelCoordinates.read("V:\\Servers\\BotC Resources\\BOTC-coords-sheet.csv");
+                LOGGER.info(ImportExcelCoordinates.read("V:\\Servers\\BotC Resources\\BOTC-coords-sheet.csv").toString());
+                return 69;
+            }));
+        });
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("addSpectator").then(
                     CommandManager.argument("player_name", StringArgumentType.string())
                             .suggests(new PlayerSuggestionProvider())
