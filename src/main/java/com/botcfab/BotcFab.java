@@ -36,6 +36,11 @@ public class BotcFab implements ModInitializer {
     private static final String STORYTELLER = "storyteller";
     private static final String PLAYER = "player";
     private static final String SPEC = "spectator";
+    private final String path = ".\\BOTC-coords-sheet.csv";
+
+    //Huge penis of coordinates with ref, eg mapCoords.get("Yellow").ghost
+    Map<String, CoordinateMapper> mapCoords = new HashMap<>();
+
     private static final List<String> LEVER_LOCATIONS = Arrays.asList("-194,-26,35", "-194,-26,32", "-194,-26,29", "-194,-26,26", "-194,-26,23");
     private static final List<String> REDSTONE_BLOCKS = Arrays.asList(
             "-196,-29,35", "-196,-29,32", "-196,-29,29", "-196,-29,26", "-196,-29,23");
@@ -103,6 +108,8 @@ public class BotcFab implements ModInitializer {
         List<ServerPlayerEntity> players = playerMgr.getPlayerList();
         ServerScoreboard scoreboard = srv.getScoreboard();
         List<String> allTeams = Arrays.asList(TEAMPLAYER, TEAMSTORY, TEAMSPEC);
+
+        //
 
         // Create the various teams
         for (String teamName : allTeams) {
@@ -255,6 +262,13 @@ public class BotcFab implements ModInitializer {
         // Register the botc init command
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("botcinit").executes(this::onGameInit));
+        });
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
+                coords = ImportExcelCoordinates.read(path);
+                return 69;
+            }));
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
