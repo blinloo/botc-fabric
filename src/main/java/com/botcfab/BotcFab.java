@@ -8,6 +8,8 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.LeverBlock;
+import net.minecraft.block.enums.Orientation;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.scoreboard.Team;
@@ -19,6 +21,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.GameMode;
 import org.jetbrains.annotations.NotNull;
 import net.minecraft.state.property.Properties;
@@ -79,6 +82,28 @@ public class BotcFab implements ModInitializer {
         return new BlockPos(converted.get(0), converted.get(1), converted.get(2));
     }
 
+    private void placeLever(ServerWorld world, BlockPos pos, Direction facing, Orientation wallSide) {
+        if (world == null || world.isClient) return;
+
+        LeverBlock lever = (LeverBlock) Blocks.LEVER;
+
+        // Create the desired lever block state
+        var state = lever.getDefaultState()
+                .with(Properties.HORIZONTAL_FACING, facing)
+                .with(Properties.ORIENTATION, wallSide)
+                .with(Properties.POWERED, false); // default off
+
+        // Place it in the world
+        world.setBlockState(pos, state);
+    }
+
+    private void updateDeadPlayer() {
+        //Add tag for dead
+        //Change vote to Ghost vote, block + lantern
+        //Add invisibility
+
+    }
+
     private Team getOrCreateTeam(@NotNull ServerScoreboard scoreboard, String teamName) {
         // Check if the team already exists
         Team team = scoreboard.getTeam(teamName);
@@ -110,9 +135,26 @@ public class BotcFab implements ModInitializer {
         ServerWorld world = context.getSource().getWorld();
         List<String> allTeams = Arrays.asList(TEAMPLAYER, TEAMSTORY, TEAMSPEC);
 
-        // Set all lamps and status markers to default
+        // Loop through all colours in map
         for (String i : mapCoords.keySet()) {
+            // Set all lamps and status markers to default (gold)
             world.setBlockState(mapCoords.get(i).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
+
+            // Set all levers and directions
+            switch (i){
+                case "Black","Cyan","White":
+                    placeLever(world, mapCoords.get(i).lever, Direction.EAST, Orientation.DOWN_EAST);
+                    break;
+                case "Yellow","Pink","Grey":
+                    placeLever(world, mapCoords.get(i).lever, Direction.SOUTH, Orientation.DOWN_SOUTH);
+                    break;
+                case "Orange","Red","Brown":
+                    placeLever(world, mapCoords.get(i).lever, Direction.WEST, Orientation.DOWN_WEST);
+                    break;
+                case "Purple","Green","Blue":
+                    placeLever(world, mapCoords.get(i).lever, Direction.NORTH, Orientation.DOWN_NORTH);
+                    break;
+            }
         }
 
         // Create the various teams
