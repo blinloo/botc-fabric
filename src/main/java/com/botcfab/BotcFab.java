@@ -266,18 +266,19 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = context.getSource();
         src.sendFeedback(() -> Text.literal("converting... "), false);
         ServerWorld world = context.getSource().getWorld();
-        int delayPerBlock = 40; // 4 seconds = 80 ticks
+        int delayPerBlock = 25; // 1 second = 20 ticks
         List<ServerPlayerEntity> players = world.getPlayers();
         src.sendFeedback(() -> Text.literal("Starting redstone removal..."), false);
 
         List<DelayedBlockSetter> taskList = new ArrayList<>();
 
-        for (int i = 0; i < REDSTONE_BLOCKS.size(); i++) {
-            int iteration = i;
-            BlockPos pos = convertLocation(REDSTONE_BLOCKS.get(iteration));
-            int delay = iteration * delayPerBlock;
+        int count = 0;
+        for (String i : mapCoords.keySet()) {
+            BlockPos pos = mapCoords.get(i).triggersLampPiston;
+            int delay = count * delayPerBlock;
 
             taskList.add(new DelayedBlockSetter(world, pos, Blocks.AIR.getDefaultState(), delay));
+            count++;
         }
 
         // Callback after all block removals
