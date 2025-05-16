@@ -47,20 +47,6 @@ public class BotcFab implements ModInitializer {
     private static final List<String> LEVER_LOCATIONS = Arrays.asList("-194,-26,35", "-194,-26,32", "-194,-26,29", "-194,-26,26", "-194,-26,23");
     private static final List<String> REDSTONE_BLOCKS = Arrays.asList(
             "-196,-29,35", "-196,-29,32", "-196,-29,29", "-196,-29,26", "-196,-29,23");
-//    private static final List<String> REDSTONE_BLOCKS = Arrays.asList("2,-32,-8",
-//        "5,-32,-9",
-//        "8,-32,-8",
-//        "11,-32,-5",
-//        "12,-32,-2",
-//        "11,-32,1",
-//        "8,-32,4",
-//        "5,-32,5",
-//        "2,-32,4",
-//        "-1,-32,1",
-//        "-2,-32,-2",
-//        "-1,-32,-5"
-//    );
-    //
     private static final List<String> POSSIBLE_COLOURS = Arrays.asList(
         "Black",
         "Yellow",
@@ -226,30 +212,53 @@ public class BotcFab implements ModInitializer {
     }
 
     private void onWorldTick(ServerWorld world) {
-        // check lever flips for vote function
-        for (int i = 0; i < LEVER_LOCATIONS.size(); i++) {
-            BlockPos leverPos = convertLocation(LEVER_LOCATIONS.get(i)); // Get the BlockPos of the lever
+        for (String i : mapCoords.keySet()) {
+            BlockPos leverPos = mapCoords.get(i).lever; // Get the block state at that position
             BlockState leverState = world.getBlockState(leverPos); // Get the block state at that position
-            // Check if the block at this position is a lever and it's powered
-            if (leverState.isOf(Blocks.LEVER)) {
-                BlockPos redBlock = convertLocation(REDSTONE_BLOCKS.get(i));
-                // Weathered copper bulb is always going to be two blocks above the redstone block
-                BlockPos voteIndicatorPos = redBlock.up(3);
-                BlockState voteIndicatorState = world.getBlockState(voteIndicatorPos);
-                if (voteIndicatorState.contains(Properties.LIT)) {
-                    BlockState updatedBulbState = voteIndicatorState.with(Properties.LIT, leverState.get(Properties.POWERED));
-                    world.setBlockState(voteIndicatorPos, updatedBulbState, 3);
+            // Check if lever powered (true = powered)
+            if (leverState.isOf(Blocks.LEVER)){
+                BlockPos voteLampPos = mapCoords.get(i).lampsVoteMarker;
+                BlockState voteLampState = world.getBlockState(mapCoords.get(i).lampsVoteMarker);
+                //Update lamp state based on lever state
+                if (voteLampState.contains(Properties.LIT)){
+                    BlockState updatedBulbState = voteLampState.with(Properties.LIT, leverState.get(Properties.POWERED));
+                    world.setBlockState(voteLampPos, updatedBulbState, 3);
                 }
-                if (voteIndicatorState.isOf(Blocks.WAXED_OXIDIZED_COPPER) || voteIndicatorState.isOf(Blocks.SEA_LANTERN)) {
+                if (voteLampState.isOf(Blocks.WAXED_OXIDIZED_COPPER) || voteLampState.isOf(Blocks.SEA_LANTERN)) {
                     if (leverState.get(Properties.POWERED)) {
-                        world.setBlockState(voteIndicatorPos, Blocks.SEA_LANTERN.getDefaultState(), 3);
+                        world.setBlockState(voteLampPos, Blocks.SEA_LANTERN.getDefaultState(), 3);
                     } else {
-                        world.setBlockState(voteIndicatorPos, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState(), 3);
+                        world.setBlockState(voteLampPos, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState(), 3);
                     }
                 }
-
             }
         }
+
+
+//        // OLD check lever flips for vote function
+//        for (int i = 0; i < LEVER_LOCATIONS.size(); i++) {
+//            BlockPos leverPos = convertLocation(LEVER_LOCATIONS.get(i)); // Get the block state at that position
+//            BlockState leverState = world.getBlockState(leverPos); // Get the block state at that position
+//            // Check if the block at this position is a lever and it's powered
+//            if (leverState.isOf(Blocks.LEVER)) {
+//                BlockPos redBlock = convertLocation(REDSTONE_BLOCKS.get(i));
+//                // Weathered copper bulb is always going to be two blocks above the redstone block
+//                BlockPos voteIndicatorPos = redBlock.up(3);
+//                BlockState voteIndicatorState = world.getBlockState(voteIndicatorPos);
+//                if (voteIndicatorState.contains(Properties.LIT)) {
+//                    BlockState updatedBulbState = voteIndicatorState.with(Properties.LIT, leverState.get(Properties.POWERED));
+//                    world.setBlockState(voteIndicatorPos, updatedBulbState, 3);
+//                }
+//                if (voteIndicatorState.isOf(Blocks.WAXED_OXIDIZED_COPPER) || voteIndicatorState.isOf(Blocks.SEA_LANTERN)) {
+//                    if (leverState.get(Properties.POWERED)) {
+//                        world.setBlockState(voteIndicatorPos, Blocks.SEA_LANTERN.getDefaultState(), 3);
+//                    } else {
+//                        world.setBlockState(voteIndicatorPos, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState(), 3);
+//                    }
+//                }
+//
+//            }
+//        }
     }
 
     private int onVoteLockIn(CommandContext<ServerCommandSource> context) {
