@@ -21,7 +21,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Colors;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.GameMode;
@@ -31,16 +30,50 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class BotcFab implements ModInitializer {
     public static final String MOD_ID = "botc-fab";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    private static final String TEAMPLAYER = "teamPlayer"; //Replaced with colours for names
-    private static final String TEAMSTORY = "teamStoryteller";
-    private static final String TEAMSPEC = "teamSpectator";
+    private static final String TEAM_STORYTELLER = "teamStoryteller";
+    private static final String TEAM_SPECTATOR = "teamSpectator";
+    private static final String TEAM_BLACK = "01Black";
+    private static final String TEAM_YELLOW = "02Yellow";
+    private static final String TEAM_ORANGE = "03Orange";
+    private static final String TEAM_PINK = "04Pink";
+    private static final String TEAM_RED = "05Red";
+    private static final String TEAM_PURPLE = "06Purple";
+    private static final String TEAM_BROWN = "07Brown";
+    private static final String TEAM_GREEN = "08Green";
+    private static final String TEAM_WHITE = "09White";
+    private static final String TEAM_BLUE = "10Blue";
+    private static final String TEAM_CYAN = "11Cyan";
+    private static final String TEAM_GREY = "12Grey";
+    private static final List<String> TEAM_COLOURS = Arrays.asList(
+            TEAM_BLACK,
+            TEAM_YELLOW,
+            TEAM_ORANGE,
+            TEAM_PINK,
+            TEAM_RED,
+            TEAM_PURPLE,
+            TEAM_BROWN,
+            TEAM_GREEN,
+            TEAM_WHITE,
+            TEAM_BLUE,
+            TEAM_CYAN,
+            TEAM_GREY);
+    //Variable for tag definitions
     private static final String STORYTELLER = "storyteller";
     private static final String PLAYER = "player";
     private static final String SPEC = "spectator";
+    private static final String ALIVE = "alive";
+    private static final String MARKED = "marked";
+    private static final String DEAD = "dead";
+    private static final String GHOST = "ghost";
+    private static final String DEATH_FLAG = "death_flag";
+
+    private static final List<String> ALL_TAGS = Arrays.asList(SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG);
     private final String path = ".\\BOTC-coords-sheet.csv";
 
     //Huge penis of coordinates with ref, eg mapCoords.get("Yellow").ghost
@@ -49,10 +82,7 @@ public class BotcFab implements ModInitializer {
     //Highest vote count
     int highestVote;
 
-    //Only for testing (remove later)
-    private static final List<String> LEVER_LOCATIONS = Arrays.asList("-194,-26,35", "-194,-26,32", "-194,-26,29", "-194,-26,26", "-194,-26,23");
-    private static final List<String> REDSTONE_BLOCKS = Arrays.asList(
-            "-196,-29,35", "-196,-29,32", "-196,-29,29", "-196,-29,26", "-196,-29,23");
+
     private static final List<String> POSSIBLE_COLOURS = Arrays.asList(
         "Black",
         "Yellow",
@@ -116,52 +146,54 @@ public class BotcFab implements ModInitializer {
 
         //Assigns player name colour to teams and display names
         switch (teamName){
-            case "01Black":
-                team.setDisplayName(Text.of("Black"));
+            case TEAM_STORYTELLER,TEAM_SPECTATOR:
+                break;
+            case TEAM_BLACK:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(0))); //Black
                 team.setColor(Formatting.BLACK);
                 break;
-            case "02Yellow":
-                team.setDisplayName(Text.of("Yellow"));
+            case TEAM_YELLOW:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(1))); //Yellow
                 team.setColor(Formatting.YELLOW);
                 break;
-            case "03Orange":
-                team.setDisplayName(Text.of("Orange"));
+            case TEAM_ORANGE:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(2))); //Orange
                 team.setColor(Formatting.GOLD);
                 break;
-            case "04Pink":
-                team.setDisplayName(Text.of("Pink"));
+            case TEAM_PINK:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(3))); //Pink
                 team.setColor(Formatting.LIGHT_PURPLE);
                 break;
-            case "05Red":
-                team.setDisplayName(Text.of("Red"));
+            case TEAM_RED:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(4))); //Red
                 team.setColor(Formatting.RED);
                 break;
-            case "06Purple":
-                team.setDisplayName(Text.of("Purple"));
+            case TEAM_PURPLE:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(5))); //Purple
                 team.setColor(Formatting.DARK_PURPLE);
                 break;
-            case "07Brown":
-                team.setDisplayName(Text.of("Brown"));
+            case TEAM_BROWN:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(6))); //Brown
                 team.setColor(Formatting.DARK_RED);
                 break;
-            case "08Green":
-                team.setDisplayName(Text.of("Green"));
+            case TEAM_GREEN:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(7))); //Green
                 team.setColor(Formatting.DARK_GREEN);
                 break;
-            case "09White":
-                team.setDisplayName(Text.of("White"));
+            case TEAM_WHITE:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(8))); //White
                 team.setColor(Formatting.WHITE);
                 break;
-            case "10Blue":
-                team.setDisplayName(Text.of("Blue"));
+            case TEAM_BLUE:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(9))); //Blue
                 team.setColor(Formatting.BLUE);
                 break;
-            case "11Cyan":
-                team.setDisplayName(Text.of("Cyan"));
+            case TEAM_CYAN:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(10))); //Cyan
                 team.setColor(Formatting.AQUA);
                 break;
-            case "12Grey":
-                team.setDisplayName(Text.of("Grey"));
+            case TEAM_GREY:
+                team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(11))); //Grey
                 team.setColor(Formatting.DARK_GRAY);
                 break;
         }
@@ -169,10 +201,8 @@ public class BotcFab implements ModInitializer {
         return team;
     }
 
-    private void removeAllTags(@NotNull PlayerEntity player) {
-        Set<String> tags = player.getCommandTags();
-
-        for (String tag : tags) {
+    private void resetPlayer(@NotNull PlayerEntity player) { //Removes all game based tags from a player
+        for (String tag : ALL_TAGS) {
             player.removeCommandTag(tag);
         }
     }
@@ -184,7 +214,9 @@ public class BotcFab implements ModInitializer {
         List<ServerPlayerEntity> players = playerMgr.getPlayerList();
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = context.getSource().getWorld();
-        List<String> allTeams = Arrays.asList(TEAMPLAYER, TEAMSTORY, TEAMSPEC);
+        List<String> allTeams = Arrays.asList(TEAM_STORYTELLER, TEAM_SPECTATOR);
+        allTeams.addAll(TEAM_COLOURS); //Adds colour teams to all teams list
+        int startPoint = ThreadLocalRandom.current().nextInt(1, 12 + 1); //Determines start point for colour selection
 
         // Loop through all colours in map
         for (String i : mapCoords.keySet()) {
@@ -208,15 +240,16 @@ public class BotcFab implements ModInitializer {
             }
         }
 
-        // Create the various teams
+        // Create all teams
         for (String teamName : allTeams) {
             getOrCreateTeam(scoreboard, teamName);
         }
 
+
         // Make sure all players have their nametags off
-        for (Team team : scoreboard.getTeams()) {
-            //team.setNameTagVisibilityRule(Team.VisibilityRule.NEVER);
-        }
+//        for (Team team : scoreboard.getTeams()) {
+//            team.setNameTagVisibilityRule(Team.VisibilityRule.NEVER);
+//        }
 
 
         // Gets the person that called the command. Whoever called it is Storyteller
@@ -225,18 +258,19 @@ public class BotcFab implements ModInitializer {
 
         if (storyTeller != null) {
             // Remove all tags before adding new ones
-            removeAllTags(storyTeller);
+            resetPlayer(storyTeller);
             storyTeller.addCommandTag(STORYTELLER);
             src.sendFeedback(() -> Text.literal("Storyteller is: " + storyTeller.getName().getString()), false);
             storyTeller.changeGameMode(GameMode.CREATIVE);
-            scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAMSTORY));
+            scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_STORYTELLER));
         } else {
             src.sendFeedback(() -> Text.literal("Failed to find storyteller. Do not execute this command from the server window"), false);
             return 0;
         }
         System.out.println(players);
+        //storyTeller.setSpawnPoint(world,mapCoords.get());
 
-
+        int currentColourIndex = startPoint;
         // Set everyone else to be a player
         // Remove the storyTeller from the list of players. Remaining list is all players
         players.remove(storyTeller);
@@ -245,12 +279,22 @@ public class BotcFab implements ModInitializer {
             src.sendFeedback(() -> Text.literal("No one online :("), false);
         } else {
             for (ServerPlayerEntity player : players) {
-                removeAllTags(player);
+                resetPlayer(player);
                 player.addCommandTag(PLAYER);
                 player.addCommandTag("alive");
                 player.changeGameMode(GameMode.ADVENTURE);
                 playerMgr.removeFromOperators(player.getGameProfile());
-                scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(TEAMPLAYER));
+
+                //Assign Colours HERE
+                String assignedColour = POSSIBLE_COLOURS.get(currentColourIndex-1);
+                String assignedColourTeam = TEAM_COLOURS.get(currentColourIndex-1);
+                player.addCommandTag(assignedColour);
+                scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(assignedColourTeam));
+
+                if (currentColourIndex == 12)
+                    currentColourIndex = 1;
+                else
+                    currentColourIndex++;
             }
         }
         src.sendFeedback(() -> Text.literal(players.toString()), false);
@@ -270,9 +314,9 @@ public class BotcFab implements ModInitializer {
             return 0;
         }
 
-        removeAllTags(specTarget);
+        resetPlayer(specTarget);
         specTarget.addCommandTag(SPEC);
-        scoreboard.addScoreHolderToTeam(specTarget.getNameForScoreboard(), scoreboard.getTeam(TEAMSPEC));
+        scoreboard.addScoreHolderToTeam(specTarget.getNameForScoreboard(), scoreboard.getTeam(TEAM_SPECTATOR));
         specTarget.changeGameMode(GameMode.SPECTATOR);
         src.sendFeedback(() -> Text.literal("Called /addSpectator with value 1 = %s ".formatted(specName)), false);
         return 1;
