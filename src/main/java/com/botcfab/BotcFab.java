@@ -281,15 +281,16 @@ public class BotcFab implements ModInitializer {
             for (ServerPlayerEntity player : players) {
                 resetPlayer(player);
                 player.addCommandTag(PLAYER);
-                player.addCommandTag("alive");
+                player.addCommandTag(ALIVE);
                 player.changeGameMode(GameMode.ADVENTURE);
                 playerMgr.removeFromOperators(player.getGameProfile());
 
                 //Assign Colours HERE
                 String assignedColour = POSSIBLE_COLOURS.get(currentColourIndex-1);
                 String assignedColourTeam = TEAM_COLOURS.get(currentColourIndex-1);
-                player.addCommandTag(assignedColour);
-                scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(assignedColourTeam));
+                player.addCommandTag(assignedColour); //Add colour tag to player
+                scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(assignedColourTeam)); //Add player to colour team
+                player.setSpawnPoint(world.getRegistryKey(),mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
 
                 if (currentColourIndex == 12)
                     currentColourIndex = 1;
