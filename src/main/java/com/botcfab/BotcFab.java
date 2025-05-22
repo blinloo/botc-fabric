@@ -20,6 +20,8 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Colors;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.GameMode;
@@ -33,7 +35,7 @@ import java.util.*;
 public class BotcFab implements ModInitializer {
     public static final String MOD_ID = "botc-fab";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    private static final String TEAMPLAYER = "teamPlayer";
+    private static final String TEAMPLAYER = "teamPlayer"; //Replaced with colours for names
     private static final String TEAMSTORY = "teamStoryteller";
     private static final String TEAMSPEC = "teamSpectator";
     private static final String STORYTELLER = "storyteller";
@@ -44,6 +46,10 @@ public class BotcFab implements ModInitializer {
     //Huge penis of coordinates with ref, eg mapCoords.get("Yellow").ghost
     Map<String, CoordinateMapper> mapCoords = new HashMap<>();
 
+    //Highest vote count
+    int highestVote;
+
+    //Only for testing (remove later)
     private static final List<String> LEVER_LOCATIONS = Arrays.asList("-194,-26,35", "-194,-26,32", "-194,-26,29", "-194,-26,26", "-194,-26,23");
     private static final List<String> REDSTONE_BLOCKS = Arrays.asList(
             "-196,-29,35", "-196,-29,32", "-196,-29,29", "-196,-29,26", "-196,-29,23");
@@ -60,6 +66,7 @@ public class BotcFab implements ModInitializer {
         "Blue",
         "Cyan",
         "Grey");
+
     private BlockPos convertLocation(String coords) {
         List<Integer> converted = new ArrayList<>();
         for (String s : coords.split(",")) {
@@ -90,8 +97,14 @@ public class BotcFab implements ModInitializer {
 
     }
 
+    private void removeGhostVote(ServerWorld world, String playerColour){
+        world.setBlockState((mapCoords.get(playerColour).lampsVoteMarker).down(1), Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
+        world.setBlockState(mapCoords.get(playerColour).lever, Blocks.AIR.getDefaultState()); //Remove lever
+        world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.COAL_BLOCK.getDefaultState()); //Set player indicator to charcoal
+    }
+
     private Team getOrCreateTeam(@NotNull ServerScoreboard scoreboard, String teamName) {
-        // Check if the team already exists
+        // Check if the team already exists. Should only need to run once per server
         Team team = scoreboard.getTeam(teamName);
         if (team == null) {
             // Create the team if it doesn't exist
@@ -99,6 +112,58 @@ public class BotcFab implements ModInitializer {
             System.out.println("Created new team: " + teamName);
         } else {
             System.out.println("Team already exists: " + teamName);
+        }
+
+        //Assigns player name colour to teams and display names
+        switch (teamName){
+            case "01Black":
+                team.setDisplayName(Text.of("Black"));
+                team.setColor(Formatting.BLACK);
+                break;
+            case "02Yellow":
+                team.setDisplayName(Text.of("Yellow"));
+                team.setColor(Formatting.YELLOW);
+                break;
+            case "03Orange":
+                team.setDisplayName(Text.of("Orange"));
+                team.setColor(Formatting.GOLD);
+                break;
+            case "04Pink":
+                team.setDisplayName(Text.of("Pink"));
+                team.setColor(Formatting.LIGHT_PURPLE);
+                break;
+            case "05Red":
+                team.setDisplayName(Text.of("Red"));
+                team.setColor(Formatting.RED);
+                break;
+            case "06Purple":
+                team.setDisplayName(Text.of("Purple"));
+                team.setColor(Formatting.DARK_PURPLE);
+                break;
+            case "07Brown":
+                team.setDisplayName(Text.of("Brown"));
+                team.setColor(Formatting.DARK_RED);
+                break;
+            case "08Green":
+                team.setDisplayName(Text.of("Green"));
+                team.setColor(Formatting.DARK_GREEN);
+                break;
+            case "09White":
+                team.setDisplayName(Text.of("White"));
+                team.setColor(Formatting.WHITE);
+                break;
+            case "10Blue":
+                team.setDisplayName(Text.of("Blue"));
+                team.setColor(Formatting.BLUE);
+                break;
+            case "11Cyan":
+                team.setDisplayName(Text.of("Cyan"));
+                team.setColor(Formatting.AQUA);
+                break;
+            case "12Grey":
+                team.setDisplayName(Text.of("Grey"));
+                team.setColor(Formatting.DARK_GRAY);
+                break;
         }
 
         return team;
@@ -150,11 +215,12 @@ public class BotcFab implements ModInitializer {
 
         // Make sure all players have their nametags off
         for (Team team : scoreboard.getTeams()) {
-            team.setNameTagVisibilityRule(Team.VisibilityRule.NEVER);
+            //team.setNameTagVisibilityRule(Team.VisibilityRule.NEVER);
         }
 
 
         // Gets the person that called the command. Whoever called it is Storyteller
+            //Maybe should define this variable at the start for ref?
         ServerPlayerEntity storyTeller = src.getPlayer();
 
         if (storyTeller != null) {
@@ -187,6 +253,7 @@ public class BotcFab implements ModInitializer {
                 scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(TEAMPLAYER));
             }
         }
+        src.sendFeedback(() -> Text.literal(players.toString()), false);
         return 1;
     }
 
@@ -272,35 +339,49 @@ public class BotcFab implements ModInitializer {
 
         List<DelayedBlockSetter> taskList = new ArrayList<>();
 
+        int ghostCount = 0;
+        int aliveCount = 0;
         int count = 0;
         for (String i : mapCoords.keySet()) {
             BlockPos pos = mapCoords.get(i).triggersLampPiston;
-            int delay = count * delayPerBlock;
+            BlockPos lockedVote = pos.up(2); //Position of locked in vote lamp
 
-            taskList.add(new DelayedBlockSetter(world, pos, Blocks.AIR.getDefaultState(), delay));
+            int delay = count * delayPerBlock; //Add delay between vote locks
+            taskList.add(new DelayedBlockSetter(world, pos, Blocks.AIR.getDefaultState(), delay)); //Set redstone block to air
+
+            BlockState lockedVoteState = world.getBlockState(lockedVote);
+            if (lockedVoteState.getBlock() == Blocks.WAXED_COPPER_BULB && lockedVoteState.get(Properties.LIT)){
+                aliveCount++;
+            } else if (lockedVoteState.getBlock() == Blocks.SEA_LANTERN) {
+                ghostCount++;
+                //Disable ghost vote code
+                removeGhostVote(world,i);
+
+            }
+
             count++;
         }
 
         // Callback after all block removals
-        Runnable onAllDone = () -> {
-            src.sendFeedback(() -> Text.literal("Starting count..."), false);
-            int ghostCount = 0;
-            int aliveCount = 0;
-            for (String coord : REDSTONE_BLOCKS) {
-                BlockPos base = convertLocation(coord);
-                BlockPos above = base.up(2); // 2 blocks above
-                BlockState aboveState = world.getBlockState(above);
-                if (aboveState.getBlock() == Blocks.WAXED_COPPER_BULB && aboveState.get(Properties.LIT)){
-                    aliveCount++;
-                } else if (aboveState.getBlock() == Blocks.SEA_LANTERN) {
-                    ghostCount++;
-                }
-            }
-            int countable = ghostCount;
-            int count2 = aliveCount;
-            src.sendFeedback(() -> Text.literal("Ghost:" + countable + "| alive:" + count2), false);
-        };
-        TickScheduler.scheduleGroup(taskList, onAllDone);
+//        Runnable onAllDone = () -> {
+//            src.sendFeedback(() -> Text.literal("Starting count..."), false);
+//            int ghostCount = 0;
+//            int aliveCount = 0;
+//            for (String coord : REDSTONE_BLOCKS) {
+//                BlockPos base = convertLocation(coord);
+//                BlockPos above = base.up(2); // 2 blocks above
+//                BlockState aboveState = world.getBlockState(above);
+//                if (aboveState.getBlock() == Blocks.WAXED_COPPER_BULB && aboveState.get(Properties.LIT)){
+//                    aliveCount++;
+//                } else if (aboveState.getBlock() == Blocks.SEA_LANTERN) {
+//                    ghostCount++;
+//                }
+//            }
+//            int countable = ghostCount;
+//            int count2 = aliveCount;
+//            src.sendFeedback(() -> Text.literal("Ghost:" + countable + "| alive:" + count2), false);
+//        };
+//        TickScheduler.scheduleGroup(taskList, onAllDone);
 
 
         return 1;
