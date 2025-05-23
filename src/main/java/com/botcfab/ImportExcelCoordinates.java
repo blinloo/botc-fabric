@@ -35,14 +35,15 @@ public class ImportExcelCoordinates {
                 if (colour != null && !colour.isBlank()) {
                     mc.put(colour, new CoordinateMapper(
                             rowValues.get(1), rowValues.get(2), rowValues.get(3), rowValues.get(4), rowValues.get(5),
-                            rowValues.get(6), rowValues.get(7), rowValues.get(8), rowValues.get(9), rowValues.get(10), rowValues.get(11)
+                            rowValues.get(6), rowValues.get(7), rowValues.get(8), rowValues.get(9)
                     ));
                 }
             }
             return mc;
         }
         catch (IOException e) {
-            return null;
+            LOGGER.info(e.toString());
+            return mc;
         }
     }
 }

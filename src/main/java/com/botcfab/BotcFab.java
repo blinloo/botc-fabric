@@ -6,9 +6,9 @@ import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.LeverBlock;
+import net.minecraft.block.*;
+import net.minecraft.block.entity.SignBlockEntity;
+import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.Orientation;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.scoreboard.ServerScoreboard;
@@ -20,6 +20,7 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -120,6 +121,30 @@ public class BotcFab implements ModInitializer {
         world.setBlockState(pos, state);
     }
 
+    private void placeSign(ServerWorld world, BlockPos pos, Direction facing, Text text) {
+        if (world == null || world.isClient) return;
+
+        //WallSignBlock sign = (WallSignBlock) Blocks.SPRUCE_WALL_SIGN;
+
+        // Place a spruce wall sign facing NORTH (attached to the SOUTH side of a block)
+        world.setBlockState(pos, Blocks.SPRUCE_WALL_SIGN.getDefaultState()
+                .with(Properties.HORIZONTAL_FACING, facing));
+
+        SignText formatText = new SignText();
+        //Sets text to sign format and makes it glow.
+        formatText.withMessage(1,text); //Adds text to sign, line 2, usually player name
+        formatText.withGlowing(true); //Sets text to glowing
+        formatText.withColor(DyeColor.valueOf(text.toString()));
+
+        // Access the block entity and set the text on the second line
+        if (world.getBlockEntity(pos) instanceof SignBlockEntity signBlockEntity) {
+            signBlockEntity.setText(formatText,true);
+            signBlockEntity.setWaxed(true);
+            signBlockEntity.markDirty();
+            world.updateListeners(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
+        }
+    }
+
     private void updateDeadPlayer() {
         //Add tag for dead
         //Change vote to Ghost vote, block + lantern
@@ -133,7 +158,7 @@ public class BotcFab implements ModInitializer {
         world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.COAL_BLOCK.getDefaultState()); //Set player indicator to charcoal
     }
 
-    private Team getOrCreateTeam(@NotNull ServerScoreboard scoreboard, String teamName) {
+    private Team createTeam(@NotNull ServerScoreboard scoreboard, String teamName) {
         // Check if the team already exists. Should only need to run once per server
         Team team = scoreboard.getTeam(teamName);
         if (team == null) {
@@ -207,7 +232,36 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private int onGameInit(CommandContext<ServerCommandSource> context) {
+    private int onGameInit(CommandContext<ServerCommandSource> context) { //Run this on server startup, players do not need to be connected
+        ServerCommandSource src = context.getSource();
+        MinecraftServer srv = src.getServer();
+        PlayerManager playerMgr = srv.getPlayerManager();
+        List<ServerPlayerEntity> players = playerMgr.getPlayerList();
+        ServerScoreboard scoreboard = srv.getScoreboard();
+        ServerWorld world = context.getSource().getWorld();
+        List<String> allTeams = new ArrayList<>(Arrays.asList(TEAM_STORYTELLER, TEAM_SPECTATOR));
+        allTeams.addAll(TEAM_COLOURS); //Adds colour teams to all teams list
+
+        System.out.println("INITIALISED");
+        src.sendFeedback(() -> Text.literal("Starting initialise code now"), false);
+
+        // Create all teams
+        for (String teamName : allTeams) {
+            createTeam(scoreboard, teamName);
+        }
+
+        // Loop through all colours in map
+        for (String i : mapCoords.keySet()) {
+            // Set all lamps and status markers to coal and levers to air
+            world.setBlockState(mapCoords.get(i).blockUnderLever, Blocks.COAL_BLOCK.getDefaultState());
+            world.setBlockState(mapCoords.get(i).lever, Blocks.AIR.getDefaultState());
+        }
+
+        src.sendFeedback(() -> Text.literal("Finished"), false);
+        return 1;
+    }
+
+    private int setupGame(CommandContext<ServerCommandSource> context) {
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
@@ -217,49 +271,17 @@ public class BotcFab implements ModInitializer {
         List<String> allTeams = Arrays.asList(TEAM_STORYTELLER, TEAM_SPECTATOR);
         allTeams.addAll(TEAM_COLOURS); //Adds colour teams to all teams list
         int startPoint = ThreadLocalRandom.current().nextInt(1, 12 + 1); //Determines start point for colour selection
+        ServerPlayerEntity storyTeller = src.getPlayer(); // Gets the person that called the command. Whoever called it is Storyteller
 
-        // Loop through all colours in map
-        for (String i : mapCoords.keySet()) {
-            // Set all lamps and status markers to default (gold)
-            world.setBlockState(mapCoords.get(i).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
-
-            // Set all levers and directions
-            switch (i){
-                case "Black","Cyan","White":
-                    placeLever(world, mapCoords.get(i).lever, Direction.EAST, Orientation.DOWN_EAST);
-                    break;
-                case "Yellow","Pink","Grey":
-                    placeLever(world, mapCoords.get(i).lever, Direction.SOUTH, Orientation.DOWN_SOUTH);
-                    break;
-                case "Orange","Red","Brown":
-                    placeLever(world, mapCoords.get(i).lever, Direction.WEST, Orientation.DOWN_WEST);
-                    break;
-                case "Purple","Green","Blue":
-                    placeLever(world, mapCoords.get(i).lever, Direction.NORTH, Orientation.DOWN_NORTH);
-                    break;
-            }
-        }
-
-        // Create all teams
-        for (String teamName : allTeams) {
-            getOrCreateTeam(scoreboard, teamName);
-        }
-
-
-        // Make sure all players have their nametags off
-//        for (Team team : scoreboard.getTeams()) {
-//            team.setNameTagVisibilityRule(Team.VisibilityRule.NEVER);
-//        }
-
-
-        // Gets the person that called the command. Whoever called it is Storyteller
-            //Maybe should define this variable at the start for ref?
-        ServerPlayerEntity storyTeller = src.getPlayer();
+        // Set everyone else to be a player
+        // Remove the storyTeller from the list of players. Remaining list is all players
+        players.remove(storyTeller);
+        System.out.println(players);
 
         if (storyTeller != null) {
             // Remove all tags before adding new ones
             resetPlayer(storyTeller);
-            storyTeller.addCommandTag(STORYTELLER);
+            storyTeller.addCommandTag(STORYTELLER); //Add tag for story teller
             src.sendFeedback(() -> Text.literal("Storyteller is: " + storyTeller.getName().getString()), false);
             storyTeller.changeGameMode(GameMode.CREATIVE);
             scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_STORYTELLER));
@@ -268,13 +290,11 @@ public class BotcFab implements ModInitializer {
             return 0;
         }
         System.out.println(players);
+
         //storyTeller.setSpawnPoint(world,mapCoords.get());
 
+        // Assign colours to players
         int currentColourIndex = startPoint;
-        // Set everyone else to be a player
-        // Remove the storyTeller from the list of players. Remaining list is all players
-        players.remove(storyTeller);
-        System.out.println(players);
         if (players.isEmpty()) {
             src.sendFeedback(() -> Text.literal("No one online :("), false);
         } else {
@@ -292,6 +312,27 @@ public class BotcFab implements ModInitializer {
                 scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(assignedColourTeam)); //Add player to colour team
                 player.setSpawnPoint(world.getRegistryKey(),mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
 
+                world.setBlockState(mapCoords.get(assignedColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
+                //Places lever for player (adding signs
+                switch (assignedColour) {
+                    case "Black", "Cyan", "White":
+                        placeLever(world, mapCoords.get(assignedColour).lever, Direction.EAST, Orientation.DOWN_EAST);
+                        placeSign(world, mapCoords.get(assignedColour).chair, Direction.WEST, player.getName());
+                        break;
+                    case "Yellow", "Pink", "Grey":
+                        placeLever(world, mapCoords.get(assignedColour).lever, Direction.SOUTH, Orientation.DOWN_SOUTH);
+                        placeSign(world, mapCoords.get(assignedColour).chair, Direction.NORTH, player.getName());
+                        break;
+                    case "Orange", "Red", "Brown":
+                        placeLever(world, mapCoords.get(assignedColour).lever, Direction.WEST, Orientation.DOWN_WEST);
+                        placeSign(world, mapCoords.get(assignedColour).chair, Direction.EAST, player.getName());
+                        break;
+                    case "Purple", "Green", "Blue":
+                        placeLever(world, mapCoords.get(assignedColour).lever, Direction.NORTH, Orientation.DOWN_NORTH);
+                        placeSign(world, mapCoords.get(assignedColour).chair, Direction.SOUTH, player.getName());
+                        break;
+                }
+
                 if (currentColourIndex == 12)
                     currentColourIndex = 1;
                 else
@@ -299,6 +340,10 @@ public class BotcFab implements ModInitializer {
             }
         }
         src.sendFeedback(() -> Text.literal(players.toString()), false);
+
+        // Set player spawn points
+
+
         return 1;
     }
 
@@ -441,15 +486,21 @@ public class BotcFab implements ModInitializer {
         LOGGER.info("Hello Fabric world!");
         ServerTickEvents.END_WORLD_TICK.register((ServerWorld world) -> onWorldTick(world));
         TickScheduler.register();
+
+        //Register commands
         // Register the botc init command
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("botcinit").executes(this::onGameInit));
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(CommandManager.literal("setupGame").executes(this::setupGame));
+        });
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
                 mapCoords = ImportExcelCoordinates.read(path);
-                return 69;
+                return 1;
             }));
         });
 
@@ -465,7 +516,7 @@ public class BotcFab implements ModInitializer {
             dispatcher.register(CommandManager.literal("voteLockIn").executes(context -> {
                         context.getSource().sendFeedback(() -> Text.literal("Calling /onVoteLockIn."), false);
                         onVoteLockIn(context);
-                        context.getSource().sendFeedback(() -> Text.literal("Called /onVoteLockIn."), false);
+                        context.getSource().sendFeedback(() -> Text.literal("Completed /onVoteLockIn."), false);
                         return 1;
                     }
             ));
