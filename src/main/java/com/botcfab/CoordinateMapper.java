@@ -11,12 +11,11 @@ public class CoordinateMapper {
     public BlockPos triggersLampPiston;
     public BlockPos chair;
     public BlockPos sign;
-    public BlockPos clonePoint;
     public BlockPos homeOutside;
     public BlockPos homeInside;
 
     public CoordinateMapper(String blockUnderLever, String lever, String lampsVoteMarker,
-                            String triggersLampPiston, String chair, String sign, String clonePoint, String homeOutside, String homeInside) {
+                            String triggersLampPiston, String chair, String sign, String homeOutside, String homeInside) {
 
         this.blockUnderLever = convertBlockPos(blockUnderLever);
         this.lever = convertBlockPos(lever);
@@ -24,7 +23,6 @@ public class CoordinateMapper {
         this.triggersLampPiston = convertBlockPos(triggersLampPiston);
         this.chair = convertBlockPos(chair);
         this.sign = convertBlockPos(sign);
-        this.clonePoint = convertBlockPos(clonePoint);
         this.homeOutside = convertBlockPos(homeOutside);
         this.homeInside = convertBlockPos(homeInside);
     }

@@ -75,7 +75,8 @@ public class BotcFab implements ModInitializer {
     private static final String DEATH_FLAG = "death_flag";
 
     private static final List<String> ALL_TAGS = Arrays.asList(SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG);
-    private final String path = ".\\BOTC-coords-sheet.csv";
+    //private final String path = ".\\BOTC-coords-sheet.csv"; //Attempt to give standard file path
+    private final String path = "C:\\Users\\Ruby\\IdeaProjects\\botc-fabric\\BOTC-coords-sheet.csv"; //Absolute file path
 
     //Huge penis of coordinates with ref, eg mapCoords.get("Yellow").ghost
     Map<String, CoordinateMapper> mapCoords = new HashMap<>();
@@ -252,8 +253,8 @@ public class BotcFab implements ModInitializer {
 
         // Loop through all colours in map
         for (String i : mapCoords.keySet()) {
-            // Set all lamps and status markers to coal and levers to air
-            world.setBlockState(mapCoords.get(i).blockUnderLever, Blocks.COAL_BLOCK.getDefaultState());
+            // Set all lamps and status markers to netherite and levers to air
+            world.setBlockState(mapCoords.get(i).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState());
             world.setBlockState(mapCoords.get(i).lever, Blocks.AIR.getDefaultState());
         }
 
