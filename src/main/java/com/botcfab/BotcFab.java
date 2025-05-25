@@ -124,7 +124,7 @@ public class BotcFab implements ModInitializer {
                 return i;
             }
         }
-        return "ERROR";
+        return "None";
     }
 
     private void placeLever(ServerWorld world, BlockPos pos, Direction facing, Orientation wallSide) {
@@ -166,11 +166,11 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private void updateDeadPlayer(ServerWorld world, String playerColour) {
+    private void updateDeadPlayer(ServerWorld world, ServerPlayerEntity player) {
         //Add tag for dead
         //Change vote to Ghost vote, block + lantern
         //Add invisibility
-
+        player.addCommandTag(GHOST);
     }
 
     private void removeGhostVote(ServerWorld world, String playerColour){
@@ -200,7 +200,7 @@ public class BotcFab implements ModInitializer {
 
     }
 
-    private Team createTeam(@NotNull ServerScoreboard scoreboard, String teamName) {
+    private void createTeam(@NotNull ServerScoreboard scoreboard, String teamName) {
         // Check if the team already exists. Should only need to run once per server
         Team team = scoreboard.getTeam(teamName);
         if (team == null) {
@@ -264,8 +264,6 @@ public class BotcFab implements ModInitializer {
                 team.setColor(Formatting.DARK_GRAY);
                 break;
         }
-
-        return team;
     }
 
     private void resetPlayer(@NotNull PlayerEntity player) { //Removes all game based tags from a player
