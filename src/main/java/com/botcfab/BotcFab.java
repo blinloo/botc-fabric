@@ -74,32 +74,29 @@ public class BotcFab implements ModInitializer {
     private static final String GHOST = "ghost";
     private static final String DEATH_FLAG = "death_flag";
     private static final String ACCUSED = "accused";
+    private static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,ACCUSED);
 
-    private static final List<String> ALL_TAGS = Arrays.asList(SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG);
+    private static final List<String> POSSIBLE_COLOURS = Arrays.asList(
+            "Black",
+            "Yellow",
+            "Orange",
+            "Pink",
+            "Red",
+            "Purple",
+            "Brown",
+            "Green",
+            "White",
+            "Blue",
+            "Cyan",
+            "Grey");
     //private final String path = ".\\BOTC-coords-sheet.csv"; //Attempt to give standard file path
     private final String path = "C:\\Users\\Ruby\\IdeaProjects\\botc-fabric\\BOTC-coords-sheet.csv"; //Absolute file path
 
-    //Huge penis of coordinates with ref, eg mapCoords.get("Yellow").ghost
+    //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
     Map<String, CoordinateMapper> mapCoords = new HashMap<>();
     List<ServerPlayerEntity> players;
-
     //Highest vote count
     int highestVote;
-
-
-    private static final List<String> POSSIBLE_COLOURS = Arrays.asList(
-        "Black",
-        "Yellow",
-        "Orange",
-        "Pink",
-        "Red",
-        "Purple",
-        "Brown",
-        "Green",
-        "White",
-        "Blue",
-        "Cyan",
-        "Grey");
 
     private BlockPos convertLocation(String coords) {
         List<Integer> converted = new ArrayList<>();
@@ -109,14 +106,6 @@ public class BotcFab implements ModInitializer {
         return new BlockPos(converted.get(0), converted.get(1), converted.get(2));
     }
 
-    private boolean findTag(String search, Set<String> tags){
-        for (String i : tags){
-            if (i.equals(search)){
-                return true;
-            }
-        }
-        return false;
-    }
 
     private String getPlayerColour(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
@@ -185,20 +174,19 @@ public class BotcFab implements ModInitializer {
         Set<String> tags = player.getCommandTags();
         String playerColour = getPlayerColour(player);
         //Replace lamps
-        if (findTag(ALIVE,tags)){
+        if (tags.contains(ALIVE)){
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
             world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_COPPER_BULB.getDefaultState());
         }
-        if (findTag(GHOST,tags)){
+        if (tags.contains(GHOST)){
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.IRON_BLOCK.getDefaultState());
             world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState());
         }
-        if (findTag(DEAD,tags)){
+        if (tags.contains(DEAD)){
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState());
             world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState());
             world.setBlockState(mapCoords.get(playerColour).lever, Blocks.AIR.getDefaultState());
         }
-
     }
 
     private void createTeam(@NotNull ServerScoreboard scoreboard, String teamName) {
@@ -333,6 +321,28 @@ public class BotcFab implements ModInitializer {
         }
         System.out.println(players);
 
+        List<ServerPlayerEntity> spectators = null;
+        for (ServerPlayerEntity p : players){
+            Set<String> tags = p.getCommandTags();
+            if (tags.contains(SPEC)) {
+                p.changeGameMode(GameMode.SPECTATOR);
+
+                players.remove(p);
+            }
+        }
+
+        if (spectators != null) {
+            // Remove all tags before adding new ones
+            resetPlayer(storyTeller);
+            storyTeller.addCommandTag(STORYTELLER); //Add tag for story teller
+            src.sendFeedback(() -> Text.literal("Storyteller is: " + storyTeller.getName().getString()), false);
+            storyTeller.changeGameMode(GameMode.CREATIVE);
+            scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_STORYTELLER));
+        } else {
+            src.sendFeedback(() -> Text.literal("Failed to find storyteller. Do not execute this command from the server window"), false);
+            return 0;
+        }
+
         //storyTeller.setSpawnPoint(world,mapCoords.get());
 
         // Assign colours to players
@@ -355,7 +365,7 @@ public class BotcFab implements ModInitializer {
                 player.setSpawnPoint(world.getRegistryKey(),mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
 
                 world.setBlockState(mapCoords.get(assignedColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
-                //Places lever for player (adding signs)
+                //Places lever for player and add signs)
                 switch (assignedColour) {
                     case "Black", "Cyan", "White":
                         placeLever(world, mapCoords.get(assignedColour).lever, Direction.EAST, Orientation.DOWN_EAST);
@@ -383,9 +393,6 @@ public class BotcFab implements ModInitializer {
         }
         src.sendFeedback(() -> Text.literal(players.toString()), false);
 
-        // Set player spawn points
-
-
         return 1;
     }
 
@@ -393,7 +400,7 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
-        String specName = StringArgumentType.getString(context, "specName");
+        String specName = StringArgumentType.getString(context, "specName"); //Gets spectator player name from command
         ServerPlayerEntity specTarget = playerMgr.getPlayer(specName);
         ServerScoreboard scoreboard = srv.getScoreboard();
         if (specTarget == null) {
@@ -406,6 +413,8 @@ public class BotcFab implements ModInitializer {
         specTarget.addCommandTag(SPEC);
         scoreboard.addScoreHolderToTeam(specTarget.getNameForScoreboard(), scoreboard.getTeam(TEAM_SPECTATOR));
         specTarget.changeGameMode(GameMode.SPECTATOR);
+        players.remove(specTarget);
+
         src.sendFeedback(() -> Text.literal("Called /addSpectator with value 1 = %s ".formatted(specName)), false);
         return 1;
     }
@@ -460,7 +469,7 @@ public class BotcFab implements ModInitializer {
 
         for (ServerPlayerEntity p : players){
             Set<String> tags = p.getCommandTags();
-            if (findTag(ACCUSED,tags)){
+            if (tags.contains(ACCUSED)){
                 //Mark starting position for vote lock in
             }
         }
