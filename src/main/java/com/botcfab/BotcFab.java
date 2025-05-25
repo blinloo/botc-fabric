@@ -73,6 +73,7 @@ public class BotcFab implements ModInitializer {
     private static final String DEAD = "dead";
     private static final String GHOST = "ghost";
     private static final String DEATH_FLAG = "death_flag";
+    private static final String ACCUSED = "accused";
 
     private static final List<String> ALL_TAGS = Arrays.asList(SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG);
     //private final String path = ".\\BOTC-coords-sheet.csv"; //Attempt to give standard file path
