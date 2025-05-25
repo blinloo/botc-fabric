@@ -80,6 +80,7 @@ public class BotcFab implements ModInitializer {
 
     //Huge penis of coordinates with ref, eg mapCoords.get("Yellow").ghost
     Map<String, CoordinateMapper> mapCoords = new HashMap<>();
+    List<ServerPlayerEntity> players;
 
     //Highest vote count
     int highestVote;
@@ -105,6 +106,25 @@ public class BotcFab implements ModInitializer {
             converted.add(Integer.parseInt(s));
         }
         return new BlockPos(converted.get(0), converted.get(1), converted.get(2));
+    }
+
+    private boolean findTag(String search, Set<String> tags){
+        for (String i : tags){
+            if (i.equals(search)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String getPlayerColour(ServerPlayerEntity player){
+        Set<String> tags = player.getCommandTags();
+        for (String i : POSSIBLE_COLOURS){
+            if (tags.contains(i)){
+                return i;
+            }
+        }
+        return "ERROR";
     }
 
     private void placeLever(ServerWorld world, BlockPos pos, Direction facing, Orientation wallSide) {
@@ -146,7 +166,7 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private void updateDeadPlayer() {
+    private void updateDeadPlayer(ServerWorld world, String playerColour) {
         //Add tag for dead
         //Change vote to Ghost vote, block + lantern
         //Add invisibility
@@ -156,7 +176,25 @@ public class BotcFab implements ModInitializer {
     private void removeGhostVote(ServerWorld world, String playerColour){
         world.setBlockState((mapCoords.get(playerColour).lampsVoteMarker).down(1), Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
         world.setBlockState(mapCoords.get(playerColour).lever, Blocks.AIR.getDefaultState()); //Remove lever
-        world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.COAL_BLOCK.getDefaultState()); //Set player indicator to charcoal
+        world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to charcoal
+    }
+
+    private void updateVoteStatus(ServerWorld world, ServerPlayerEntity player){
+        //Update vote marker and lamp for all players by checking tags
+        Set<String> tags = player.getCommandTags();
+        String playerColour = getPlayerColour(player);
+        //Replace lamps
+        if (findTag(ALIVE,tags)){
+            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
+            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
+        }
+        if (findTag(GHOST,tags)){
+            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.IRON_BLOCK.getDefaultState());
+        }
+        if (findTag(DEAD,tags)){
+            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState());
+        }
+
     }
 
     private Team createTeam(@NotNull ServerScoreboard scoreboard, String teamName) {
@@ -237,7 +275,7 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
-        List<ServerPlayerEntity> players = playerMgr.getPlayerList();
+        players = playerMgr.getPlayerList();
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = context.getSource().getWorld();
         List<String> allTeams = new ArrayList<>(Arrays.asList(TEAM_STORYTELLER, TEAM_SPECTATOR));
@@ -256,6 +294,7 @@ public class BotcFab implements ModInitializer {
             // Set all lamps and status markers to netherite and levers to air
             world.setBlockState(mapCoords.get(i).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState());
             world.setBlockState(mapCoords.get(i).lever, Blocks.AIR.getDefaultState());
+            world.setBlockState(mapCoords.get(i).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState());
         }
 
         src.sendFeedback(() -> Text.literal("Finished"), false);
@@ -266,7 +305,7 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
-        List<ServerPlayerEntity> players = playerMgr.getPlayerList();
+        players = playerMgr.getPlayerList();
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = context.getSource().getWorld();
         List<String> allTeams = Arrays.asList(TEAM_STORYTELLER, TEAM_SPECTATOR);
@@ -314,7 +353,7 @@ public class BotcFab implements ModInitializer {
                 player.setSpawnPoint(world.getRegistryKey(),mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
 
                 world.setBlockState(mapCoords.get(assignedColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
-                //Places lever for player (adding signs
+                //Places lever for player (adding signs)
                 switch (assignedColour) {
                     case "Black", "Cyan", "White":
                         placeLever(world, mapCoords.get(assignedColour).lever, Direction.EAST, Orientation.DOWN_EAST);
@@ -391,32 +430,19 @@ public class BotcFab implements ModInitializer {
                 }
             }
         }
+    }
 
+    private void endDay(ServerWorld world){
+        world.setTimeOfDay(18000L);
+    }
 
-//        // OLD check lever flips for vote function
-//        for (int i = 0; i < LEVER_LOCATIONS.size(); i++) {
-//            BlockPos leverPos = convertLocation(LEVER_LOCATIONS.get(i)); // Get the block state at that position
-//            BlockState leverState = world.getBlockState(leverPos); // Get the block state at that position
-//            // Check if the block at this position is a lever and it's powered
-//            if (leverState.isOf(Blocks.LEVER)) {
-//                BlockPos redBlock = convertLocation(REDSTONE_BLOCKS.get(i));
-//                // Weathered copper bulb is always going to be two blocks above the redstone block
-//                BlockPos voteIndicatorPos = redBlock.up(3);
-//                BlockState voteIndicatorState = world.getBlockState(voteIndicatorPos);
-//                if (voteIndicatorState.contains(Properties.LIT)) {
-//                    BlockState updatedBulbState = voteIndicatorState.with(Properties.LIT, leverState.get(Properties.POWERED));
-//                    world.setBlockState(voteIndicatorPos, updatedBulbState, 3);
-//                }
-//                if (voteIndicatorState.isOf(Blocks.WAXED_OXIDIZED_COPPER) || voteIndicatorState.isOf(Blocks.SEA_LANTERN)) {
-//                    if (leverState.get(Properties.POWERED)) {
-//                        world.setBlockState(voteIndicatorPos, Blocks.SEA_LANTERN.getDefaultState(), 3);
-//                    } else {
-//                        world.setBlockState(voteIndicatorPos, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState(), 3);
-//                    }
-//                }
-//
-//            }
-//        }
+    private void startDay(CommandContext<ServerCommandSource> context,ServerWorld world){
+        ServerCommandSource src = context.getSource();
+        world.setTimeOfDay(0L);
+        for (ServerPlayerEntity p : players){
+            updateVoteStatus(world,p);
+        }
+        src.sendFeedback(() -> Text.literal("The sun rises \\nPlease head to the town square"), false);
     }
 
     private int onVoteLockIn(CommandContext<ServerCommandSource> context) {
