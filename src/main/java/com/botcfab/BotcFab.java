@@ -107,14 +107,24 @@ public class BotcFab implements ModInitializer {
     }
 
 
-    private String getPlayerColour(ServerPlayerEntity player){
+    private String getColourFromPlayer(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
         for (String i : POSSIBLE_COLOURS){
             if (tags.contains(i)){
                 return i;
             }
         }
-        return "None";
+        return "";
+    }
+
+    private ServerPlayerEntity getPlayerFromColour(String colour){
+        for (ServerPlayerEntity p : players){
+            Set<String> tags = p.getCommandTags();
+            if (tags.contains(colour)){
+                return p;
+            }
+        }
+        return null;
     }
 
     private void placeLever(ServerWorld world, BlockPos pos, Direction facing, Orientation wallSide) {
@@ -160,7 +170,9 @@ public class BotcFab implements ModInitializer {
         //Add tag for dead
         //Change vote to Ghost vote, block + lantern
         //Add invisibility
+        player.removeCommandTag(ALIVE);
         player.addCommandTag(GHOST);
+        updateVoteStatus(world, player);
     }
 
     private void removeGhostVote(ServerWorld world, String playerColour){
@@ -172,7 +184,7 @@ public class BotcFab implements ModInitializer {
     private void updateVoteStatus(ServerWorld world, ServerPlayerEntity player){
         //Update vote marker and lamp for all players by checking tags
         Set<String> tags = player.getCommandTags();
-        String playerColour = getPlayerColour(player);
+        String playerColour = getColourFromPlayer(player);
         //Replace lamps
         if (tags.contains(ALIVE)){
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
@@ -319,31 +331,19 @@ public class BotcFab implements ModInitializer {
             src.sendFeedback(() -> Text.literal("Failed to find storyteller. Do not execute this command from the server window"), false);
             return 0;
         }
-        System.out.println(players);
+        System.out.println(players); //Debugging
 
         List<ServerPlayerEntity> spectators = null;
         for (ServerPlayerEntity p : players){
             Set<String> tags = p.getCommandTags();
             if (tags.contains(SPEC)) {
                 p.changeGameMode(GameMode.SPECTATOR);
-
-                players.remove(p);
+                players.remove(p); //Remove spectators from player list
             }
         }
+        System.out.println(players); //Debugging
 
-        if (spectators != null) {
-            // Remove all tags before adding new ones
-            resetPlayer(storyTeller);
-            storyTeller.addCommandTag(STORYTELLER); //Add tag for story teller
-            src.sendFeedback(() -> Text.literal("Storyteller is: " + storyTeller.getName().getString()), false);
-            storyTeller.changeGameMode(GameMode.CREATIVE);
-            scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_STORYTELLER));
-        } else {
-            src.sendFeedback(() -> Text.literal("Failed to find storyteller. Do not execute this command from the server window"), false);
-            return 0;
-        }
-
-        //storyTeller.setSpawnPoint(world,mapCoords.get());
+        //storyTeller.setSpawnPoint(world,mapCoords.get()); //Might need to do this later
 
         // Assign colours to players
         int currentColourIndex = startPoint;
@@ -445,6 +445,7 @@ public class BotcFab implements ModInitializer {
 
     private void endDay(ServerWorld world){
         world.setTimeOfDay(18000L);
+        //Remove all death_mark and accused tags from players
     }
 
     private void startDay(CommandContext<ServerCommandSource> context,ServerWorld world){
@@ -462,6 +463,11 @@ public class BotcFab implements ModInitializer {
         src.sendFeedback(() -> Text.literal("converting... "), false);
         ServerWorld world = context.getSource().getWorld();
         int delayPerBlock = 25; // 1 second = 20 ticks
+        int startColourIndex = 0;
+        String accusedColour;
+        int ghostCount = 0;
+        int aliveCount = 0;
+        int count = 0;
         //List<ServerPlayerEntity> players = world.getPlayers(); //Need to remove storyteller and spectators
         src.sendFeedback(() -> Text.literal("Starting redstone removal..."), false);
 
@@ -471,13 +477,12 @@ public class BotcFab implements ModInitializer {
             Set<String> tags = p.getCommandTags();
             if (tags.contains(ACCUSED)){
                 //Mark starting position for vote lock in
+                accusedColour = getColourFromPlayer(p);
+                startColourIndex = POSSIBLE_COLOURS.indexOf(accusedColour); //Get colour index of accused player
             }
         }
 
-        int ghostCount = 0;
-        int aliveCount = 0;
-        int count = 0;
-        for (String i : mapCoords.keySet()) {
+        for (int i = startColourIndex; i < players.size(); i++) {
             BlockPos pos = mapCoords.get(i).triggersLampPiston;
             BlockPos lockedVote = pos.up(2); //Position of locked in vote lamp
 
@@ -516,6 +521,7 @@ public class BotcFab implements ModInitializer {
 //            int count2 = aliveCount;
 //            src.sendFeedback(() -> Text.literal("Ghost:" + countable + "| alive:" + count2), false);
 //        };
+//
 //        TickScheduler.scheduleGroup(taskList, onAllDone);
 
 
