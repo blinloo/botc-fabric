@@ -452,10 +452,17 @@ public class BotcFab implements ModInitializer {
         src.sendFeedback(() -> Text.literal("converting... "), false);
         ServerWorld world = context.getSource().getWorld();
         int delayPerBlock = 25; // 1 second = 20 ticks
-        List<ServerPlayerEntity> players = world.getPlayers();
+        //List<ServerPlayerEntity> players = world.getPlayers(); //Need to remove storyteller and spectators
         src.sendFeedback(() -> Text.literal("Starting redstone removal..."), false);
 
         List<DelayedBlockSetter> taskList = new ArrayList<>();
+
+        for (ServerPlayerEntity p : players){
+            Set<String> tags = p.getCommandTags();
+            if (findTag(ACCUSED,tags)){
+                //Mark starting position for vote lock in
+            }
+        }
 
         int ghostCount = 0;
         int aliveCount = 0;
