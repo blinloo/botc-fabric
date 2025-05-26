@@ -463,43 +463,59 @@ public class BotcFab implements ModInitializer {
         src.sendFeedback(() -> Text.literal("converting... "), false);
         ServerWorld world = context.getSource().getWorld();
         int delayPerBlock = 25; // 1 second = 20 ticks
-        int startColourIndex = 0;
-        String accusedColour;
-        int ghostCount = 0;
-        int aliveCount = 0;
-        int count = 0;
+        final int[] totalVotes = new int[1];
         //List<ServerPlayerEntity> players = world.getPlayers(); //Need to remove storyteller and spectators
         src.sendFeedback(() -> Text.literal("Starting redstone removal..."), false);
 
         List<DelayedBlockSetter> taskList = new ArrayList<>();
 
-        for (ServerPlayerEntity p : players){
-            Set<String> tags = p.getCommandTags();
-            if (tags.contains(ACCUSED)){
-                //Mark starting position for vote lock in
-                accusedColour = getColourFromPlayer(p);
-                startColourIndex = POSSIBLE_COLOURS.indexOf(accusedColour); //Get colour index of accused player
+
+
+        Runnable onAllDone = () -> {
+            src.sendFeedback(() -> Text.literal("Starting count..."), false);
+            int startColourIndex = 0;
+            int ghostVotes = 0;
+            int aliveVotes = 0;
+
+            int count = 0;
+
+            for (ServerPlayerEntity p : players) {
+                Set<String> tags = p.getCommandTags();
+                if (tags.contains(ACCUSED)) {
+                    //Mark starting position for vote lock in
+                    String accusedColour = getColourFromPlayer(p);
+                    startColourIndex = POSSIBLE_COLOURS.indexOf(accusedColour);
+                }
             }
-        }
+            for (int i = startColourIndex; count <= players.size(); i++) {
+                String colour = POSSIBLE_COLOURS.get(i);
+                BlockPos pos = mapCoords.get(colour).triggersLampPiston;
+                BlockPos lockedVote = pos.up(2); //Position of locked in vote lamp
 
-        for (int i = startColourIndex; i < players.size(); i++) {
-            BlockPos pos = mapCoords.get(i).triggersLampPiston;
-            BlockPos lockedVote = pos.up(2); //Position of locked in vote lamp
+                int delay = count * delayPerBlock; //Add delay between vote locks
+                taskList.add(new DelayedBlockSetter(world, pos, Blocks.AIR.getDefaultState(), delay)); //Set redstone block to air
 
-            int delay = count * delayPerBlock; //Add delay between vote locks
-            taskList.add(new DelayedBlockSetter(world, pos, Blocks.AIR.getDefaultState(), delay)); //Set redstone block to air
+                BlockState lockedVoteState = world.getBlockState(lockedVote);
+                if (lockedVoteState.getBlock() == Blocks.WAXED_COPPER_BULB && lockedVoteState.get(Properties.LIT)) {
+                    aliveVotes++;
+                } else if (lockedVoteState.getBlock() == Blocks.SEA_LANTERN) {
+                    ghostVotes++;
+                    //Disable ghost vote code
+                    removeGhostVote(world, colour);
 
-            BlockState lockedVoteState = world.getBlockState(lockedVote);
-            if (lockedVoteState.getBlock() == Blocks.WAXED_COPPER_BULB && lockedVoteState.get(Properties.LIT)){
-                aliveCount++;
-            } else if (lockedVoteState.getBlock() == Blocks.SEA_LANTERN) {
-                ghostCount++;
-                //Disable ghost vote code
-                removeGhostVote(world,i);
+                }
+                if (i == 11){
+                    i = 0;
+                }
 
+                count++;
             }
-
-            count++;
+            totalVotes[0] = aliveVotes + ghostVotes;
+        };
+        TickScheduler.scheduleGroup(taskList, onAllDone);
+        if ((totalVotes[0] > highestVote) && (totalVotes[0] >= (players.size()/2))){
+            highestVote = totalVotes[0]; //Change highest vote to this vote
+            //Mark player for execution
         }
 
         // Callback after all block removals
@@ -521,10 +537,6 @@ public class BotcFab implements ModInitializer {
 //            int count2 = aliveCount;
 //            src.sendFeedback(() -> Text.literal("Ghost:" + countable + "| alive:" + count2), false);
 //        };
-//
-//        TickScheduler.scheduleGroup(taskList, onAllDone);
-
-
         return 1;
     }
 
