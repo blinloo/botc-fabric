@@ -273,6 +273,12 @@ public class BotcFab implements ModInitializer {
         }
     }
 
+    private void removeTagAllPlayers(String tag){
+        for (ServerPlayerEntity p : players){
+            p.removeCommandTag(tag);
+        }
+    }
+
     private int onGameInit(CommandContext<ServerCommandSource> context) { //Run this on server startup, players do not need to be connected
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
@@ -469,7 +475,8 @@ public class BotcFab implements ModInitializer {
 
         List<DelayedBlockSetter> taskList = new ArrayList<>();
 
-
+        final ServerPlayerEntity accusedPlayer = getPlayerFromColour(ACCUSED);
+        assert accusedPlayer != null;
 
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
@@ -478,15 +485,9 @@ public class BotcFab implements ModInitializer {
             int aliveVotes = 0;
 
             int count = 0;
+            String accusedColour = getColourFromPlayer(accusedPlayer);
+            startColourIndex = POSSIBLE_COLOURS.indexOf(accusedColour);
 
-            for (ServerPlayerEntity p : players) {
-                Set<String> tags = p.getCommandTags();
-                if (tags.contains(ACCUSED)) {
-                    //Mark starting position for vote lock in
-                    String accusedColour = getColourFromPlayer(p);
-                    startColourIndex = POSSIBLE_COLOURS.indexOf(accusedColour);
-                }
-            }
             for (int i = startColourIndex; count <= players.size(); i++) {
                 String colour = POSSIBLE_COLOURS.get(i);
                 BlockPos pos = mapCoords.get(colour).triggersLampPiston;
@@ -505,7 +506,7 @@ public class BotcFab implements ModInitializer {
 
                 }
                 if (i == 11){
-                    i = 0;
+                    i = -1; //Set to -1 so it continues to loop through colours at 0 when the loop resets.
                 }
 
                 count++;
@@ -513,10 +514,18 @@ public class BotcFab implements ModInitializer {
             totalVotes[0] = aliveVotes + ghostVotes;
         };
         TickScheduler.scheduleGroup(taskList, onAllDone);
+
         if ((totalVotes[0] > highestVote) && (totalVotes[0] >= (players.size()/2))){
             highestVote = totalVotes[0]; //Change highest vote to this vote
             //Mark player for execution
+            accusedPlayer.addCommandTag(MARKED);
         }
+        if (totalVotes[0] == highestVote){
+            //Also remove all marked players
+            ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED);
+            if (markedPlayer != null) markedPlayer.removeCommandTag(MARKED);
+        }
+        accusedPlayer.removeCommandTag(ACCUSED);
 
         // Callback after all block removals
 //        Runnable onAllDone = () -> {
