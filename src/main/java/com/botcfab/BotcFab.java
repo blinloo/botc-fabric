@@ -461,6 +461,7 @@ public class BotcFab implements ModInitializer {
             updateVoteStatus(world,p);
         }
         src.sendFeedback(() -> Text.literal("The sun rises \\nPlease head to the town square"), false);
+        highestVote = 0;
     }
 
     private int onVoteLockIn(CommandContext<ServerCommandSource> context) {
@@ -470,10 +471,19 @@ public class BotcFab implements ModInitializer {
         ServerWorld world = context.getSource().getWorld();
         int delayPerBlock = 25; // 1 second = 20 ticks
         final int[] totalVotes = new int[1];
+        int voteThreshold = 0;
         //List<ServerPlayerEntity> players = world.getPlayers(); //Need to remove storyteller and spectators
         src.sendFeedback(() -> Text.literal("Starting redstone removal..."), false);
 
         List<DelayedBlockSetter> taskList = new ArrayList<>();
+
+        //Get vote threshold for alive players
+        for (ServerPlayerEntity p : players){
+            Set<String> tags = p.getCommandTags();
+            if (tags.contains(ALIVE))
+                voteThreshold++;
+        }
+        voteThreshold = (voteThreshold / 2) + (voteThreshold % 2);
 
         final ServerPlayerEntity accusedPlayer = getPlayerFromColour(ACCUSED);
         assert accusedPlayer != null;
@@ -515,10 +525,11 @@ public class BotcFab implements ModInitializer {
         };
         TickScheduler.scheduleGroup(taskList, onAllDone);
 
-        if ((totalVotes[0] > highestVote) && (totalVotes[0] >= (players.size()/2))){
+        if ((totalVotes[0] > highestVote) && (totalVotes[0] >= voteThreshold)){
             highestVote = totalVotes[0]; //Change highest vote to this vote
             //Mark player for execution
             accusedPlayer.addCommandTag(MARKED);
+            highestVote = totalVotes[0];
         }
         if (totalVotes[0] == highestVote){
             //Also remove all marked players
@@ -526,6 +537,7 @@ public class BotcFab implements ModInitializer {
             if (markedPlayer != null) markedPlayer.removeCommandTag(MARKED);
         }
         accusedPlayer.removeCommandTag(ACCUSED);
+        //Now update player highlighting
 
         // Callback after all block removals
 //        Runnable onAllDone = () -> {
