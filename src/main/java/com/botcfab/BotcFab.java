@@ -19,6 +19,8 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
@@ -97,6 +99,13 @@ public class BotcFab implements ModInitializer {
     List<ServerPlayerEntity> players;
     //Highest vote count
     int highestVote;
+
+    //Text for displays
+    private final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀️")
+            .formatted(Formatting.GOLD)
+            .append(Text.literal("\\nPlease head to the town square"));
+    private final MutableText NIGHT_MESSAGE = Text.literal("The moon rises 🌙")
+            .formatted(Formatting.DARK_BLUE);
 
     private BlockPos convertLocation(String coords) {
         List<Integer> converted = new ArrayList<>();
@@ -218,7 +227,7 @@ public class BotcFab implements ModInitializer {
                 break;
             case TEAM_BLACK:
                 team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(0))); //Black
-                team.setColor(Formatting.BLACK);
+                team.setColor(Formatting.DARK_GRAY);
                 break;
             case TEAM_YELLOW:
                 team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(1))); //Yellow
@@ -262,7 +271,7 @@ public class BotcFab implements ModInitializer {
                 break;
             case TEAM_GREY:
                 team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(11))); //Grey
-                team.setColor(Formatting.DARK_GRAY);
+                team.setColor(Formatting.GRAY);
                 break;
         }
     }
@@ -460,8 +469,14 @@ public class BotcFab implements ModInitializer {
         for (ServerPlayerEntity p : players){
             updateVoteStatus(world,p);
         }
-        src.sendFeedback(() -> Text.literal("The sun rises \\nPlease head to the town square"), false);
-        highestVote = 0;
+        highestVote = 0; //reset highest vote
+
+        //Send message for day start
+//        MutableText message;
+//        message = Text.literal("The sun rises ☀️")
+//                        .formatted(Formatting.GOLD);
+//        message.append(Text.literal("\\nPlease head to the town square"));
+        src.sendFeedback(() -> DAY_MESSAGE, false);
     }
 
     private int onVoteLockIn(CommandContext<ServerCommandSource> context) {
