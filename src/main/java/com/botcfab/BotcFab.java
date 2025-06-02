@@ -11,12 +11,14 @@ import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.Orientation;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.scoreboard.Team;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.command.TitleCommand;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.MutableText;
@@ -136,6 +138,10 @@ public class BotcFab implements ModInitializer {
         return null;
     }
 
+    private void showTitle(ServerPlayerEntity player, Text titleText){
+        player.networkHandler.sendPacket(new TitleS2CPacket(titleText));
+    }
+
     private void placeLever(ServerWorld world, BlockPos pos, Direction facing, Orientation wallSide) {
         if (world == null || world.isClient) return;
 
@@ -198,6 +204,20 @@ public class BotcFab implements ModInitializer {
         if (tags.contains(ALIVE)){
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
             world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_COPPER_BULB.getDefaultState());
+            switch (playerColour) { //Add back lever in case of revivals
+                case "Black", "Cyan", "White":
+                    placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, Orientation.DOWN_EAST);
+                    break;
+                case "Yellow", "Pink", "Grey":
+                    placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, Orientation.DOWN_SOUTH);
+                    break;
+                case "Orange", "Red", "Brown":
+                    placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, Orientation.DOWN_WEST);
+                    break;
+                case "Purple", "Green", "Blue":
+                    placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, Orientation.DOWN_NORTH);
+                    break;
+            }
         }
         if (tags.contains(GHOST)){
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.IRON_BLOCK.getDefaultState());
