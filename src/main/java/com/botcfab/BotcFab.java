@@ -106,8 +106,9 @@ public class BotcFab implements ModInitializer {
     private final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀️")
             .formatted(Formatting.GOLD)
             .append(Text.literal("\\nPlease head to the town square"));
-    private final MutableText NIGHT_MESSAGE = Text.literal("The moon rises 🌙")
-            .formatted(Formatting.DARK_BLUE);
+    private final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
+            .formatted(Formatting.DARK_BLUE)
+            .append(Text.literal("\\nPlease return to your houses"));
 
     private BlockPos convertLocation(String coords) {
         List<Integer> converted = new ArrayList<>();
@@ -247,7 +248,7 @@ public class BotcFab implements ModInitializer {
                 break;
             case TEAM_BLACK:
                 team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(0))); //Black
-                team.setColor(Formatting.DARK_GRAY);
+                team.setColor(Formatting.BLACK);
                 break;
             case TEAM_YELLOW:
                 team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(1))); //Yellow
@@ -279,7 +280,7 @@ public class BotcFab implements ModInitializer {
                 break;
             case TEAM_WHITE:
                 team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(8))); //White
-                team.setColor(Formatting.WHITE);
+                team.setColor(Formatting.GRAY);
                 break;
             case TEAM_BLUE:
                 team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(9))); //Blue
@@ -291,7 +292,7 @@ public class BotcFab implements ModInitializer {
                 break;
             case TEAM_GREY:
                 team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(11))); //Grey
-                team.setColor(Formatting.GRAY);
+                team.setColor(Formatting.DARK_GRAY);
                 break;
         }
     }
@@ -478,25 +479,32 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private void endDay(ServerWorld world){
+    private int nightFalls(CommandContext<ServerCommandSource> context){
+        ServerCommandSource src = context.getSource();
+        ServerWorld world = context.getSource().getWorld();
         world.setTimeOfDay(18000L);
         //Remove all death_mark and accused tags from players
+        for (ServerPlayerEntity p : players){
+            p.removeCommandTag(ACCUSED);
+            p.removeCommandTag(DEATH_FLAG);
+        }
+
+        src.sendFeedback(() -> NIGHT_MESSAGE, false);
+        return 1;
     }
 
-    private void startDay(CommandContext<ServerCommandSource> context,ServerWorld world){
+    private int startDay(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
+        ServerWorld world = context.getSource().getWorld();
         world.setTimeOfDay(0L);
         for (ServerPlayerEntity p : players){
             updateVoteStatus(world,p);
         }
         highestVote = 0; //reset highest vote
 
-        //Send message for day start
-//        MutableText message;
-//        message = Text.literal("The sun rises ☀️")
-//                        .formatted(Formatting.GOLD);
-//        message.append(Text.literal("\\nPlease head to the town square"));
         src.sendFeedback(() -> DAY_MESSAGE, false);
+        //Send message about player death
+        return 1;
     }
 
     private int onVoteLockIn(CommandContext<ServerCommandSource> context) {
@@ -629,6 +637,13 @@ public class BotcFab implements ModInitializer {
                             .suggests(new PlayerSuggestionProvider())
                             .executes(this::onAddSpectator)
             ));
+        });
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(CommandManager.literal("startDay").executes(this::startDay));
+        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(CommandManager.literal("nightFalls").executes(this::nightFalls));
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
