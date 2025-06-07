@@ -5,6 +5,8 @@ import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.ServerStarted;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.SignBlockEntity;
@@ -29,6 +31,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.GameMode;
+import org.apache.logging.log4j.core.jmx.Server;
 import org.jetbrains.annotations.NotNull;
 import net.minecraft.state.property.Properties;
 import org.slf4j.Logger;
@@ -309,18 +312,22 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private int onGameInit(CommandContext<ServerCommandSource> context) { //Run this on server startup, players do not need to be connected
-        ServerCommandSource src = context.getSource();
-        MinecraftServer srv = src.getServer();
-        PlayerManager playerMgr = srv.getPlayerManager();
-        players = playerMgr.getPlayerList();
+    private int onGameInit(MinecraftServer srv) { //Run this on server startup, players do not need to be connected
+//        ServerCommandSource src = context.getSource();CommandContext<ServerCommandSource> context
+//        MinecraftServer srv = src.getServer();
+//        PlayerManager playerMgr = srv.getPlayerManager();
+//        players = playerMgr.getPlayerList();
+//        ServerWorld world = context.getSource().getWorld();
+
+        ServerCommandSource src = srv.getCommandSource();
         ServerScoreboard scoreboard = srv.getScoreboard();
-        ServerWorld world = context.getSource().getWorld();
+        ServerWorld world = src.getWorld();
         List<String> allTeams = new ArrayList<>(Arrays.asList(TEAM_STORYTELLER, TEAM_SPECTATOR));
         allTeams.addAll(TEAM_COLOURS); //Adds colour teams to all teams list
 
         System.out.println("INITIALISED");
         src.sendFeedback(() -> Text.literal("Starting initialise code now"), false);
+        world.setMobSpawnOptions(false);
 
         // Create all teams
         for (String teamName : allTeams) {
@@ -614,11 +621,15 @@ public class BotcFab implements ModInitializer {
         ServerTickEvents.END_WORLD_TICK.register((ServerWorld world) -> onWorldTick(world));
         TickScheduler.register();
 
+        //Code that runs on server start.
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            onGameInit(server);
+
         //Register commands
         // Register the botc init command
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("botcinit").executes(this::onGameInit));
-        });
+//        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+//            dispatcher.register(CommandManager.literal("botcinit").executes(this::onGameInit));
+//        });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("setupGame").executes(this::setupGame));
