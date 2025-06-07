@@ -31,6 +31,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.GameMode;
+import net.minecraft.world.GameRules;
 import org.apache.logging.log4j.core.jmx.Server;
 import org.jetbrains.annotations.NotNull;
 import net.minecraft.state.property.Properties;
@@ -338,6 +339,20 @@ public class BotcFab implements ModInitializer {
         System.out.println("INITIALISED");
         src.sendFeedback(() -> Text.literal("Starting initialise code now"), false);
         world.setMobSpawnOptions(false);
+
+        //Define gamerules, shouldn't need to run every time but just to be safe
+        world.getGameRules().get(GameRules.DO_DAYLIGHT_CYCLE).set(false, world.getServer());
+        world.getGameRules().get(GameRules.DO_MOB_SPAWNING).set(false, world.getServer());
+        world.getGameRules().get(GameRules.DISABLE_RAIDS).set(true, world.getServer());
+        world.getGameRules().get(GameRules.DO_FIRE_TICK).set(false, world.getServer());
+        world.getGameRules().get(GameRules.COMMAND_BLOCK_OUTPUT).set(false, world.getServer());
+        world.getGameRules().get(GameRules.DO_MOB_GRIEFING).set(false, world.getServer());
+        world.getGameRules().get(GameRules.DO_PATROL_SPAWNING).set(false, world.getServer());
+        world.getGameRules().get(GameRules.DO_TRADER_SPAWNING).set(false, world.getServer());
+        world.getGameRules().get(GameRules.DO_WEATHER_CYCLE).set(false, world.getServer());
+        world.getGameRules().get(GameRules.KEEP_INVENTORY).set(true, world.getServer());
+        world.getGameRules().get(GameRules.PLAYERS_SLEEPING_PERCENTAGE).set(200, world.getServer());
+        //world.getGameRules().get(GameRules.COMMAND_MODIFICATION_BLOCK_LIMIT).set(1000000000, world.getServer());
 
         // Create all teams
         for (String teamName : allTeams) {
