@@ -312,6 +312,16 @@ public class BotcFab implements ModInitializer {
         }
     }
 
+    private int getAliveCount(){
+        int count = 0;
+        for (ServerPlayerEntity p : players){
+            Set<String> tags = p.getCommandTags();
+            if (tags.contains(ALIVE))
+                count++;
+        }
+        return count;
+    }
+
     private int onGameInit(MinecraftServer srv) { //Run this on server startup, players do not need to be connected
 //        ServerCommandSource src = context.getSource();CommandContext<ServerCommandSource> context
 //        MinecraftServer srv = src.getServer();
@@ -520,20 +530,17 @@ public class BotcFab implements ModInitializer {
         src.sendFeedback(() -> Text.literal("converting... "), false);
         ServerWorld world = context.getSource().getWorld();
         int delayPerBlock = 25; // 1 second = 20 ticks
-        final int[] totalVotes = new int[1];
+        final int[] totalVotes = new int[3]; // 0 is total, 1 is alive, 2 is ghost
         int voteThreshold = 0;
+        int alivePlayers = getAliveCount();
         //List<ServerPlayerEntity> players = world.getPlayers(); //Need to remove storyteller and spectators
         src.sendFeedback(() -> Text.literal("Starting redstone removal..."), false);
 
         List<DelayedBlockSetter> taskList = new ArrayList<>();
 
         //Get vote threshold for alive players
-        for (ServerPlayerEntity p : players){
-            Set<String> tags = p.getCommandTags();
-            if (tags.contains(ALIVE))
-                voteThreshold++;
-        }
-        voteThreshold = (voteThreshold / 2) + (voteThreshold % 2);
+
+        voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
 
         final ServerPlayerEntity accusedPlayer = getPlayerFromColour(ACCUSED);
         assert accusedPlayer != null;
@@ -572,14 +579,19 @@ public class BotcFab implements ModInitializer {
                 count++;
             }
             totalVotes[0] = aliveVotes + ghostVotes;
+            totalVotes[1] = aliveVotes;
+            totalVotes[2] = ghostVotes;
         };
         TickScheduler.scheduleGroup(taskList, onAllDone);
 
+        src.sendFeedback(() -> Text.literal("A total of " + totalVotes[1] + "votes were received, including " + totalVotes[2] + " ghost votes."), false);
         if ((totalVotes[0] > highestVote) && (totalVotes[0] >= voteThreshold)){
-            highestVote = totalVotes[0]; //Change highest vote to this vote
+            highestVote = totalVotes[0]; //Change the highest vote to this vote
             //Mark player for execution
             accusedPlayer.addCommandTag(MARKED);
             highestVote = totalVotes[0];
+            src.sendFeedback(accusedPlayer::getStyledDisplayName, false);
+            src.sendFeedback(() -> Text.literal("has now been marked for execution"),false);
         }
         if (totalVotes[0] == highestVote){
             //Also remove all marked players
@@ -588,6 +600,8 @@ public class BotcFab implements ModInitializer {
         }
         accusedPlayer.removeCommandTag(ACCUSED);
         //Now update player highlighting
+
+
 
         // Callback after all block removals
 //        Runnable onAllDone = () -> {
@@ -618,15 +632,14 @@ public class BotcFab implements ModInitializer {
         // Proceed with mild caution.
 
         LOGGER.info("Hello Fabric world!");
-        ServerTickEvents.END_WORLD_TICK.register((ServerWorld world) -> onWorldTick(world));
+        ServerTickEvents.END_WORLD_TICK.register(this::onWorldTick); //(ServerWorld world) -> onWorldTick(world)
         TickScheduler.register();
 
         //Code that runs on server start.
-        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            onGameInit(server);
+        ServerLifecycleEvents.SERVER_STARTED.register(this::onGameInit);
 
         //Register commands
-        // Register the botc init command
+        // Register the botc init command, should now just run on startup
 //        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 //            dispatcher.register(CommandManager.literal("botcinit").executes(this::onGameInit));
 //        });
@@ -637,7 +650,7 @@ public class BotcFab implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
-                mapCoords = ImportExcelCoordinates.read(path);
+                mapCoords = ImportExcelCoordinates.read(path); //Import coordinates for map from Excel sheet
                 return 1;
             }));
         });
@@ -659,7 +672,7 @@ public class BotcFab implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("voteLockIn").executes(context -> {
-                        context.getSource().sendFeedback(() -> Text.literal("Calling /onVoteLockIn."), false);
+                        context.getSource().sendFeedback(() -> Text.literal("Beginning vote lock in"), false);
                         onVoteLockIn(context);
                         context.getSource().sendFeedback(() -> Text.literal("Completed /onVoteLockIn."), false);
                         return 1;
