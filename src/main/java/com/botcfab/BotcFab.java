@@ -6,7 +6,6 @@ import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.ServerStarted;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.SignBlockEntity;
@@ -20,11 +19,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.command.TitleCommand;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
@@ -32,7 +29,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.GameRules;
-import org.apache.logging.log4j.core.jmx.Server;
 import org.jetbrains.annotations.NotNull;
 import net.minecraft.state.property.Properties;
 import org.slf4j.Logger;
@@ -323,7 +319,7 @@ public class BotcFab implements ModInitializer {
         return count;
     }
 
-    private int onGameInit(MinecraftServer srv) { //Run this on server startup, players do not need to be connected
+    private void onGameInit(MinecraftServer srv) { //Run this on server startup, players do not need to be connected
 //        ServerCommandSource src = context.getSource();CommandContext<ServerCommandSource> context
 //        MinecraftServer srv = src.getServer();
 //        PlayerManager playerMgr = srv.getPlayerManager();
@@ -368,7 +364,6 @@ public class BotcFab implements ModInitializer {
         }
 
         src.sendFeedback(() -> Text.literal("Finished"), false);
-        return 1;
     }
 
     private int setupGame(CommandContext<ServerCommandSource> context) {
@@ -539,7 +534,7 @@ public class BotcFab implements ModInitializer {
         return 1;
     }
 
-    private int onVoteLockIn(CommandContext<ServerCommandSource> context) {
+    private void onVoteLockIn(CommandContext<ServerCommandSource> context) {
         // remove redstone block
         ServerCommandSource src = context.getSource();
         src.sendFeedback(() -> Text.literal("converting... "), false);
@@ -637,7 +632,6 @@ public class BotcFab implements ModInitializer {
 //            int count2 = aliveCount;
 //            src.sendFeedback(() -> Text.literal("Ghost:" + countable + "| alive:" + count2), false);
 //        };
-        return 1;
     }
 
     @Override
