@@ -13,6 +13,7 @@ import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.Orientation;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.scoreboard.Team;
 import net.minecraft.server.MinecraftServer;
@@ -503,6 +504,12 @@ public class BotcFab implements ModInitializer {
                     }
                 }
             }
+            //Code for player death particles
+            ServerPlayerEntity p = getPlayerFromColour(i);
+            assert p != null;
+            if (p.getCommandTags().contains(DEAD)){
+                world.addParticle(ParticleTypes.SOUL,p.getX(),p.getY(),p.getZ(),0.0,0.0,0.0);
+            }
         }
     }
 
@@ -511,10 +518,8 @@ public class BotcFab implements ModInitializer {
         ServerWorld world = context.getSource().getWorld();
         world.setTimeOfDay(18000L);
         //Remove all death_mark and accused tags from players
-        for (ServerPlayerEntity p : players){
-            p.removeCommandTag(ACCUSED);
-            p.removeCommandTag(DEATH_FLAG);
-        }
+        removeTagAllPlayers(ACCUSED);
+        removeTagAllPlayers(DEATH_FLAG);
 
         src.sendFeedback(() -> NIGHT_MESSAGE, false);
         return 1;
@@ -549,7 +554,6 @@ public class BotcFab implements ModInitializer {
         List<DelayedBlockSetter> taskList = new ArrayList<>();
 
         //Get vote threshold for alive players
-
         voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
 
         final ServerPlayerEntity accusedPlayer = getPlayerFromColour(ACCUSED);
