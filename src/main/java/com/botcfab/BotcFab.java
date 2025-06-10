@@ -1,6 +1,7 @@
 package com.botcfab;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 
@@ -11,6 +12,7 @@ import net.minecraft.block.*;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.Orientation;
+import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
@@ -568,7 +570,10 @@ public class BotcFab implements ModInitializer {
         voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
 
         final ServerPlayerEntity accusedPlayer = getPlayerFromColour(ACCUSED);
-        assert accusedPlayer != null;
+        if (accusedPlayer == null){
+            src.sendFeedback(() -> Text.literal("No player accused, please accuse someone!"), false);
+            return;
+        }
 
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
@@ -608,53 +613,39 @@ public class BotcFab implements ModInitializer {
             totalVotes[2] = ghostVotes;
         };
         TickScheduler.scheduleGroup(taskList, onAllDone);
+        ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED);
 
         src.sendFeedback(() -> Text.literal("A total of " + totalVotes[1] + "votes were received, including " + totalVotes[2] + " ghost votes."), false);
-        if ((totalVotes[0] > highestVote) && (totalVotes[0] >= voteThreshold)){
+        if ((totalVotes[0] > highestVote) && (totalVotes[0] >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
             highestVote = totalVotes[0]; //Change the highest vote to this vote
             //Mark player for execution
             accusedPlayer.addCommandTag(MARKED);
+            if (markedPlayer != null) { //Remove any previous marked players
+                markedPlayer.removeCommandTag(MARKED);
+            }
             highestVote = totalVotes[0];
             src.sendFeedback(accusedPlayer::getStyledDisplayName, false);
             src.sendFeedback(() -> Text.literal("has now been marked for execution"),false);
         }
-        if (totalVotes[0] == highestVote){
+        if (totalVotes[0] == highestVote){ //On matching highest vote, remove all marked players
             //Also remove all marked players
-            ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED);
+
             if (markedPlayer != null) {
                 markedPlayer.removeCommandTag(MARKED);
-                markedPlayer.removeStatusEffect(StatusEffects.GLOWING); //Remove glow from old marked player
             }
         }
         accusedPlayer.removeCommandTag(ACCUSED);
-        //Now update player highlighting
-        accusedPlayer.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING,-1,1,false,false));
-        accusedPlayer.removeStatusEffect(StatusEffects.GLOWING);
+    }
 
-
-        // Callback after all block removals
-//        Runnable onAllDone = () -> {
-//            src.sendFeedback(() -> Text.literal("Starting count..."), false);
-//            int ghostCount = 0;
-//            int aliveCount = 0;
-//            for (String coord : REDSTONE_BLOCKS) {
-//                BlockPos base = convertLocation(coord);
-//                BlockPos above = base.up(2); // 2 blocks above
-//                BlockState aboveState = world.getBlockState(above);
-//                if (aboveState.getBlock() == Blocks.WAXED_COPPER_BULB && aboveState.get(Properties.LIT)){
-//                    aliveCount++;
-//                } else if (aboveState.getBlock() == Blocks.SEA_LANTERN) {
-//                    ghostCount++;
-//                }
-//            }
-//            int countable = ghostCount;
-//            int count2 = aliveCount;
-//            src.sendFeedback(() -> Text.literal("Ghost:" + countable + "| alive:" + count2), false);
-//        };
+    private void executePlayer(ServerPlayerEntity player){
+        ServerWorld world = player.getServerWorld();
+        player.removeCommandTag(ALIVE);
+        player.kill(world);
+        updateDeadPlayer(world, player);
     }
 
     private int beginExecution(CommandContext<ServerCommandSource> context){
-
+        ServerPlayerEntity player = getPlayerFromColour(MARKED);
         return 1;
     }
 
@@ -693,6 +684,19 @@ public class BotcFab implements ModInitializer {
                     CommandManager.argument("player_name", StringArgumentType.string())
                             .suggests(new PlayerSuggestionProvider())
                             .executes(this::onAddSpectator)
+            ));
+        });
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(CommandManager.literal("executePlayer").then(
+                    CommandManager.argument("player", EntityArgumentType.player())
+                            .suggests(new PlayerSuggestionProvider())
+                            //.executes(this::executePlayer)
+                            .executes(context -> {
+                                ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                                executePlayer(player);
+                                return 1;
+                            })
             ));
         });
 
