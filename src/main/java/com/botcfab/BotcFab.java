@@ -11,6 +11,9 @@ import net.minecraft.block.*;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.Orientation;
+import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
@@ -321,12 +324,6 @@ public class BotcFab implements ModInitializer {
     }
 
     private void onGameInit(MinecraftServer srv) { //Run this on server startup, players do not need to be connected
-//        ServerCommandSource src = context.getSource();CommandContext<ServerCommandSource> context
-//        MinecraftServer srv = src.getServer();
-//        PlayerManager playerMgr = srv.getPlayerManager();
-//        players = playerMgr.getPlayerList();
-//        ServerWorld world = context.getSource().getWorld();
-
         ServerCommandSource src = srv.getCommandSource();
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
@@ -504,13 +501,27 @@ public class BotcFab implements ModInitializer {
                     }
                 }
             }
-            //Code for player death particles
+
             ServerPlayerEntity p = getPlayerFromColour(i);
-            assert p != null;
-            if (p.getCommandTags().contains(DEAD)){
-                world.addParticle(ParticleTypes.SOUL,p.getX(),p.getY(),p.getZ(),0.0,0.0,0.0);
+            if (p != null){
+                if (p.getCommandTags().contains(DEAD)){
+                    world.addParticle(ParticleTypes.SOUL,p.getX(),p.getY(),p.getZ(),0.4,0.5,0.4);
+                }
+            }
+        }//Code for player death particles and particle effects
+        for (ServerPlayerEntity p : players){
+            Set<String> tags = p.getCommandTags();
+            p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION,-1,1,false,false));
+            if (tags.contains(DEAD)){
+                world.spawnParticles(ParticleTypes.SOUL,p.getX(),p.getY(),p.getZ(),1,0.4,0.5,0.4,0.0001);
+            }
+            if (tags.contains(ACCUSED) || tags.contains(MARKED)){
+                p.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING,-1,1,false,false));
+            } else{
+                p.removeStatusEffect(StatusEffects.GLOWING);
             }
         }
+
     }
 
     private int nightFalls(CommandContext<ServerCommandSource> context){
@@ -610,11 +621,15 @@ public class BotcFab implements ModInitializer {
         if (totalVotes[0] == highestVote){
             //Also remove all marked players
             ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED);
-            if (markedPlayer != null) markedPlayer.removeCommandTag(MARKED);
+            if (markedPlayer != null) {
+                markedPlayer.removeCommandTag(MARKED);
+                markedPlayer.removeStatusEffect(StatusEffects.GLOWING); //Remove glow from old marked player
+            }
         }
         accusedPlayer.removeCommandTag(ACCUSED);
         //Now update player highlighting
-
+        accusedPlayer.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING,-1,1,false,false));
+        accusedPlayer.removeStatusEffect(StatusEffects.GLOWING);
 
 
         // Callback after all block removals
@@ -636,6 +651,11 @@ public class BotcFab implements ModInitializer {
 //            int count2 = aliveCount;
 //            src.sendFeedback(() -> Text.literal("Ghost:" + countable + "| alive:" + count2), false);
 //        };
+    }
+
+    private int beginExecution(CommandContext<ServerCommandSource> context){
+
+        return 1;
     }
 
     @Override
@@ -691,6 +711,10 @@ public class BotcFab implements ModInitializer {
                         return 1;
                     }
             ));
+        });
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(CommandManager.literal("beginExecution").executes(this::beginExecution));
         });
 
 
