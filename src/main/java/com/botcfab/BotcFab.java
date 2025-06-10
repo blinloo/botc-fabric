@@ -1,7 +1,6 @@
 package com.botcfab;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 
@@ -13,7 +12,6 @@ import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.Orientation;
 import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
@@ -115,15 +113,6 @@ public class BotcFab implements ModInitializer {
     private final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
             .formatted(Formatting.DARK_BLUE)
             .append(Text.literal("\\nPlease return to your houses"));
-
-    private BlockPos convertLocation(String coords) {
-        List<Integer> converted = new ArrayList<>();
-        for (String s : coords.split(",")) {
-            converted.add(Integer.parseInt(s));
-        }
-        return new BlockPos(converted.get(0), converted.get(1), converted.get(2));
-    }
-
 
     private String getColourFromPlayer(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
@@ -386,7 +375,7 @@ public class BotcFab implements ModInitializer {
         if (storyTeller != null) {
             // Remove all tags before adding new ones
             resetPlayer(storyTeller);
-            storyTeller.addCommandTag(STORYTELLER); //Add tag for story teller
+            storyTeller.addCommandTag(STORYTELLER); //Add tag for storyteller
             src.sendFeedback(() -> Text.literal("Storyteller is: " + storyTeller.getName().getString()), false);
             storyTeller.changeGameMode(GameMode.CREATIVE);
             scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_STORYTELLER));
@@ -396,12 +385,13 @@ public class BotcFab implements ModInitializer {
         }
         System.out.println(players); //Debugging
 
-        List<ServerPlayerEntity> spectators = null;
+        //List<ServerPlayerEntity> spectators = new LinkedList<>();
         for (ServerPlayerEntity p : players){
             Set<String> tags = p.getCommandTags();
             if (tags.contains(SPEC)) {
                 p.changeGameMode(GameMode.SPECTATOR);
                 players.remove(p); //Remove spectators from player list
+                //spectators.add(p); //not sure if needed
             }
         }
         System.out.println(players); //Debugging
@@ -428,7 +418,7 @@ public class BotcFab implements ModInitializer {
                 player.setSpawnPoint(world.getRegistryKey(),mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
 
                 world.setBlockState(mapCoords.get(assignedColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
-                //Places lever for player and add signs)
+                //Places lever for player and add signs
                 switch (assignedColour) {
                     case "Black", "Cyan", "White":
                         placeLever(world, mapCoords.get(assignedColour).lever, Direction.EAST, Orientation.DOWN_EAST);
@@ -544,6 +534,7 @@ public class BotcFab implements ModInitializer {
         world.setTimeOfDay(0L);
         for (ServerPlayerEntity p : players){
             updateVoteStatus(world,p);
+            showTitle(p,DAY_MESSAGE);
         }
         highestVote = 0; //reset highest vote
 
@@ -558,8 +549,8 @@ public class BotcFab implements ModInitializer {
         src.sendFeedback(() -> Text.literal("converting... "), false);
         ServerWorld world = context.getSource().getWorld();
         int delayPerBlock = 25; // 1 second = 20 ticks
-        final int[] totalVotes = new int[3]; // 0 is total, 1 is alive, 2 is ghost
-        int voteThreshold = 0;
+        final int[] totalVotes = new int[3]; // 0 is total, 1 is alive, 2 is a ghost
+        int voteThreshold;
         int alivePlayers = getAliveCount();
         //List<ServerPlayerEntity> players = world.getPlayers(); //Need to remove storyteller and spectators
         src.sendFeedback(() -> Text.literal("Starting redstone removal..."), false);
@@ -577,7 +568,7 @@ public class BotcFab implements ModInitializer {
 
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
-            int startColourIndex = 0;
+            int startColourIndex;
             int ghostVotes = 0;
             int aliveVotes = 0;
 
@@ -608,14 +599,14 @@ public class BotcFab implements ModInitializer {
 
                 count++;
             }
-            totalVotes[0] = aliveVotes + ghostVotes;
-            totalVotes[1] = aliveVotes;
-            totalVotes[2] = ghostVotes;
+            totalVotes[0] = aliveVotes + ghostVotes; //total votes
+            totalVotes[1] = aliveVotes; //alive player votes
+            totalVotes[2] = ghostVotes; //ghost votes used
         };
         TickScheduler.scheduleGroup(taskList, onAllDone);
         ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED);
 
-        src.sendFeedback(() -> Text.literal("A total of " + totalVotes[1] + "votes were received, including " + totalVotes[2] + " ghost votes."), false);
+        src.sendFeedback(() -> Text.literal("A total of " + totalVotes[0] + "votes were received, including " + totalVotes[2] + " ghost votes."), false);
         if ((totalVotes[0] > highestVote) && (totalVotes[0] >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
             highestVote = totalVotes[0]; //Change the highest vote to this vote
             //Mark player for execution
@@ -628,8 +619,6 @@ public class BotcFab implements ModInitializer {
             src.sendFeedback(() -> Text.literal("has now been marked for execution"),false);
         }
         if (totalVotes[0] == highestVote){ //On matching highest vote, remove all marked players
-            //Also remove all marked players
-
             if (markedPlayer != null) {
                 markedPlayer.removeCommandTag(MARKED);
             }
@@ -645,7 +634,11 @@ public class BotcFab implements ModInitializer {
     }
 
     private int beginExecution(CommandContext<ServerCommandSource> context){
+        ServerCommandSource src = context.getSource();
         ServerPlayerEntity player = getPlayerFromColour(MARKED);
+        if (player != null) {
+            executePlayer(player);
+        } else src.sendFeedback(() -> Text.literal("No pony is marked for execution so no pony was killed"),false);
         return 1;
     }
 
@@ -663,70 +656,41 @@ public class BotcFab implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(this::onGameInit);
 
         //Register commands
-        // Register the botc init command, should now just run on startup
-//        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-//            dispatcher.register(CommandManager.literal("botcinit").executes(this::onGameInit));
-//        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("setupGame").executes(this::setupGame)));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("setupGame").executes(this::setupGame));
-        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
+            mapCoords = ImportExcelCoordinates.read(path); //Import coordinates for map from Excel sheet
+            return 1;
+        })));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
-                mapCoords = ImportExcelCoordinates.read(path); //Import coordinates for map from Excel sheet
-                return 1;
-            }));
-        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("addSpectator").then(
+                CommandManager.argument("player_name", StringArgumentType.string())
+                        .suggests(new PlayerSuggestionProvider())
+                        .executes(this::onAddSpectator)
+        )));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("addSpectator").then(
-                    CommandManager.argument("player_name", StringArgumentType.string())
-                            .suggests(new PlayerSuggestionProvider())
-                            .executes(this::onAddSpectator)
-            ));
-        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("executePlayer").then(
+                CommandManager.argument("player", EntityArgumentType.player())
+                        .suggests(new PlayerSuggestionProvider())
+                        //.executes(this::executePlayer)
+                        .executes(context -> {
+                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                            executePlayer(player);
+                            return 1;
+                        })
+        )));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("executePlayer").then(
-                    CommandManager.argument("player", EntityArgumentType.player())
-                            .suggests(new PlayerSuggestionProvider())
-                            //.executes(this::executePlayer)
-                            .executes(context -> {
-                                ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                                executePlayer(player);
-                                return 1;
-                            })
-            ));
-        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startDay").executes(this::startDay)));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("nightFalls").executes(this::nightFalls)));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("startDay").executes(this::startDay));
-        });
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("nightFalls").executes(this::nightFalls));
-        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("voteLockIn").executes(context -> {
+                    context.getSource().sendFeedback(() -> Text.literal("Beginning vote lock in"), false);
+                    onVoteLockIn(context);
+                    context.getSource().sendFeedback(() -> Text.literal("Completed /onVoteLockIn."), false);
+                    return 1;
+                }
+        )));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("voteLockIn").executes(context -> {
-                        context.getSource().sendFeedback(() -> Text.literal("Beginning vote lock in"), false);
-                        onVoteLockIn(context);
-                        context.getSource().sendFeedback(() -> Text.literal("Completed /onVoteLockIn."), false);
-                        return 1;
-                    }
-            ));
-        });
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            dispatcher.register(CommandManager.literal("beginExecution").executes(this::beginExecution));
-        });
-
-
-//		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-//			dispatcher.register(CommandManager.literal("smoothdaylight")
-//					.then(CommandManager.argument("durationSeconds", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1))
-//							.executes(context -> startSmoothTransition(context, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(context, "durationSeconds"))))
-//			);
-//		});
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("beginExecution").executes(this::beginExecution)));
     }
 }
