@@ -7,34 +7,46 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.Orientation;
 import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
-import net.minecraft.scoreboard.ServerScoreboard;
-import net.minecraft.scoreboard.Team;
+import net.minecraft.scoreboard.*;
+import net.minecraft.scoreboard.number.NumberFormat;
+import net.minecraft.scoreboard.number.StyledNumberFormat;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.GameRules;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import net.minecraft.state.property.Properties;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,6 +96,9 @@ public class BotcFab implements ModInitializer {
     private static final String ACCUSED = "accused";
     private static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,ACCUSED);
 
+    private static final String INFO_OBJECTIVE = "info";
+    private static final String ALIVE_SCORE_HOLDER = "#alive";
+    private static final String DEAD_SCORE_HOLDER = "#dead";
     private static final List<String> POSSIBLE_COLOURS = Arrays.asList(
             "Black",
             "Yellow",
@@ -304,14 +319,62 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private int getAliveCount(){
+    private int getTagCount(String tag){
         int count = 0;
         for (ServerPlayerEntity p : players){
             Set<String> tags = p.getCommandTags();
-            if (tags.contains(ALIVE))
+            if (tags.contains(tag))
                 count++;
         }
         return count;
+    }
+
+    private void accusePlayer(ServerPlayerEntity player){
+        removeTagAllPlayers(ACCUSED);
+        player.addCommandTag(ACCUSED);
+    }
+
+    private ActionResult onRightClickEntity(PlayerEntity player, World world, Hand hand, Entity entity, @Nullable EntityHitResult entityHitResult) {
+        // Make sure the entity is a player (targeting another player)
+        if (entity instanceof PlayerEntity target) {
+            ItemStack itemInHand = player.getStackInHand(hand);
+
+            // Check if the player is holding the specific item and Hand is not empty
+            if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.BREEZE_ROD) {
+                if (target instanceof ServerPlayerEntity serverTarget) {
+                    // Added selector tag to player
+                    accusePlayer(serverTarget);
+                    player.sendMessage(Text.literal("You tagged ").append(target.getName()), false);
+                    world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 1.0F, 1.0F);
+                }
+                return ActionResult.SUCCESS; // Return success to stop further processing
+            }
+        }
+        return ActionResult.PASS; // Pass if not right-clicking with the correct item or targeting a player
+    }
+
+    private void createOrSetAliveDisplay(ServerScoreboard scoreboard){
+        int alivePlayers = getTagCount(ALIVE);
+        int deadPlayers = getTagCount(GHOST) + getTagCount(DEAD);
+        ScoreboardObjective objective = scoreboard.getNullableObjective(INFO_OBJECTIVE);
+        NumberFormat numberFormat = StyledNumberFormat.YELLOW; //Can be RED, YELLOW or EMPTY
+        if (objective == null){
+        objective = scoreboard.addObjective(
+                INFO_OBJECTIVE, // Objective name (unique id)
+                ScoreboardCriterion.DUMMY, // Criterion type (dummy = manual numbers)
+                Text.literal("Player Info:"), // Display name (shown in sidebar, below name, etc.)
+                ScoreboardCriterion.RenderType.INTEGER, // Render type (number type)
+                true, //Whether the value updates live
+                numberFormat //Format of numbers, colour and display
+        );
+        }
+        ScoreAccess aliveScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(ALIVE_SCORE_HOLDER),objective);
+        ScoreAccess deadScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(DEAD_SCORE_HOLDER),objective);
+        aliveScoreAccess.setDisplayText(Text.literal("Alive: "));
+        aliveScoreAccess.setScore(alivePlayers);
+        deadScoreAccess.setDisplayText(Text.literal("Dead: "));
+        deadScoreAccess.setScore(deadPlayers);
+        scoreboard.setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR,objective);
     }
 
     private void onGameInit(MinecraftServer srv) { //Run this on server startup, players do not need to be connected
@@ -401,7 +464,7 @@ public class BotcFab implements ModInitializer {
         // Assign colours to players
         int currentColourIndex = startPoint;
         if (players.isEmpty()) {
-            src.sendFeedback(() -> Text.literal("No one online :("), false);
+            src.sendFeedback(() -> Text.literal("No pony online :("), false);
         } else {
             for (ServerPlayerEntity player : players) {
                 resetPlayer(player);
@@ -444,6 +507,7 @@ public class BotcFab implements ModInitializer {
                     currentColourIndex++;
             }
         }
+        createOrSetAliveDisplay(scoreboard); //Update/create scoreboard for start of game.
         src.sendFeedback(() -> Text.literal(players.toString()), false);
 
         return 1;
@@ -530,7 +594,10 @@ public class BotcFab implements ModInitializer {
 
     private int startDay(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
+        MinecraftServer srv = src.getServer();
         ServerWorld world = context.getSource().getWorld();
+        ServerScoreboard scoreboard = srv.getScoreboard();
+
         world.setTimeOfDay(0L);
         for (ServerPlayerEntity p : players){
             updateVoteStatus(world,p);
@@ -540,6 +607,7 @@ public class BotcFab implements ModInitializer {
 
         src.sendFeedback(() -> DAY_MESSAGE, false);
         //Send message about player death
+        createOrSetAliveDisplay(scoreboard); //Updates scoreboard
         return 1;
     }
 
@@ -551,7 +619,7 @@ public class BotcFab implements ModInitializer {
         int delayPerBlock = 25; // 1 second = 20 ticks
         final int[] totalVotes = new int[3]; // 0 is total, 1 is alive, 2 is a ghost
         int voteThreshold;
-        int alivePlayers = getAliveCount();
+        int alivePlayers = getTagCount(ALIVE);
         //List<ServerPlayerEntity> players = world.getPlayers(); //Need to remove storyteller and spectators
         src.sendFeedback(() -> Text.literal("Starting redstone removal..."), false);
 
@@ -655,7 +723,10 @@ public class BotcFab implements ModInitializer {
         //Code that runs on server start.
         ServerLifecycleEvents.SERVER_STARTED.register(this::onGameInit);
 
-        //Register commands
+        //Register events
+        UseEntityCallback.EVENT.register(this::onRightClickEntity);
+
+        //Register chat commands
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("setupGame").executes(this::setupGame)));
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
