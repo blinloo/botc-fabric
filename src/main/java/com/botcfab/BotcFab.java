@@ -593,7 +593,7 @@ public class BotcFab implements ModInitializer {
         highestVote = 0; //reset highest vote
 
         src.sendFeedback(() -> DAY_MESSAGE, false);
-        //Send message about player death
+        //TODO Send message about player death
         createOrSetAliveDisplay(scoreboard); //Updates scoreboard
         return 1;
     }
@@ -607,7 +607,6 @@ public class BotcFab implements ModInitializer {
         final int[] totalVotes = new int[3]; // 0 is total, 1 is alive, 2 is a ghost
         int voteThreshold;
         int alivePlayers = getTagCount(ALIVE);
-        //List<ServerPlayerEntity> players = world.getPlayers(); //Need to remove storyteller and spectators
         src.sendFeedback(() -> Text.literal("Starting redstone removal..."), false);
 
         List<DelayedBlockSetter> taskList = new ArrayList<>();
