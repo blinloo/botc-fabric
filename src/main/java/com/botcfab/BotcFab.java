@@ -193,18 +193,12 @@ public class BotcFab implements ModInitializer {
     }
 
     private void updateDeadPlayer(ServerWorld world, ServerPlayerEntity player) {
-        //Add tag for dead
         //Change vote to Ghost vote, block + lantern
-        //Add invisibility
+        if (!player.getCommandTags().contains(DEAD)){
         player.removeCommandTag(ALIVE);
         player.addCommandTag(GHOST);
         updateVoteStatus(world, player);
-    }
-
-    private void removeGhostVote(ServerWorld world, String playerColour){
-        world.setBlockState((mapCoords.get(playerColour).lampsVoteMarker).down(1), Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
-        world.setBlockState(mapCoords.get(playerColour).lever, Blocks.AIR.getDefaultState()); //Remove lever
-        world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to charcoal
+        }
     }
 
     private void updateVoteStatus(ServerWorld world, ServerPlayerEntity player){
@@ -235,9 +229,9 @@ public class BotcFab implements ModInitializer {
             world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState());
         }
         if (tags.contains(DEAD)){
-            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState());
-            world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState());
-            world.setBlockState(mapCoords.get(playerColour).lever, Blocks.AIR.getDefaultState());
+            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
+            world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
+            world.setBlockState(mapCoords.get(playerColour).lever, Blocks.AIR.getDefaultState()); //Remove lever
         }
     }
 
@@ -557,18 +551,11 @@ public class BotcFab implements ModInitializer {
                     }
                 }
             }
-
-            ServerPlayerEntity p = getPlayerFromColour(i);
-            if (p != null){
-                if (p.getCommandTags().contains(DEAD)){
-                    world.addParticle(ParticleTypes.SOUL,p.getX(),p.getY(),p.getZ(),0.4,0.5,0.4);
-                }
-            }
         }//Code for player death particles and particle effects
         for (ServerPlayerEntity p : players){
             Set<String> tags = p.getCommandTags();
             p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION,-1,1,false,false));
-            if (tags.contains(DEAD)){
+            if (tags.contains(DEAD) || tags.contains(GHOST)){
                 world.spawnParticles(ParticleTypes.SOUL,p.getX(),p.getY(),p.getZ(),1,0.4,0.5,0.4,0.0001);
             }
             if (tags.contains(ACCUSED) || tags.contains(MARKED)){
@@ -657,8 +644,12 @@ public class BotcFab implements ModInitializer {
                     aliveVotes++;
                 } else if (lockedVoteState.getBlock() == Blocks.SEA_LANTERN) {
                     ghostVotes++;
-                    //Disable ghost vote code
-                    removeGhostVote(world, colour);
+                    // remove ghost vote tag from player
+                    ServerPlayerEntity playerVote = getPlayerFromColour(colour);
+                    if (playerVote != null) {
+                        playerVote.addCommandTag(DEAD);
+                        playerVote.removeCommandTag(GHOST);
+                    }
 
                 }
                 if (i == 11){
@@ -692,6 +683,10 @@ public class BotcFab implements ModInitializer {
             }
         }
         accusedPlayer.removeCommandTag(ACCUSED);
+
+        for (ServerPlayerEntity p : players) {
+            updateVoteStatus(world, p); //Update votes to remove any used ghost votes
+        }
     }
 
     private void executePlayer(ServerPlayerEntity player){
