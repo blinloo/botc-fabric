@@ -594,6 +594,19 @@ public class BotcFab implements ModInitializer {
 
         src.sendFeedback(() -> DAY_MESSAGE, false);
         //TODO Send message about player death
+        int deaths = getTagCount(DEATH_FLAG);
+        for (int i = 0;i < deaths;i++){
+            ServerPlayerEntity deadPlayer = getPlayerFromColour(DEATH_FLAG);
+            if (deadPlayer != null) {
+                 //= Text.literal(deadPlayer.getNameForScoreboard() + "has been killed.");
+                MutableText playerName = deadPlayer.getStyledDisplayName().copy();
+                MutableText killMsg = Text.literal(" has been killed.")
+                        .formatted(Formatting.DARK_RED);
+                final MutableText KILL_MESSAGE = playerName.append(killMsg);
+                src.sendFeedback(() -> KILL_MESSAGE, false);
+            }
+        }
+
         createOrSetAliveDisplay(scoreboard); //Updates scoreboard
         return 1;
     }
