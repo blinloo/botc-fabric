@@ -34,6 +34,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
@@ -249,6 +250,8 @@ public class BotcFab implements ModInitializer {
         //Assigns player name colour to teams and display names
         switch (teamName){
             case TEAM_STORYTELLER,TEAM_SPECTATOR:
+                team.setDisplayName(Text.of("Story Teller")); //Black
+                team.setColor(Formatting.GRAY);
                 break;
             case TEAM_BLACK:
                 team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(0))); //Black
@@ -284,7 +287,7 @@ public class BotcFab implements ModInitializer {
                 break;
             case TEAM_WHITE:
                 team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(8))); //White
-                team.setColor(Formatting.GRAY);
+                team.setColor(Formatting.WHITE);
                 break;
             case TEAM_BLUE:
                 team.setDisplayName(Text.of(POSSIBLE_COLOURS.get(9))); //Blue
@@ -328,6 +331,30 @@ public class BotcFab implements ModInitializer {
         player.addCommandTag(ACCUSED);
     }
 
+    private void markPlayerDemonKill(ServerPlayerEntity player){
+        Set<String> tags = player.getCommandTags();
+        if (tags.contains(GHOST) || tags.contains(DEAD)) {
+            return;
+        } else {
+            player.addCommandTag(DEATH_FLAG);
+        }
+
+    }
+
+    private void killPlayer(ServerPlayerEntity player){
+        ServerWorld world = player.getServerWorld();
+        Set<String> tags = player.getCommandTags();
+        if (tags.contains(GHOST) || tags.contains(DEAD)) {
+            player.addCommandTag(GHOST);
+            return;
+        }
+        updateVoteStatus(world,player);
+    }
+
+    private void sayKill(ServerPlayerEntity player){
+
+    }
+
     private ActionResult onRightClickEntity(PlayerEntity player, World world, Hand hand, Entity entity, @Nullable EntityHitResult entityHitResult) {
         // Make sure the entity is a player (targeting another player)
         if (entity instanceof PlayerEntity target) {
@@ -356,7 +383,7 @@ public class BotcFab implements ModInitializer {
         objective = scoreboard.addObjective(
                 INFO_OBJECTIVE, // Objective name (unique id)
                 ScoreboardCriterion.DUMMY, // Criterion type (dummy = manual numbers)
-                Text.literal("Player Info:"), // Display name (shown in sidebar, below name, etc.)
+                Text.literal("--|Player Info|--"), // Display name (shown in sidebar, below name, etc.)
                 ScoreboardCriterion.RenderType.INTEGER, // Render type (number type)
                 true, //Whether the value updates live
                 numberFormat //Format of numbers, colour and display
@@ -364,9 +391,9 @@ public class BotcFab implements ModInitializer {
         }
         ScoreAccess aliveScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(ALIVE_SCORE_HOLDER),objective);
         ScoreAccess deadScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(DEAD_SCORE_HOLDER),objective);
-        aliveScoreAccess.setDisplayText(Text.literal("Alive: "));
+        aliveScoreAccess.setDisplayText(Text.literal("Alive : "));
         aliveScoreAccess.setScore(alivePlayers);
-        deadScoreAccess.setDisplayText(Text.literal("Dead: "));
+        deadScoreAccess.setDisplayText(Text.literal("Dead  : "));
         deadScoreAccess.setScore(deadPlayers);
         scoreboard.setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR,objective);
     }
@@ -380,7 +407,7 @@ public class BotcFab implements ModInitializer {
 
         System.out.println("INITIALISED");
         src.sendFeedback(() -> Text.literal("Starting initialise code now"), false);
-        world.setMobSpawnOptions(false);
+        //world.setMobSpawnOptions(false); dunno if this is needed now I have gamerules.
 
         //Define gamerules, shouldn't need to run every time but just to be safe
         world.getGameRules().get(GameRules.DO_DAYLIGHT_CYCLE).set(false, world.getServer());
@@ -585,27 +612,28 @@ public class BotcFab implements ModInitializer {
         ServerWorld world = context.getSource().getWorld();
         ServerScoreboard scoreboard = srv.getScoreboard();
 
-        world.setTimeOfDay(0L);
-        for (ServerPlayerEntity p : players){
-            updateVoteStatus(world,p);
-            showTitle(p,DAY_MESSAGE);
-        }
-        highestVote = 0; //reset highest vote
-
         src.sendFeedback(() -> DAY_MESSAGE, false);
-        //TODO Send message about player death
+        //Send player death message and update status
         int deaths = getTagCount(DEATH_FLAG);
         for (int i = 0;i < deaths;i++){
             ServerPlayerEntity deadPlayer = getPlayerFromColour(DEATH_FLAG);
             if (deadPlayer != null) {
                  //= Text.literal(deadPlayer.getNameForScoreboard() + "has been killed.");
-                MutableText playerName = deadPlayer.getStyledDisplayName().copy();
+                MutableText playerName = deadPlayer.getStyledDisplayName().copy(); //Should be formatted with player colour from team
                 MutableText killMsg = Text.literal(" has been killed.")
                         .formatted(Formatting.DARK_RED);
                 final MutableText KILL_MESSAGE = playerName.append(killMsg);
                 src.sendFeedback(() -> KILL_MESSAGE, false);
+                deadPlayer.addCommandTag(GHOST);
+                deadPlayer.removeCommandTag(DEATH_FLAG);
             }
         }
+        //Update vote status after killing players
+        for (ServerPlayerEntity p : players){
+            updateVoteStatus(world,p);
+            showTitle(p,DAY_MESSAGE);
+        }
+        highestVote = 0; //reset highest vote
 
         createOrSetAliveDisplay(scoreboard); //Updates scoreboard
         return 1;
@@ -754,6 +782,18 @@ public class BotcFab implements ModInitializer {
                         .executes(context -> {
                             ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
                             executePlayer(player);
+                            return 1;
+                        })
+        )));
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("demonKill").then(
+                CommandManager.argument("player", EntityArgumentType.player())
+                        .suggests(new PlayerSuggestionProvider())
+                        .executes(context -> {
+                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                            markPlayerDemonKill(player);
+                            context.getSource().sendFeedback(() -> Text.literal("Marked player for demon kill:"), false);
+                            context.getSource().sendFeedback(player::getStyledDisplayName, false);
                             return 1;
                         })
         )));
