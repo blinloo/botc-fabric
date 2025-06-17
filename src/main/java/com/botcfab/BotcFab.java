@@ -34,7 +34,6 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
@@ -94,8 +93,9 @@ public class BotcFab implements ModInitializer {
     private static final String DEAD = "dead";
     private static final String GHOST = "ghost";
     private static final String DEATH_FLAG = "death_flag";
+    private static final String REVIVE_FLAG = "revive_flag";
     private static final String ACCUSED = "accused";
-    private static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,ACCUSED);
+    private static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED);
 
     private static final String INFO_OBJECTIVE = "info";
     private static final String ALIVE_SCORE_HOLDER = "#alive";
@@ -129,6 +129,10 @@ public class BotcFab implements ModInitializer {
     private final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
             .formatted(Formatting.DARK_BLUE)
             .append(Text.literal("\\nPlease return to your houses"));
+    private final MutableText KILL_TEXT = Text.literal(" has been killed.")
+            .formatted(Formatting.DARK_RED);
+    private final MutableText REVIVE_TEXT = Text.literal(" has been revived.")
+            .formatted(Formatting.YELLOW);
 
     private String getColourFromPlayer(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
@@ -333,26 +337,47 @@ public class BotcFab implements ModInitializer {
 
     private void markPlayerDemonKill(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
-        if (tags.contains(GHOST) || tags.contains(DEAD)) {
-            return;
-        } else {
+        if (!tags.contains(GHOST) && !tags.contains(DEAD)) { //If player already dead, do not tag for announce.
             player.addCommandTag(DEATH_FLAG);
         }
+    }
 
+    private void markPlayerRevived(ServerPlayerEntity player){
+        Set<String> tags = player.getCommandTags();
+        if (!tags.contains(ALIVE)) { //If player still alive do not mark for revival
+            player.addCommandTag(REVIVE_FLAG);
+        }
     }
 
     private void killPlayer(ServerPlayerEntity player){
         ServerWorld world = player.getServerWorld();
         Set<String> tags = player.getCommandTags();
-        if (tags.contains(GHOST) || tags.contains(DEAD)) {
+        if (!tags.contains(GHOST) && !tags.contains(DEAD)) {
             player.addCommandTag(GHOST);
-            return;
+            updateVoteStatus(world,player);
         }
-        updateVoteStatus(world,player);
     }
 
-    private void sayKill(ServerPlayerEntity player){
+    private void revivePlayer(ServerPlayerEntity player){
+        ServerWorld world = player.getServerWorld();
+        Set<String> tags = player.getCommandTags();
+        if (tags.contains(GHOST) || tags.contains(DEAD)) {
+            player.removeCommandTag(GHOST);
+            player.removeCommandTag(DEAD);
+            player.addCommandTag(ALIVE);
+            updateVoteStatus(world,player);
+        }
+    }
 
+    private MutableText getEventText(ServerPlayerEntity player, String event){
+        MutableText eventMsg;
+        MutableText playerName = player.getStyledDisplayName().copy(); //Should be formatted with player colour from team
+        eventMsg = switch (event) {
+            case REVIVE_FLAG -> KILL_TEXT;
+            case DEATH_FLAG -> REVIVE_TEXT;
+            default -> Text.literal(" made an oopsie");
+        };
+        return playerName.append(eventMsg);
     }
 
     private ActionResult onRightClickEntity(PlayerEntity player, World world, Hand hand, Entity entity, @Nullable EntityHitResult entityHitResult) {
@@ -618,19 +643,22 @@ public class BotcFab implements ModInitializer {
         for (int i = 0;i < deaths;i++){
             ServerPlayerEntity deadPlayer = getPlayerFromColour(DEATH_FLAG);
             if (deadPlayer != null) {
-                 //= Text.literal(deadPlayer.getNameForScoreboard() + "has been killed.");
-                MutableText playerName = deadPlayer.getStyledDisplayName().copy(); //Should be formatted with player colour from team
-                MutableText killMsg = Text.literal(" has been killed.")
-                        .formatted(Formatting.DARK_RED);
-                final MutableText KILL_MESSAGE = playerName.append(killMsg);
-                src.sendFeedback(() -> KILL_MESSAGE, false);
-                deadPlayer.addCommandTag(GHOST);
+                src.sendFeedback(() -> getEventText(deadPlayer,DEATH_FLAG), false);
+                killPlayer(deadPlayer);
                 deadPlayer.removeCommandTag(DEATH_FLAG);
             }
         }
-        //Update vote status after killing players
+        int revives = getTagCount(REVIVE_FLAG);
+        for (int i = 0;i < revives;i++){
+            ServerPlayerEntity alivePlayer = getPlayerFromColour(REVIVE_FLAG);
+            if (alivePlayer != null) {
+                src.sendFeedback(() -> getEventText(alivePlayer,REVIVE_FLAG), false);
+                revivePlayer(alivePlayer);
+                alivePlayer.removeCommandTag(REVIVE_FLAG);
+            }
+        }
         for (ServerPlayerEntity p : players){
-            updateVoteStatus(world,p);
+            //updateVoteStatus(world,p); // shouldn't be needed this done in kill and revive code
             showTitle(p,DAY_MESSAGE);
         }
         highestVote = 0; //reset highest vote
@@ -786,13 +814,37 @@ public class BotcFab implements ModInitializer {
                         })
         )));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("demonKill").then(
-                CommandManager.argument("player", EntityArgumentType.player())
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("demonKillMark").then(
+                CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player as the demon kill tonight.
                         .suggests(new PlayerSuggestionProvider())
                         .executes(context -> {
                             ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
                             markPlayerDemonKill(player);
                             context.getSource().sendFeedback(() -> Text.literal("Marked player for demon kill:"), false);
+                            context.getSource().sendFeedback(player::getStyledDisplayName, false);
+                            return 1;
+                        })
+        )));
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("reviveMark").then(
+                CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player to be revived in the day.
+                        .suggests(new PlayerSuggestionProvider())
+                        .executes(context -> {
+                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                            markPlayerRevived(player);
+                            context.getSource().sendFeedback(() -> Text.literal("Marked player for revival upon morning:"), false);
+                            context.getSource().sendFeedback(player::getStyledDisplayName, false);
+                            return 1;
+                        })
+        )));
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("accuse").then(
+                CommandManager.argument("player", EntityArgumentType.player()) // accuse player for execution, in case right click selector doesn't work.
+                        .suggests(new PlayerSuggestionProvider())
+                        .executes(context -> {
+                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                            accusePlayer(player);
+                            context.getSource().sendFeedback(() -> Text.literal("Accused: "), false);
                             context.getSource().sendFeedback(player::getStyledDisplayName, false);
                             return 1;
                         })
