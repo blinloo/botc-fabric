@@ -369,6 +369,11 @@ public class BotcFab implements ModInitializer {
         }
     }
 
+    private void teleportPlayers(String location){
+        //location either "home" or "vote"
+        //TODO write this function!
+    }
+
     private MutableText getEventText(ServerPlayerEntity player, String event){
         MutableText eventMsg;
         MutableText playerName = player.getStyledDisplayName().copy(); //Should be formatted with player colour from team
@@ -626,6 +631,7 @@ public class BotcFab implements ModInitializer {
         //Remove all death_mark and accused tags from players
         removeTagAllPlayers(ACCUSED);
         removeTagAllPlayers(DEATH_FLAG);
+        removeTagAllPlayers(REVIVE_FLAG);
 
         src.sendFeedback(() -> NIGHT_MESSAGE, false);
         return 1;
@@ -634,7 +640,6 @@ public class BotcFab implements ModInitializer {
     private int startDay(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
-        ServerWorld world = context.getSource().getWorld();
         ServerScoreboard scoreboard = srv.getScoreboard();
 
         src.sendFeedback(() -> DAY_MESSAGE, false);
@@ -759,9 +764,12 @@ public class BotcFab implements ModInitializer {
 
     private void executePlayer(ServerPlayerEntity player){
         ServerWorld world = player.getServerWorld();
-        player.removeCommandTag(ALIVE);
-        player.kill(world);
-        updateDeadPlayer(world, player);
+        //TODO actually made this work properly,
+        // - trigger execution event (eg anvil, pit open)
+        // - check when marked player dies
+        // - remove and add appropriate tags
+        player.kill(world); //just kills the player not useful
+        killPlayer(player);
     }
 
     private int beginExecution(CommandContext<ServerCommandSource> context){
