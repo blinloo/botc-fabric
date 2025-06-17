@@ -22,7 +22,7 @@ public class ImportExcelCoordinates {
         Map <String, CoordinateMapper> mc = new HashMap<>();
 
         try {
-            MappingIterator<Map<String,String>> iterator = mapper.reader(Map.class)
+            MappingIterator<Map<String,String>> iterator = mapper.readerFor(Map.class)
                     .with(schema)
                     .readValues(file);
 
