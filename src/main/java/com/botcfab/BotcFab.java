@@ -369,9 +369,28 @@ public class BotcFab implements ModInitializer {
         }
     }
 
+    private void tp(ServerPlayerEntity player, BlockPos destination){ //teleports player to BlockPos by converting to x,y,z
+        player.teleport(destination.getX(),destination.getY(),destination.getZ(),false);
+    }
+
     private void teleportPlayers(String location){
         //location either "home" or "vote"
         //TODO write this function!
+        String colour;
+        switch (location){
+            case "home":
+                for (ServerPlayerEntity p : players) {
+                    colour = getColourFromPlayer(p);
+                    tp(p,mapCoords.get(colour).homeInside); //teleport player to coords
+                }
+                break;
+            case "vote":
+                for (ServerPlayerEntity p : players) {
+                    colour = getColourFromPlayer(p);
+                    tp(p,mapCoords.get(colour).chair);
+                } //TODO add code to lock players to seats for nominations
+                break;
+        }
     }
 
     private MutableText getEventText(ServerPlayerEntity player, String event){
@@ -768,7 +787,7 @@ public class BotcFab implements ModInitializer {
         // - trigger execution event (eg anvil, pit open)
         // - check when marked player dies
         // - remove and add appropriate tags
-        player.kill(world); //just kills the player not useful
+        player.kill(world); //just kills the player not really useful
         killPlayer(player);
     }
 
