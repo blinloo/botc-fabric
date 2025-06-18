@@ -98,7 +98,8 @@ public class BotcFab implements ModInitializer {
     private static final String DEATH_FLAG = "death_flag";
     private static final String REVIVE_FLAG = "revive_flag";
     private static final String ACCUSED = "accused";
-    private static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED);
+    private static final String CURRENT_EXECUTEE = "current_executee";
+    private static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE);
 
     private static final String INFO_OBJECTIVE = "info";
     private static final String ALIVE_SCORE_HOLDER = "#alive";
@@ -130,6 +131,9 @@ public class BotcFab implements ModInitializer {
     private boolean timerBarActive = false;
     private int timerBarTicks = 0;
     private int timerDurationTicks = 10*20; // 10 seconds default
+
+    //Variables for on tick checks
+    private boolean playersLockedToSeats = false;
 
     //Text for displays
     private final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀️")
@@ -374,7 +378,7 @@ public class BotcFab implements ModInitializer {
     }
 
     private void tp(ServerPlayerEntity player, BlockPos destination){ //teleports player to BlockPos by converting to x,y,z
-        player.teleport(destination.getX(),destination.getY(),destination.getZ(),false);
+        player.teleport(destination.getX()+0.5,destination.getY(),destination.getZ()+0.5,false); //0.5 for centre of block
     }
 
     private void teleportPlayers(String location){
@@ -648,7 +652,7 @@ public class BotcFab implements ModInitializer {
     }
 
     private void onServerTick(MinecraftServer srv){
-        if (timerBarActive) {
+        if (timerBarActive) { //Timer bar for talk time
             timerBarTicks++;
             float progress = 1.0f - (float) timerBarTicks / timerDurationTicks;
             if (timerBar != null) {
@@ -660,11 +664,32 @@ public class BotcFab implements ModInitializer {
                 timerBarTicks = 0;
                 if (timerBar != null) {
                     timerBar.setPercent(0f);
-                    timerBar.setVisible(false); //Make timer invis as finished
+                    timerBar.setVisible(false); //Make timer invisible as finished
                     for (ServerPlayerEntity p : srv.getPlayerManager().getPlayerList()) {
                         showTitle(p,Text.literal("TIME UP"));
                     }
                 }
+            }
+        }
+        if (playersLockedToSeats) {
+            for (ServerPlayerEntity p:players) {
+                Set<String> tags = p.getCommandTags();
+                String playerColour = getColourFromPlayer(p);
+                BlockPos playerPos = p.getBlockPos();
+                BlockPos targetPos;
+
+                if (!tags.contains(CURRENT_EXECUTEE)) { //Check player is not currently being executed
+                    targetPos = mapCoords.get(playerColour).chair;
+                } else {
+                    break;
+                }
+
+                double distance = playerPos.getSquaredDistance(targetPos);
+                if (distance > 1.5) {
+                    tp(p,targetPos);
+                    p.sendMessage(Text.literal("You were too far away. Teleporting to target..."), false);
+                }
+
             }
         }
     }
@@ -673,6 +698,7 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = context.getSource();
         ServerWorld world = context.getSource().getWorld();
         world.setTimeOfDay(18000L);
+        playersLockedToSeats = false;
         //Remove all death_mark and accused tags from players
         removeTagAllPlayers(ACCUSED);
         removeTagAllPlayers(DEATH_FLAG);
@@ -808,6 +834,7 @@ public class BotcFab implements ModInitializer {
     }
 
     private void executePlayer(ServerPlayerEntity player){
+        player.addCommandTag(CURRENT_EXECUTEE);
         ServerWorld world = player.getServerWorld();
         //TODO actually made this work properly,
         // - trigger execution event (eg anvil, pit open)
@@ -815,6 +842,7 @@ public class BotcFab implements ModInitializer {
         // - remove and add appropriate tags
         player.kill(world); //just kills the player not really useful
         killPlayer(player);
+        player.removeCommandTag(CURRENT_EXECUTEE); //Remove after animation stuff is done
     }
 
     private int beginExecution(CommandContext<ServerCommandSource> context){
@@ -982,6 +1010,13 @@ public class BotcFab implements ModInitializer {
                     context.getSource().sendFeedback(() -> Text.literal("Beginning vote lock in"), false);
                     onVoteLockIn(context);
                     context.getSource().sendFeedback(() -> Text.literal("Completed /onVoteLockIn."), false);
+                    return 1;
+                }
+        )));
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("toggleSeatLock").executes(context -> {
+                    playersLockedToSeats = !playersLockedToSeats;
+                    context.getSource().sendFeedback(() -> Text.literal("Toggled player seat lock"), false);
                     return 1;
                 }
         )));
