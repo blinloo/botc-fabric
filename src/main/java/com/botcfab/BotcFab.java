@@ -14,6 +14,8 @@ import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.Orientation;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.boss.BossBar;
+import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
@@ -197,20 +199,12 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private void updateDeadPlayer(ServerWorld world, ServerPlayerEntity player) {
-        //Change vote to Ghost vote, block + lantern
-        if (!player.getCommandTags().contains(DEAD)){
-        player.removeCommandTag(ALIVE);
-        player.addCommandTag(GHOST);
-        updateVoteStatus(world, player);
-        }
-    }
-
     private void updateVoteStatus(ServerWorld world, ServerPlayerEntity player){
         //Update vote marker and lamp for all players by checking tags
         Set<String> tags = player.getCommandTags();
         String playerColour = getColourFromPlayer(player);
         //Replace lamps
+        //TODO add functionality for new map
         if (tags.contains(ALIVE)){
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
             world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_COPPER_BULB.getDefaultState());
@@ -399,7 +393,7 @@ public class BotcFab implements ModInitializer {
         eventMsg = switch (event) {
             case REVIVE_FLAG -> KILL_TEXT;
             case DEATH_FLAG -> REVIVE_TEXT;
-            default -> Text.literal(" made an oopsie");
+            default -> Text.literal(" needs to tell Ruby she is bad at coding");
         };
         return playerName.append(eventMsg);
     }
@@ -800,6 +794,13 @@ public class BotcFab implements ModInitializer {
         return 1;
     }
 
+    private int startTimer(int length){ //Starts a timer and shows boss bar as remaing
+        //TODO Timer boss bar, write this function
+        ServerBossBar timerBar = new ServerBossBar(Text.literal("Time remaining:"), BossBar.Color.GREEN, BossBar.Style.NOTCHED_10);
+        timerBar.setPercent(100);
+        timerBar.setVisible(true);
+    }
+
     @Override
     public void onInitialize() {
         // This code runs as soon as Minecraft is in a mod-load-ready state.
@@ -828,6 +829,31 @@ public class BotcFab implements ModInitializer {
                 CommandManager.argument("player_name", StringArgumentType.string())
                         .suggests(new PlayerSuggestionProvider())
                         .executes(this::onAddSpectator)
+        )));
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("tpPlayers").then(
+                CommandManager.argument("tp_location", StringArgumentType.string())
+                        .suggests((context, builder) -> {
+                            // Suggest "one" and "two"
+                            return builder
+                                    .suggest("home")
+                                    .suggest("vote")
+                                    .suggest("chair")
+                                    .buildFuture();
+                        })
+                        .executes(context -> {
+                            String option = StringArgumentType.getString(context, "option");
+                            option = option.toLowerCase(); //lowercase to account for typos
+                            if (option.equals("chair")){
+                                option = "vote";
+                            }
+                            if (option.equals("home") || option.equals("vote")) {
+                                teleportPlayers(option);
+                            } else {
+                                context.getSource().sendFeedback(() -> Text.literal("Invalid teleport location"), false);
+                            }
+                            return 1;
+                        })
         )));
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("executePlayer").then(
