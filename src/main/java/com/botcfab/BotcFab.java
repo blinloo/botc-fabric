@@ -148,7 +148,11 @@ public class BotcFab implements ModInitializer {
             .formatted(Formatting.YELLOW);
 
     //variables for command inputs
-    private final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town");
+    private final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town","dorm");
+    private final String DEFAULT_MAP = "default";
+    private final String SCHOOL_MAP = "school";
+    private final List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP);
+    private String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
 
     private String getColourFromPlayer(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
@@ -222,20 +226,28 @@ public class BotcFab implements ModInitializer {
         if (tags.contains(ALIVE)){
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
             world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_COPPER_BULB.getDefaultState());
-            switch (playerColour) { //Add back lever in case of revivals
-                case "Black", "Cyan", "White":
-                    placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, Orientation.DOWN_EAST);
+            //Add back lever in case of revivals
+            switch (mapSelected) {
+                case DEFAULT_MAP: //Levers face different ways on maps
+                    switch (playerColour) {
+                        case "Black", "Cyan", "White":
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, Orientation.DOWN_EAST);
+                            break;
+                        case "Yellow", "Pink", "Grey":
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, Orientation.DOWN_SOUTH);
+                            break;
+                        case "Orange", "Red", "Brown":
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, Orientation.DOWN_WEST);
+                            break;
+                        case "Purple", "Green", "Blue":
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, Orientation.DOWN_NORTH);
+                            break;
+                    }
                     break;
-                case "Yellow", "Pink", "Grey":
-                    placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, Orientation.DOWN_SOUTH);
-                    break;
-                case "Orange", "Red", "Brown":
-                    placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, Orientation.DOWN_WEST);
-                    break;
-                case "Purple", "Green", "Blue":
-                    placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, Orientation.DOWN_NORTH);
-                    break;
+                case SCHOOL_MAP: //
+                    placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, Orientation.DOWN_EAST); //Make sure direction is correct later
             }
+
         }
         if (tags.contains(GHOST)){
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.IRON_BLOCK.getDefaultState());
@@ -386,7 +398,7 @@ public class BotcFab implements ModInitializer {
         //TODO write this function!
         String colour;
         switch (location){
-            case "home","house":
+            case "home","house","dorm":
                 for (ServerPlayerEntity p : players) {
                     colour = getColourFromPlayer(p);
                     tp(p,mapCoords.get(colour).homeInside); //teleport player to coords
@@ -778,7 +790,17 @@ public class BotcFab implements ModInitializer {
             for (int i = startColourIndex; count <= players.size(); i++) {
                 String colour = POSSIBLE_COLOURS.get(i);
                 BlockPos pos = mapCoords.get(colour).triggersLampPiston;
-                BlockPos lockedVote = pos.up(2); //Position of locked in vote lamp
+                BlockPos lockedVote;
+                switch (mapSelected) {
+                    case DEFAULT_MAP:
+                        lockedVote = pos.up(2); //Position of locked in vote lamp
+                        break;
+                    case SCHOOL_MAP:
+                        lockedVote = pos.east(2); //Position of locked in vote lamp Change direction based on orientation
+                        break;
+                    default:
+                        lockedVote = pos.up(2);
+                }
 
                 int delay = count * delayPerBlock; //Add delay between vote locks
                 taskList.add(new DelayedBlockSetter(world, pos, Blocks.AIR.getDefaultState(), delay)); //Set redstone block to air
@@ -840,6 +862,13 @@ public class BotcFab implements ModInitializer {
         // - trigger execution event (eg anvil, pit open)
         // - check when marked player dies
         // - remove and add appropriate tags
+        switch (mapSelected) {
+            case DEFAULT_MAP:
+                break;
+            case SCHOOL_MAP:
+                break;
+        }
+
         player.kill(world); //just kills the player not really useful
         killPlayer(player);
         player.removeCommandTag(CURRENT_EXECUTEE); //Remove after animation stuff is done
@@ -899,6 +928,27 @@ public class BotcFab implements ModInitializer {
             mapCoords = ImportExcelCoordinates.read(path); //Import coordinates for map from Excel sheet
             return 1;
         })));
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("changeMap").then(
+                CommandManager.argument("map", StringArgumentType.string())
+                        .suggests((context, builder) -> {
+                            // Suggest teleport locations
+                            for (String m:MAPS)
+                                builder.suggest(m); //Not sure if this works so use code below if not
+                            return builder.buildFuture();
+                        })
+                        .executes(context -> {
+                            String map = StringArgumentType.getString(context, "map");
+                            map = map.toLowerCase(); //lowercase to account for typos
+
+                            if (tpOptions.contains(map)) {
+                                mapSelected = map;
+                            } else {
+                                context.getSource().sendFeedback(() -> Text.literal("Invalid map specified"), false);
+                            }
+                            return 1;
+                        })
+        )));
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("addSpectator").then(
                 CommandManager.argument("player_name", StringArgumentType.string())
