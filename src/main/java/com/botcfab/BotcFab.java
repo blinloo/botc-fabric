@@ -59,6 +59,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class BotcFab implements ModInitializer {
     public static final String MOD_ID = "botc-fab";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    //Team variables
     private static final String TEAM_STORYTELLER = "teamStoryteller";
     private static final String TEAM_SPECTATOR = "teamSpectator";
     private static final String TEAM_BLACK = "01Black";
@@ -120,9 +121,15 @@ public class BotcFab implements ModInitializer {
 
     //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
     Map<String, CoordinateMapper> mapCoords = new HashMap<>();
-    List<ServerPlayerEntity> players;
+    private List<ServerPlayerEntity> players;
     //Highest vote count
-    int highestVote;
+    private int highestVote;
+
+    //Timer bar variables
+    private ServerBossBar timerBar;
+    private boolean timerBarActive = false;
+    private int timerBarTicks = 0;
+    private int timerDurationTicks = 10*20; // 10 seconds default
 
     //Text for displays
     private final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀️")
@@ -135,6 +142,9 @@ public class BotcFab implements ModInitializer {
             .formatted(Formatting.DARK_RED);
     private final MutableText REVIVE_TEXT = Text.literal(" has been revived.")
             .formatted(Formatting.YELLOW);
+
+    //variables for command inputs
+    private final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town");
 
     private String getColourFromPlayer(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
@@ -372,13 +382,13 @@ public class BotcFab implements ModInitializer {
         //TODO write this function!
         String colour;
         switch (location){
-            case "home":
+            case "home","house":
                 for (ServerPlayerEntity p : players) {
                     colour = getColourFromPlayer(p);
                     tp(p,mapCoords.get(colour).homeInside); //teleport player to coords
                 }
                 break;
-            case "vote":
+            case "vote","chair","town":
                 for (ServerPlayerEntity p : players) {
                     colour = getColourFromPlayer(p);
                     tp(p,mapCoords.get(colour).chair);
@@ -637,6 +647,28 @@ public class BotcFab implements ModInitializer {
 
     }
 
+    private void onServerTick(MinecraftServer srv){
+        if (timerBarActive) {
+            timerBarTicks++;
+            float progress = 1.0f - (float) timerBarTicks / timerDurationTicks;
+            if (timerBar != null) {
+                timerBar.setPercent(Math.max(progress, 0f));
+            }
+
+            if (timerBarTicks >= timerDurationTicks) { //On timer finish
+                timerBarActive = false;
+                timerBarTicks = 0;
+                if (timerBar != null) {
+                    timerBar.setPercent(0f);
+                    timerBar.setVisible(false); //Make timer invis as finished
+                    for (ServerPlayerEntity p : srv.getPlayerManager().getPlayerList()) {
+                        showTitle(p,Text.literal("TIME UP"));
+                    }
+                }
+            }
+        }
+    }
+
     private int nightFalls(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
         ServerWorld world = context.getSource().getWorld();
@@ -794,11 +826,22 @@ public class BotcFab implements ModInitializer {
         return 1;
     }
 
-    private int startTimer(int length){ //Starts a timer and shows boss bar as remaing
+    private void startTimer(MinecraftServer srv,int duration){ //Starts a timer and shows boss bar as remaining, duration in seconds
         //TODO Timer boss bar, write this function
-        ServerBossBar timerBar = new ServerBossBar(Text.literal("Time remaining:"), BossBar.Color.GREEN, BossBar.Style.NOTCHED_10);
-        timerBar.setPercent(100);
+        if (timerBar == null) {
+            timerBar = new ServerBossBar(Text.literal("Time remaining:"), BossBar.Color.GREEN, BossBar.Style.NOTCHED_10);
+        }
+        timerBar.setPercent(1.0f); //100%
         timerBar.setVisible(true);
+        for (ServerPlayerEntity player : srv.getPlayerManager().getPlayerList()) {
+            timerBar.addPlayer(player);
+        }
+
+        timerBarTicks = 0;
+        timerDurationTicks = duration*20; //*20 to get seconds value in ticks
+        timerBarActive = true;
+
+        srv.sendMessage(Text.literal("Boss bar timer started."));
     }
 
     @Override
@@ -808,8 +851,12 @@ public class BotcFab implements ModInitializer {
         // Proceed with mild caution.
 
         LOGGER.info("Hello Fabric world!");
+        //Run on each world end tick
         ServerTickEvents.END_WORLD_TICK.register(this::onWorldTick); //(ServerWorld world) -> onWorldTick(world)
         TickScheduler.register();
+
+        //Run on each server start tick
+        ServerTickEvents.START_SERVER_TICK.register(this::onServerTick);
 
         //Code that runs on server start.
         ServerLifecycleEvents.SERVER_STARTED.register(this::onGameInit);
@@ -834,24 +881,49 @@ public class BotcFab implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("tpPlayers").then(
                 CommandManager.argument("tp_location", StringArgumentType.string())
                         .suggests((context, builder) -> {
-                            // Suggest "one" and "two"
-                            return builder
-                                    .suggest("home")
-                                    .suggest("vote")
-                                    .suggest("chair")
-                                    .buildFuture();
+                            // Suggest teleport locations
+                            for (String o:tpOptions)
+                                builder.suggest(o); //Not sure if this works so use code below if not
+                            return builder.buildFuture();
+//                            return builder
+//                                    .suggest("home")
+//                                    .suggest("vote")
+//                                    .suggest("chair")
+//                                    .suggest("town")
+//                                    .suggest("house")
+//                                    .buildFuture();
                         })
                         .executes(context -> {
                             String option = StringArgumentType.getString(context, "option");
                             option = option.toLowerCase(); //lowercase to account for typos
-                            if (option.equals("chair")){
-                                option = "vote";
-                            }
-                            if (option.equals("home") || option.equals("vote")) {
+
+                            if (tpOptions.contains(option)) {
                                 teleportPlayers(option);
                             } else {
                                 context.getSource().sendFeedback(() -> Text.literal("Invalid teleport location"), false);
                             }
+                            return 1;
+                        })
+        )));
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startTimer").then(
+                CommandManager.argument("stringTime", StringArgumentType.string())
+                        //
+                        .executes(context -> {
+                            String stringTime = StringArgumentType.getString(context, "stringTime");// Get the timer duration as string from argument
+                            ServerCommandSource src = context.getSource();
+                            MinecraftServer srv = src.getServer();
+                            float durationMins;
+                            int durationSecs;
+                            try {
+                                durationMins = Float.parseFloat(stringTime); //parse string value into float
+                            } catch (Exception e){
+                                durationMins = 0.1f; //default to 10seconds without arg
+                                src.sendFeedback(() -> Text.literal("Invalid or no duration supplied, defaulting to 10 second timer"), false);
+                            }
+                            durationSecs = (Math.round(durationMins*100)/100)*60; //round to 2dp and convert to seconds
+                            src.sendFeedback(() -> Text.literal("Starting timer"), false);
+                            startTimer(srv,durationSecs);
                             return 1;
                         })
         )));
