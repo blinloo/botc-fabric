@@ -35,7 +35,9 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
@@ -136,22 +138,27 @@ public class BotcFab implements ModInitializer {
     private boolean playersLockedToSeats = false;
 
     //Text for displays
-    private final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀️")
-            .formatted(Formatting.GOLD)
-            .append(Text.literal("\\nPlease head to the town square"));
+    private final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀")
+            .setStyle(Style.EMPTY.withColor(Formatting.GOLD))
+            .append(Text.literal("\nPlease head to the town square")); //new line doesn't work, also it keeps the colour
     private final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
-            .formatted(Formatting.DARK_BLUE)
-            .append(Text.literal("\\nPlease return to your houses"));
+            .setStyle(Style.EMPTY.withColor(Formatting.DARK_BLUE))
+            .append(Text.literal("\nPlease return to your houses"));
     private final MutableText KILL_TEXT = Text.literal(" has been killed.")
             .formatted(Formatting.DARK_RED);
     private final MutableText REVIVE_TEXT = Text.literal(" has been revived.")
             .formatted(Formatting.YELLOW);
 
+    MutableText message = Text.literal("the ")
+            .append(Text.literal("cat").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFFFF55))))  // Yellow for "cat"
+            .append(Text.literal(" is on "))
+            .append(Text.literal("fire").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFF0000)))); // Red for "fire"
+
     //variables for command inputs
     private final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town","dorm");
-    private final String DEFAULT_MAP = "default";
-    private final String SCHOOL_MAP = "school";
-    private final List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP);
+    private final static String DEFAULT_MAP = "default";
+    private final static String SCHOOL_MAP = "school";
+    private final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP);
     private String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
 
     private String getColourFromPlayer(ServerPlayerEntity player){
@@ -165,10 +172,12 @@ public class BotcFab implements ModInitializer {
     }
 
     private ServerPlayerEntity getPlayerFromColour(String colour){
-        for (ServerPlayerEntity p : players){
-            Set<String> tags = p.getCommandTags();
-            if (tags.contains(colour)){
-                return p;
+        if (players != null){
+            for (ServerPlayerEntity p : players) {
+                Set<String> tags = p.getCommandTags();
+                if (tags.contains(colour)) {
+                    return p;
+                }
             }
         }
         return null;
@@ -193,7 +202,7 @@ public class BotcFab implements ModInitializer {
         world.setBlockState(pos, state);
     }
 
-    private void placeSign(ServerWorld world, BlockPos pos, Direction facing, Text text) {
+    private void placeSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour) {
         if (world == null || world.isClient) return;
 
         //WallSignBlock sign = (WallSignBlock) Blocks.SPRUCE_WALL_SIGN;
@@ -206,7 +215,7 @@ public class BotcFab implements ModInitializer {
         //Sets text to sign format and makes it glow.
         formatText.withMessage(1,text); //Adds text to sign, line 2, usually player name
         formatText.withGlowing(true); //Sets text to glowing
-        formatText.withColor(DyeColor.valueOf(text.toString()));
+        formatText.withColor(DyeColor.valueOf(colour)); //adds the dye colour to sign
 
         // Access the block entity and set the text on the second line
         if (world.getBlockEntity(pos) instanceof SignBlockEntity signBlockEntity) {
@@ -335,17 +344,21 @@ public class BotcFab implements ModInitializer {
     }
 
     private void removeTagAllPlayers(String tag){
-        for (ServerPlayerEntity p : players){
-            p.removeCommandTag(tag);
+        if (players != null) {
+            for (ServerPlayerEntity p : players) {
+                p.removeCommandTag(tag);
+            }
         }
     }
 
     private int getTagCount(String tag){
         int count = 0;
-        for (ServerPlayerEntity p : players){
-            Set<String> tags = p.getCommandTags();
-            if (tags.contains(tag))
-                count++;
+        if (players != null) {
+            for (ServerPlayerEntity p : players) {
+                Set<String> tags = p.getCommandTags();
+                if (tags.contains(tag))
+                    count++;
+            }
         }
         return count;
     }
@@ -476,9 +489,8 @@ public class BotcFab implements ModInitializer {
 
         System.out.println("INITIALISED");
         src.sendFeedback(() -> Text.literal("Starting initialise code now"), false);
-        //world.setMobSpawnOptions(false); dunno if this is needed now I have gamerules.
 
-        //Define gamerules, shouldn't need to run every time but just to be safe
+        //Define game rules, shouldn't need to run every time but just to be safe
         world.getGameRules().get(GameRules.DO_DAYLIGHT_CYCLE).set(false, world.getServer());
         world.getGameRules().get(GameRules.DO_MOB_SPAWNING).set(false, world.getServer());
         world.getGameRules().get(GameRules.DISABLE_RAIDS).set(true, world.getServer());
@@ -490,7 +502,6 @@ public class BotcFab implements ModInitializer {
         world.getGameRules().get(GameRules.DO_WEATHER_CYCLE).set(false, world.getServer());
         world.getGameRules().get(GameRules.KEEP_INVENTORY).set(true, world.getServer());
         world.getGameRules().get(GameRules.PLAYERS_SLEEPING_PERCENTAGE).set(200, world.getServer());
-        //world.getGameRules().get(GameRules.COMMAND_MODIFICATION_BLOCK_LIMIT).set(1000000000, world.getServer());
 
         // Create all teams
         for (String teamName : allTeams) {
@@ -522,11 +533,12 @@ public class BotcFab implements ModInitializer {
 
         // Set everyone else to be a player
         // Remove the storyTeller from the list of players. Remaining list is all players
-        players.remove(storyTeller);
+
         System.out.println(players);
 
         if (storyTeller != null) {
             // Remove all tags before adding new ones
+            players.remove(storyTeller);
             resetPlayer(storyTeller);
             storyTeller.addCommandTag(STORYTELLER); //Add tag for storyteller
             src.sendFeedback(() -> Text.literal("Storyteller is: " + storyTeller.getName().getString()), false);
@@ -544,7 +556,6 @@ public class BotcFab implements ModInitializer {
             if (tags.contains(SPEC)) {
                 p.changeGameMode(GameMode.SPECTATOR);
                 players.remove(p); //Remove spectators from player list
-                //spectators.add(p); //not sure if needed
             }
         }
         System.out.println(players); //Debugging
@@ -572,22 +583,31 @@ public class BotcFab implements ModInitializer {
 
                 world.setBlockState(mapCoords.get(assignedColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
                 //Places lever for player and add signs
-                switch (assignedColour) {
-                    case "Black", "Cyan", "White":
-                        placeLever(world, mapCoords.get(assignedColour).lever, Direction.EAST, Orientation.DOWN_EAST);
-                        placeSign(world, mapCoords.get(assignedColour).chair, Direction.WEST, player.getName());
+                switch (mapSelected) {
+                    case DEFAULT_MAP:
+                        switch (assignedColour) {
+                            case "Black", "Cyan", "White":
+                                placeLever(world, mapCoords.get(assignedColour).lever, Direction.EAST, Orientation.DOWN_EAST);
+                                placeSign(world, mapCoords.get(assignedColour).chair, Direction.WEST, player.getName(), assignedColour);
+                                break;
+                            case "Yellow", "Pink", "Grey":
+                                placeLever(world, mapCoords.get(assignedColour).lever, Direction.SOUTH, Orientation.DOWN_SOUTH);
+                                placeSign(world, mapCoords.get(assignedColour).chair, Direction.NORTH, player.getName(), assignedColour);
+                                break;
+                            case "Orange", "Red", "Brown":
+                                placeLever(world, mapCoords.get(assignedColour).lever, Direction.WEST, Orientation.DOWN_WEST);
+                                placeSign(world, mapCoords.get(assignedColour).chair, Direction.EAST, player.getName(), assignedColour);
+                                break;
+                            case "Purple", "Green", "Blue":
+                                placeLever(world, mapCoords.get(assignedColour).lever, Direction.NORTH, Orientation.DOWN_NORTH);
+                                placeSign(world, mapCoords.get(assignedColour).chair, Direction.SOUTH, player.getName(), assignedColour);
+                                break;
+                        }
                         break;
-                    case "Yellow", "Pink", "Grey":
-                        placeLever(world, mapCoords.get(assignedColour).lever, Direction.SOUTH, Orientation.DOWN_SOUTH);
-                        placeSign(world, mapCoords.get(assignedColour).chair, Direction.NORTH, player.getName());
-                        break;
-                    case "Orange", "Red", "Brown":
-                        placeLever(world, mapCoords.get(assignedColour).lever, Direction.WEST, Orientation.DOWN_WEST);
-                        placeSign(world, mapCoords.get(assignedColour).chair, Direction.EAST, player.getName());
-                        break;
-                    case "Purple", "Green", "Blue":
+                    case SCHOOL_MAP:
+                        //TODO change directions
                         placeLever(world, mapCoords.get(assignedColour).lever, Direction.NORTH, Orientation.DOWN_NORTH);
-                        placeSign(world, mapCoords.get(assignedColour).chair, Direction.SOUTH, player.getName());
+                        placeSign(world, mapCoords.get(assignedColour).chair, Direction.SOUTH, player.getName(), assignedColour);
                         break;
                 }
 
@@ -627,6 +647,7 @@ public class BotcFab implements ModInitializer {
     }
 
     private void onWorldTick(ServerWorld world) {
+        List<ServerPlayerEntity> playerList = world.getServer().getPlayerManager().getPlayerList(); //gets all players every tick
         for (String i : mapCoords.keySet()) {
             BlockPos leverPos = mapCoords.get(i).lever; // Get the block state at that position
             BlockState leverState = world.getBlockState(leverPos); // Get the block state at that position
@@ -648,19 +669,20 @@ public class BotcFab implements ModInitializer {
                 }
             }
         }//Code for player death particles and particle effects
-        for (ServerPlayerEntity p : players){
-            Set<String> tags = p.getCommandTags();
-            p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION,-1,1,false,false));
-            if (tags.contains(DEAD) || tags.contains(GHOST)){
-                world.spawnParticles(ParticleTypes.SOUL,p.getX(),p.getY(),p.getZ(),1,0.4,0.5,0.4,0.0001);
-            }
-            if (tags.contains(ACCUSED) || tags.contains(MARKED)){
-                p.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING,-1,1,false,false));
-            } else{
-                p.removeStatusEffect(StatusEffects.GLOWING);
+        if (playerList != null) {
+            for (ServerPlayerEntity p : playerList) { //uses full server list to avoid calling null
+                Set<String> tags = p.getCommandTags();
+                p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 1, false, false));
+                if (tags.contains(DEAD) || tags.contains(GHOST)) {
+                    world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0.5, 0.4, 0.0001);
+                }
+                if (tags.contains(ACCUSED) || tags.contains(MARKED)) {
+                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, -1, 1, false, false));
+                } else {
+                    p.removeStatusEffect(StatusEffects.GLOWING);
+                }
             }
         }
-
     }
 
     private void onServerTick(MinecraftServer srv){
@@ -683,7 +705,7 @@ public class BotcFab implements ModInitializer {
                 }
             }
         }
-        if (playersLockedToSeats) {
+        if (playersLockedToSeats && players != null) { //checks if players locked is true and players list is not null
             for (ServerPlayerEntity p:players) {
                 Set<String> tags = p.getCommandTags();
                 String playerColour = getColourFromPlayer(p);
@@ -724,6 +746,7 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         ServerScoreboard scoreboard = srv.getScoreboard();
+        playersLockedToSeats = false;
 
         src.sendFeedback(() -> DAY_MESSAGE, false);
         //Send player death message and update status
@@ -972,7 +995,7 @@ public class BotcFab implements ModInitializer {
 //                                    .buildFuture();
                         })
                         .executes(context -> {
-                            String option = StringArgumentType.getString(context, "option");
+                            String option = StringArgumentType.getString(context, "tp_location");
                             option = option.toLowerCase(); //lowercase to account for typos
 
                             if (tpOptions.contains(option)) {
@@ -1009,7 +1032,6 @@ public class BotcFab implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("executePlayer").then(
                 CommandManager.argument("player", EntityArgumentType.player())
                         .suggests(new PlayerSuggestionProvider())
-                        //.executes(this::executePlayer)
                         .executes(context -> {
                             ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
                             executePlayer(player);
