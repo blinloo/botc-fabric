@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
+import net.minecraft.block.enums.BlockFace;
 import net.minecraft.block.enums.Orientation;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.Entity;
@@ -107,20 +108,20 @@ public class BotcFab implements ModInitializer {
     private static final String ALIVE_SCORE_HOLDER = "#alive";
     private static final String DEAD_SCORE_HOLDER = "#dead";
     private static final List<String> POSSIBLE_COLOURS = Arrays.asList(
-            "Black",
-            "Yellow",
-            "Orange",
-            "Pink",
-            "Red",
-            "Purple",
-            "Brown",
-            "Green",
-            "White",
-            "Blue",
-            "Cyan",
-            "Grey");
-    //private final String path = ".\\BOTC-coords-sheet.csv"; //Attempt to give standard file path
-    private final String path = "C:\\Users\\Ruby\\IdeaProjects\\botc-fabric\\BOTC-coords-sheet.csv"; //Absolute file path
+            "black",
+            "yellow",
+            "orange",
+            "pink",
+            "red",
+            "purple",
+            "brown",
+            "green",
+            "white",
+            "blue",
+            "cyan",
+            "gray");
+    private final String path = ".\\BOTC-coords-sheet.csv"; //Attempt to give standard file path
+    //private final String path = "C:\\Users\\Ruby\\IdeaProjects\\botc-fabric-copytest\\BOTC-coords-sheet.csv"; //Absolute file path
 
     //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
     Map<String, CoordinateMapper> mapCoords = new HashMap<>();
@@ -189,20 +190,22 @@ public class BotcFab implements ModInitializer {
         player.networkHandler.sendPacket(new TitleS2CPacket(titleText));
     }
 
-    private void placeLever(ServerWorld world, BlockPos pos, Direction facing, Orientation wallSide) {
+    private void placeLever(ServerWorld world, BlockPos pos, Direction facing, BlockFace wallSide) {
         if (world == null || world.isClient) return;
 
         LeverBlock lever = (LeverBlock) Blocks.LEVER;
-
+        LOGGER.info("Setting lever state...");
         // Create the desired lever block state
         var state = lever.getDefaultState()
                 //.with(Properties.HORIZONTAL_FACING, facing)
-                .with(Properties.FACING, facing)
-                .with(Properties.ORIENTATION, wallSide)
+                .with(LeverBlock.FACING, facing)
+                .with(LeverBlock.FACE, wallSide)
                 .with(Properties.POWERED, false); // default off
 
         // Place it in the world
-        world.setBlockState(pos, state);
+        if (world.setBlockState(pos, state, Block.NOTIFY_ALL)) {
+            LOGGER.info("lever placed success");
+        } else LOGGER.info("lever failed");
     }
 
     private void placeSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour) {
@@ -210,15 +213,16 @@ public class BotcFab implements ModInitializer {
 
         //WallSignBlock sign = (WallSignBlock) Blocks.SPRUCE_WALL_SIGN;
 
-        // Place a spruce wall sign facing NORTH (attached to the SOUTH side of a block)
+        // Place a spruce wall sign facing arg direction
         world.setBlockState(pos, Blocks.SPRUCE_WALL_SIGN.getDefaultState()
                 .with(Properties.HORIZONTAL_FACING, facing));
 
         SignText formatText = new SignText();
         //Sets text to sign format and makes it glow.
-        formatText.withMessage(1,text); //Adds text to sign, line 2, usually player name
-        formatText.withGlowing(true); //Sets text to glowing
-        formatText.withColor(DyeColor.valueOf(colour)); //adds the dye colour to sign
+        formatText
+                .withMessage(1,text) //Adds text to sign, line 2, player name
+                .withGlowing(true) //Sets text to glowing
+                .withColor(DyeColor.byName(colour,DyeColor.BLACK)); //adds the dye colour to sign
 
         // Access the block entity and set the text on the second line
         if (world.getBlockEntity(pos) instanceof SignBlockEntity signBlockEntity) {
@@ -243,21 +247,21 @@ public class BotcFab implements ModInitializer {
                 case DEFAULT_MAP: //Levers face different ways on maps
                     switch (playerColour) {
                         case "Black", "Cyan", "White":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, Orientation.DOWN_EAST);
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR);
                             break;
                         case "Yellow", "Pink", "Grey":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, Orientation.DOWN_SOUTH);
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
                             break;
                         case "Orange", "Red", "Brown":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, Orientation.DOWN_WEST);
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, BlockFace.FLOOR);
                             break;
                         case "Purple", "Green", "Blue":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, Orientation.DOWN_NORTH);
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
                             break;
                     }
                     break;
                 case SCHOOL_MAP: //
-                    placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, Orientation.DOWN_EAST); //Make sure direction is correct later
+                    placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR); //Make sure direction is correct later
             }
 
         }
@@ -344,6 +348,9 @@ public class BotcFab implements ModInitializer {
         for (String tag : ALL_TAGS) {
             player.removeCommandTag(tag);
         }
+        for (String tag : POSSIBLE_COLOURS) {
+            player.removeCommandTag(tag);
+        }
     }
 
     private void removeTagAllPlayers(String tag){
@@ -390,6 +397,7 @@ public class BotcFab implements ModInitializer {
         Set<String> tags = player.getCommandTags();
         if (!tags.contains(GHOST) && !tags.contains(DEAD)) {
             player.addCommandTag(GHOST);
+            player.removeCommandTag(ALIVE);
             updateVoteStatus(world,player);
         }
     }
@@ -539,6 +547,7 @@ public class BotcFab implements ModInitializer {
         // Remove the storyTeller from the list of players. Remaining list is all players
 
         System.out.println(players);
+        //TODO remove boots
 
         if (storyTeller != null) {
             // Remove all tags before adding new ones
@@ -585,27 +594,27 @@ public class BotcFab implements ModInitializer {
                 scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(assignedColourTeam)); //Add player to colour team
                 player.setSpawnPoint(world.getRegistryKey(),mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
 
-                world.setBlockState(mapCoords.get(assignedColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
+                //world.setBlockState(mapCoords.get(assignedColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState()); Not needed, does in update function
                 //Places signs, levers update in the updatePlayer function
                 switch (mapSelected) {
                     case DEFAULT_MAP:
-                        switch (assignedColour) {
-                            case "Black", "Cyan", "White":
-                                placeSign(world, mapCoords.get(assignedColour).chair, Direction.WEST, player.getName(), assignedColour);
+                        switch (assignedColour) { //TODO seems to trigger twice? need to fix, also sign positions are fucked idk what's up with that
+                            case "black", "yellow", "orange":
+                                placeSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour);
                                 break;
-                            case "Yellow", "Pink", "Grey":
-                                placeSign(world, mapCoords.get(assignedColour).chair, Direction.NORTH, player.getName(), assignedColour);
+                            case "pink", "red", "purple":
+                                placeSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, player.getName(), assignedColour);
                                 break;
-                            case "Orange", "Red", "Brown":
-                                placeSign(world, mapCoords.get(assignedColour).chair, Direction.EAST, player.getName(), assignedColour);
+                            case "brown", "green", "white":
+                                placeSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour);
                                 break;
-                            case "Purple", "Green", "Blue":
-                                placeSign(world, mapCoords.get(assignedColour).chair, Direction.SOUTH, player.getName(), assignedColour);
+                            case "blue", "cyan", "gray":
+                                placeSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, player.getName(), assignedColour);
                                 break;
                         }
                         break;
                     case SCHOOL_MAP:
-                        placeSign(world, mapCoords.get(assignedColour).chair, Direction.SOUTH, player.getName(), assignedColour);
+                        placeSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour);
                         break;
                 }
                 updateVoteStatus(world,player); //player levers and update lamps
@@ -626,7 +635,7 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
-        String specName = StringArgumentType.getString(context, "specName"); //Gets spectator player name from command
+        String specName = StringArgumentType.getString(context, "player_name"); //Gets spectator player name from command
         ServerPlayerEntity specTarget = playerMgr.getPlayer(specName);
         ServerScoreboard scoreboard = srv.getScoreboard();
         if (specTarget == null) {
@@ -899,7 +908,9 @@ public class BotcFab implements ModInitializer {
     private int beginExecution(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
         ServerPlayerEntity player = getPlayerFromColour(MARKED);
+        removeTagAllPlayers(ACCUSED); //Removed all accused players
         if (player != null) {
+            player.removeCommandTag(MARKED);
             executePlayer(player);
         } else src.sendFeedback(() -> Text.literal("No pony is marked for execution so no pony was killed"),false);
         return 1;
