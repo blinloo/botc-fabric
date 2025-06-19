@@ -12,7 +12,6 @@ import net.minecraft.block.*;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.BlockFace;
-import net.minecraft.block.enums.Orientation;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.boss.BossBar;
@@ -217,19 +216,38 @@ public class BotcFab implements ModInitializer {
         world.setBlockState(pos, Blocks.SPRUCE_WALL_SIGN.getDefaultState()
                 .with(Properties.HORIZONTAL_FACING, facing));
 
-        SignText formatText = new SignText();
-        //Sets text to sign format and makes it glow.
-        formatText
-                .withMessage(1,text) //Adds text to sign, line 2, player name
-                .withGlowing(true) //Sets text to glowing
-                .withColor(DyeColor.byName(colour,DyeColor.BLACK)); //adds the dye colour to sign
+//        SignText formatText = new SignText();
+//        //Sets text to sign format and makes it glow.
+//        formatText
+//                .withMessage(1,text) //Adds text to sign, line 2, player name
+//                .withGlowing(true) //Sets text to glowing
+//                .withColor(DyeColor.byName(colour,DyeColor.BLACK)); //adds the dye colour to sign
+//
+//        // Access the block entity and set the text on the second line
+//        if (world.getBlockEntity(pos) instanceof SignBlockEntity sign) {
+//            sign.setText(formatText,true);
+//            sign.setWaxed(true);
+//            sign.markDirty();
+//            world.updateListeners(pos, sign.getCachedState(), sign.getCachedState(), 3);
+//            //world.updateListeners(pos, world.getBlockState(pos), sign.getCachedState(), 3);
+//        }
+        SignBlockEntity sign = (SignBlockEntity) world.getBlockEntity(pos);
+        if (sign != null) {
+            Text[] signPlayerName = new Text[]{
+                    Text.literal(""),
+                    text, // Replace line 2 with player name, leave other lines empty
+                    Text.literal(""),
+                    Text.literal("")
+            };
 
-        // Access the block entity and set the text on the second line
-        if (world.getBlockEntity(pos) instanceof SignBlockEntity signBlockEntity) {
-            signBlockEntity.setText(formatText,true);
-            signBlockEntity.setWaxed(true);
-            signBlockEntity.markDirty();
-            world.updateListeners(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
+            //Format the sign text player name with colour
+            SignText formatText = new SignText(signPlayerName, signPlayerName, DyeColor.byName(colour, DyeColor.BLACK), true);
+            sign.setText(formatText, true);
+            sign.setWaxed(true);
+
+            // Mark updated
+            sign.markDirty();
+            world.updateListeners(pos, sign.getCachedState(), sign.getCachedState(), 3);
         }
     }
 
