@@ -124,7 +124,7 @@ public class BotcFab implements ModInitializer {
 
     //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
     Map<String, CoordinateMapper> mapCoords = new HashMap<>();
-    private List<ServerPlayerEntity> players;
+    private List<ServerPlayerEntity> players = new ArrayList<>();
     //Highest vote count
     private int highestVote;
 
@@ -138,12 +138,14 @@ public class BotcFab implements ModInitializer {
     private boolean playersLockedToSeats = false;
 
     //Text for displays
+    private final MutableText MEETING_MESSAGE = Text.literal("Please head to the town square");
+    private final MutableText RETURN_MESSAGE = Text.literal("Please return to your houses");
     private final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀")
             .setStyle(Style.EMPTY.withColor(Formatting.GOLD))
-            .append(Text.literal("\nPlease head to the town square")); //new line doesn't work, also it keeps the colour
+            .append(Text.literal("\n"));
     private final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
             .setStyle(Style.EMPTY.withColor(Formatting.DARK_BLUE))
-            .append(Text.literal("\nPlease return to your houses"));
+            .append(Text.literal("\n"));
     private final MutableText KILL_TEXT = Text.literal(" has been killed.")
             .formatted(Formatting.DARK_RED);
     private final MutableText REVIVE_TEXT = Text.literal(" has been revived.")
@@ -194,7 +196,8 @@ public class BotcFab implements ModInitializer {
 
         // Create the desired lever block state
         var state = lever.getDefaultState()
-                .with(Properties.HORIZONTAL_FACING, facing)
+                //.with(Properties.HORIZONTAL_FACING, facing)
+                .with(Properties.FACING, facing)
                 .with(Properties.ORIENTATION, wallSide)
                 .with(Properties.POWERED, false); // default off
 
@@ -484,6 +487,7 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = srv.getCommandSource();
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
+        mapCoords = ImportExcelCoordinates.read(path); //Import csv file here
         List<String> allTeams = new ArrayList<>(Arrays.asList(TEAM_STORYTELLER, TEAM_SPECTATOR));
         allTeams.addAll(TEAM_COLOURS); //Adds colour teams to all teams list
 
@@ -523,11 +527,11 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
-        players = playerMgr.getPlayerList();
+        //players = playerMgr.getPlayerList();
+        players.clear();
+        players.addAll(playerMgr.getPlayerList());
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = context.getSource().getWorld();
-        List<String> allTeams = Arrays.asList(TEAM_STORYTELLER, TEAM_SPECTATOR);
-        allTeams.addAll(TEAM_COLOURS); //Adds colour teams to all teams list
         int startPoint = ThreadLocalRandom.current().nextInt(1, 12 + 1); //Determines start point for colour selection
         ServerPlayerEntity storyTeller = src.getPlayer(); // Gets the person that called the command. Whoever called it is Storyteller
 
@@ -582,34 +586,29 @@ public class BotcFab implements ModInitializer {
                 player.setSpawnPoint(world.getRegistryKey(),mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
 
                 world.setBlockState(mapCoords.get(assignedColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
-                //Places lever for player and add signs
+                //Places signs, levers update in the updatePlayer function
                 switch (mapSelected) {
                     case DEFAULT_MAP:
                         switch (assignedColour) {
                             case "Black", "Cyan", "White":
-                                placeLever(world, mapCoords.get(assignedColour).lever, Direction.EAST, Orientation.DOWN_EAST);
                                 placeSign(world, mapCoords.get(assignedColour).chair, Direction.WEST, player.getName(), assignedColour);
                                 break;
                             case "Yellow", "Pink", "Grey":
-                                placeLever(world, mapCoords.get(assignedColour).lever, Direction.SOUTH, Orientation.DOWN_SOUTH);
                                 placeSign(world, mapCoords.get(assignedColour).chair, Direction.NORTH, player.getName(), assignedColour);
                                 break;
                             case "Orange", "Red", "Brown":
-                                placeLever(world, mapCoords.get(assignedColour).lever, Direction.WEST, Orientation.DOWN_WEST);
                                 placeSign(world, mapCoords.get(assignedColour).chair, Direction.EAST, player.getName(), assignedColour);
                                 break;
                             case "Purple", "Green", "Blue":
-                                placeLever(world, mapCoords.get(assignedColour).lever, Direction.NORTH, Orientation.DOWN_NORTH);
                                 placeSign(world, mapCoords.get(assignedColour).chair, Direction.SOUTH, player.getName(), assignedColour);
                                 break;
                         }
                         break;
                     case SCHOOL_MAP:
-                        //TODO change directions
-                        placeLever(world, mapCoords.get(assignedColour).lever, Direction.NORTH, Orientation.DOWN_NORTH);
                         placeSign(world, mapCoords.get(assignedColour).chair, Direction.SOUTH, player.getName(), assignedColour);
                         break;
                 }
+                updateVoteStatus(world,player); //player levers and update lamps
 
                 if (currentColourIndex == 12)
                     currentColourIndex = 1;
@@ -738,7 +737,7 @@ public class BotcFab implements ModInitializer {
         removeTagAllPlayers(DEATH_FLAG);
         removeTagAllPlayers(REVIVE_FLAG);
 
-        src.sendFeedback(() -> NIGHT_MESSAGE, false);
+        src.sendFeedback(() -> NIGHT_MESSAGE.append(RETURN_MESSAGE), false);
         return 1;
     }
 
@@ -748,7 +747,7 @@ public class BotcFab implements ModInitializer {
         ServerScoreboard scoreboard = srv.getScoreboard();
         playersLockedToSeats = false;
 
-        src.sendFeedback(() -> DAY_MESSAGE, false);
+        src.sendFeedback(() -> DAY_MESSAGE.append(MEETING_MESSAGE), false);
         //Send player death message and update status
         int deaths = getTagCount(DEATH_FLAG);
         for (int i = 0;i < deaths;i++){
@@ -1022,7 +1021,7 @@ public class BotcFab implements ModInitializer {
                                 durationMins = 0.1f; //default to 10seconds without arg
                                 src.sendFeedback(() -> Text.literal("Invalid or no duration supplied, defaulting to 10 second timer"), false);
                             }
-                            durationSecs = (Math.round(durationMins*100)/100)*60; //round to 2dp and convert to seconds
+                            durationSecs = Math.round(durationMins*60); //round to 2dp and convert to seconds
                             src.sendFeedback(() -> Text.literal("Starting timer"), false);
                             startTimer(srv,durationSecs);
                             return 1;
