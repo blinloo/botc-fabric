@@ -216,21 +216,6 @@ public class BotcFab implements ModInitializer {
         world.setBlockState(pos, Blocks.SPRUCE_WALL_SIGN.getDefaultState()
                 .with(Properties.HORIZONTAL_FACING, facing));
 
-//        SignText formatText = new SignText();
-//        //Sets text to sign format and makes it glow.
-//        formatText
-//                .withMessage(1,text) //Adds text to sign, line 2, player name
-//                .withGlowing(true) //Sets text to glowing
-//                .withColor(DyeColor.byName(colour,DyeColor.BLACK)); //adds the dye colour to sign
-//
-//        // Access the block entity and set the text on the second line
-//        if (world.getBlockEntity(pos) instanceof SignBlockEntity sign) {
-//            sign.setText(formatText,true);
-//            sign.setWaxed(true);
-//            sign.markDirty();
-//            world.updateListeners(pos, sign.getCachedState(), sign.getCachedState(), 3);
-//            //world.updateListeners(pos, world.getBlockState(pos), sign.getCachedState(), 3);
-//        }
         SignBlockEntity sign = (SignBlockEntity) world.getBlockEntity(pos);
         if (sign != null) {
             Text[] signPlayerName = new Text[]{
@@ -1026,13 +1011,6 @@ public class BotcFab implements ModInitializer {
                             for (String o:tpOptions)
                                 builder.suggest(o); //Not sure if this works so use code below if not
                             return builder.buildFuture();
-//                            return builder
-//                                    .suggest("home")
-//                                    .suggest("vote")
-//                                    .suggest("chair")
-//                                    .suggest("town")
-//                                    .suggest("house")
-//                                    .buildFuture();
                         })
                         .executes(context -> {
                             String option = StringArgumentType.getString(context, "tp_location");
