@@ -817,6 +817,7 @@ public class BotcFab implements ModInitializer {
     private void onVoteLockIn(CommandContext<ServerCommandSource> context) {
         // remove redstone block
         ServerCommandSource src = context.getSource();
+        MinecraftServer srv = src.getServer();
         src.sendFeedback(() -> Text.literal("converting... "), false);
         ServerWorld world = context.getSource().getWorld();
         int delayPerBlock = 25; // 1 second = 20 ticks
@@ -836,7 +837,8 @@ public class BotcFab implements ModInitializer {
             return;
         }
 
-        //TODO This whole bit does not work at all
+        //TODO This whole bit does not work at all, change to run on every tick and count?
+        srv.getTickTaskQueue().schedule(
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
             int startColourIndex;
