@@ -264,16 +264,16 @@ public class BotcFab implements ModInitializer {
             switch (mapSelected) {
                 case DEFAULT_MAP: //Levers face different ways on maps
                     switch (playerColour) {
-                        case "Black", "Cyan", "White":
+                        case "black", "cyan", "white":
                             placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR);
                             break;
-                        case "Yellow", "Pink", "Grey":
+                        case "yellow", "pink", "gray":
                             placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
                             break;
-                        case "Orange", "Red", "Brown":
+                        case "orange", "red", "brown":
                             placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, BlockFace.FLOOR);
                             break;
-                        case "Purple", "Green", "Blue":
+                        case "purple", "green", "blue":
                             placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
                             break;
                     }
@@ -475,7 +475,7 @@ public class BotcFab implements ModInitializer {
             if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.BREEZE_ROD) {
                 if (target instanceof ServerPlayerEntity serverTarget) {
                     // Added selector tag to player
-                    accusePlayer(serverTarget);
+                    accusePlayer(serverTarget); //TODO seems to trigger twice? need to fix, non-urgent
                     player.sendMessage(Text.literal("You tagged ").append(target.getName()), false);
                     world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 1.0F, 1.0F);
                 }
@@ -610,13 +610,14 @@ public class BotcFab implements ModInitializer {
                 String assignedColourTeam = TEAM_COLOURS.get(currentColourIndex-1);
                 player.addCommandTag(assignedColour); //Add colour tag to player
                 scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(assignedColourTeam)); //Add player to colour team
+                //TODO spawn point doesn't seem to work?
                 player.setSpawnPoint(world.getRegistryKey(),mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
 
                 //world.setBlockState(mapCoords.get(assignedColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState()); Not needed, does in update function
                 //Places signs, levers update in the updatePlayer function
                 switch (mapSelected) {
                     case DEFAULT_MAP:
-                        switch (assignedColour) { //TODO seems to trigger twice? need to fix, also sign positions are fucked idk what's up with that
+                        switch (assignedColour) {
                             case "black", "yellow", "orange":
                                 placeSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour);
                                 break;
@@ -645,6 +646,15 @@ public class BotcFab implements ModInitializer {
         }
         createOrSetAliveDisplay(scoreboard); //Update/create scoreboard for start of game.
         src.sendFeedback(() -> Text.literal(players.toString()), false);
+
+        //Remove votes for missing players
+        for (String c:POSSIBLE_COLOURS){
+            if (getPlayerFromColour(c) == null){
+                world.setBlockState(mapCoords.get(c).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
+                world.setBlockState(mapCoords.get(c).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
+                world.setBlockState(mapCoords.get(c).lever, Blocks.AIR.getDefaultState()); //Remove lever
+            }
+        }
 
         return 1;
     }
@@ -826,6 +836,7 @@ public class BotcFab implements ModInitializer {
             return;
         }
 
+        //TODO This whole bit does not work at all
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
             int startColourIndex;
