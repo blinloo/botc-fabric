@@ -838,7 +838,6 @@ public class BotcFab implements ModInitializer {
         }
 
         //TODO This whole bit does not work at all, change to run on every tick and count?
-        srv.getTickTaskQueue().schedule(
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
             int startColourIndex;
