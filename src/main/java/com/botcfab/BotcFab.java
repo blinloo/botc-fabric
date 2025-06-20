@@ -822,7 +822,7 @@ public class BotcFab implements ModInitializer {
             return;
         }
 
-        //TODO This whole bit does not work at all, change to run on every tick and count?
+        //TODO This whole bit does not work at all, change to run on every tick and count? - actually maybe does work I just didn't have enough players online
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
             int startColourIndex;
