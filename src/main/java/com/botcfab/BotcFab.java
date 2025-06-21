@@ -45,6 +45,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.World;
@@ -298,6 +299,7 @@ public class BotcFab implements ModInitializer {
 
         //Assigns player name colour to teams and display names
         switch (teamName){
+            //TODO change this to a scoreboard change? needs complex modding, score values don't auto sort
             case TEAM_STORYTELLER,TEAM_SPECTATOR:
                 team.setDisplayName(Text.of("Story Teller")); //Black
                 team.setColor(Formatting.GRAY);
@@ -409,6 +411,9 @@ public class BotcFab implements ModInitializer {
             player.removeCommandTag(ALIVE);
             updateVoteStatus(world,player);
         }
+        else {
+            world.getServer().getCommandSource().sendFeedback(() -> Text.literal("They're already dead :("),false);
+        }
     }
 
     private void revivePlayer(ServerPlayerEntity player){
@@ -469,7 +474,7 @@ public class BotcFab implements ModInitializer {
                     // Added selector tag to player
                     accusePlayer(serverTarget); //TODO seems to trigger twice? need to fix, non-urgent
                     player.sendMessage(Text.literal("You tagged ").append(target.getName()), false);
-                    world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 1.0F, 1.0F);
+                    world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 0.6F, 0.7F);
                 }
                 return ActionResult.SUCCESS; // Return success to stop further processing
             }
@@ -701,6 +706,7 @@ public class BotcFab implements ModInitializer {
             for (ServerPlayerEntity p : playerList) { //uses full server list to avoid calling null
                 Set<String> tags = p.getCommandTags();
                 p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 1, false, false));
+                //TODO Change this add to coloured particles? maybe a beacon highlight in vote phase.
                 if (tags.contains(DEAD) || tags.contains(GHOST)) {
                     world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0.5, 0.4, 0.0001);
                 }
@@ -715,13 +721,14 @@ public class BotcFab implements ModInitializer {
         if (executionInProgress) {
             boolean executionFinished = false;
             ServerPlayerEntity executee = getPlayerFromColour(CURRENT_EXECUTEE);
-            if (executee != null) {
+            if (executee != null){
                 switch (mapSelected) {
                     case DEFAULT_MAP:
-                        double distance = executee.getBlockPos().getSquaredDistance(EXE_BLOCK.down(1)); //maybe need .getSquaredDistanceFromCenter? need testing
+                        Vec3d murderZone = new Vec3d(EXE_BLOCK.down(1).getX()+0.5,EXE_BLOCK.down(1).getY(),EXE_BLOCK.down(1).getX()+0.5); //Get centre of block
+                        double distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
                         if (distance > 1) {
                             tp(executee, EXE_BLOCK);
-                            executee.sendMessage(Text.literal("Nice try :)"), false);
+                            executee.sendMessage(Text.literal("Nice try :)"), false); //TODO Doesn't stop after execution? maybe due to blockpos coord pos being corner not centre of block
                         }
 
                         BlockState anvilPosState = world.getBlockState(EXE_BLOCK);
@@ -776,7 +783,8 @@ public class BotcFab implements ModInitializer {
             for (ServerPlayerEntity p:players) {
                 Set<String> tags = p.getCommandTags();
                 String playerColour = getColourFromPlayer(p);
-                BlockPos playerPos = p.getBlockPos();
+                //BlockPos playerPos = p.getBlockPos();
+                Vec3d playerPos = p.getPos();
                 BlockPos targetPos;
 
                 if (!tags.contains(CURRENT_EXECUTEE)) { //Check player is not currently being executed
@@ -785,7 +793,8 @@ public class BotcFab implements ModInitializer {
                     break;
                 }
 
-                double distance = playerPos.getSquaredDistance(targetPos);
+                //double distance = playerPos.getSquaredDistance(targetPos);
+                double distance = playerPos.squaredDistanceTo(targetPos.getX()+0.5, targetPos.getY()+0.5, targetPos.getZ()+0.5); //accounts for hair of chair now
                 if (distance > 1.5) {
                     tp(p,targetPos);
                     p.sendMessage(Text.literal("You were too far away. Teleporting to target..."), false);
