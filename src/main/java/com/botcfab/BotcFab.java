@@ -136,6 +136,7 @@ public class BotcFab implements ModInitializer {
 
     //Variables for on tick checks
     private boolean playersLockedToSeats = false;
+    private boolean executionInProgress = false;
 
     //Text for displays
     private final MutableText MEETING_MESSAGE = Text.literal("Please head to the town square");
@@ -146,10 +147,12 @@ public class BotcFab implements ModInitializer {
     private final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
             .setStyle(Style.EMPTY.withColor(Formatting.DARK_BLUE))
             .append(Text.literal("\n"));
-    private final MutableText KILL_TEXT = Text.literal(" has been killed.")
+    private final MutableText KILL_TEXT = Text.literal(" has been killed.") //Make these not final for school map, change to expelled, suspended etc
             .formatted(Formatting.DARK_RED);
     private final MutableText REVIVE_TEXT = Text.literal(" has been revived.")
             .formatted(Formatting.YELLOW);
+    private final MutableText EXECUTE_TEXT = Text.literal(" has been executed.")
+            .formatted(Formatting.RED);
 
     MutableText message = Text.literal("the ")
             .append(Text.literal("cat").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFFFF55))))  // Yellow for "cat"
@@ -162,6 +165,9 @@ public class BotcFab implements ModInitializer {
     private final static String SCHOOL_MAP = "school";
     private final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP);
     private String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
+
+    //TEST VALUES
+    private final static BlockPos EXE_BLOCK = new BlockPos(6,-29,-2);
 
     private String getColourFromPlayer(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
@@ -444,8 +450,9 @@ public class BotcFab implements ModInitializer {
         MutableText eventMsg;
         MutableText playerName = player.getStyledDisplayName().copy(); //Should be formatted with player colour from team
         eventMsg = switch (event) {
-            case REVIVE_FLAG -> KILL_TEXT;
-            case DEATH_FLAG -> REVIVE_TEXT;
+            case REVIVE_FLAG -> REVIVE_TEXT;
+            case DEATH_FLAG -> KILL_TEXT;
+            case CURRENT_EXECUTEE -> EXECUTE_TEXT;
             default -> Text.literal(" needs to tell Ruby she is bad at coding");
         };
         return playerName.append(eventMsg);
@@ -704,6 +711,45 @@ public class BotcFab implements ModInitializer {
                 }
             }
         }
+        //Code for execution checks
+        if (executionInProgress) {
+            boolean executionFinished = false;
+            ServerPlayerEntity executee = getPlayerFromColour(CURRENT_EXECUTEE);
+            if (executee != null) {
+                switch (mapSelected) {
+                    case DEFAULT_MAP:
+                        double distance = executee.getBlockPos().getSquaredDistance(EXE_BLOCK.down(1)); //maybe need .getSquaredDistanceFromCenter? need testing
+                        if (distance > 1) {
+                            tp(executee, EXE_BLOCK);
+                            executee.sendMessage(Text.literal("Nice try :)"), false);
+                        }
+
+                        BlockState anvilPosState = world.getBlockState(EXE_BLOCK);
+                        if (anvilPosState.isOf(Blocks.ANVIL)) {
+                            world.setBlockState(EXE_BLOCK, Blocks.AIR.getDefaultState());
+                            executionFinished = true; //used so
+                        }
+                        break;
+                    case SCHOOL_MAP:
+                        if (executee.getBlockPos().getY() < -30) { //checks if played being executed is below certain y level.
+                            executionFinished = true;
+                            //also place all pit cover blocks back
+                        }
+                        break;
+                }
+                if (executionFinished) { //code that overlaps for all maps
+                    killPlayer(executee);
+                    //sends message in chat for kill
+                    world.getServer().getCommandSource().sendFeedback(() -> getEventText(executee,CURRENT_EXECUTEE), false);
+                    executee.removeCommandTag(CURRENT_EXECUTEE);
+                    executionInProgress = false;
+                }
+            } else {
+                //No player is being executed
+                world.getServer().sendMessage(Text.literal("No pony is being executed, cancelling execution phase"));
+                executionInProgress = false;
+            }
+        }
     }
 
     private void onServerTick(MinecraftServer srv){
@@ -754,10 +800,13 @@ public class BotcFab implements ModInitializer {
         ServerWorld world = context.getSource().getWorld();
         world.setTimeOfDay(18000L);
         playersLockedToSeats = false;
-        //Remove all death_mark and accused tags from players
+        executionInProgress = false;
+        //Remove all temp tags from players
         removeTagAllPlayers(ACCUSED);
         removeTagAllPlayers(DEATH_FLAG);
         removeTagAllPlayers(REVIVE_FLAG);
+        removeTagAllPlayers(CURRENT_EXECUTEE);
+        removeTagAllPlayers(MARKED);
 
         src.sendFeedback(() -> NIGHT_MESSAGE.append(RETURN_MESSAGE), false);
         return 1;
@@ -802,7 +851,6 @@ public class BotcFab implements ModInitializer {
     private void onVoteLockIn(CommandContext<ServerCommandSource> context) {
         // remove redstone block
         ServerCommandSource src = context.getSource();
-        MinecraftServer srv = src.getServer();
         src.sendFeedback(() -> Text.literal("converting... "), false);
         ServerWorld world = context.getSource().getWorld();
         int delayPerBlock = 25; // 1 second = 20 ticks
@@ -904,20 +952,22 @@ public class BotcFab implements ModInitializer {
     private void executePlayer(ServerPlayerEntity player){
         player.addCommandTag(CURRENT_EXECUTEE);
         ServerWorld world = player.getServerWorld();
-        //TODO actually made this work properly,
-        // - trigger execution event (eg anvil, pit open)
-        // - check when marked player dies
-        // - remove and add appropriate tags
+        //TODO TEST THIS
+        playersLockedToSeats = false;
+        executionInProgress = true;
         switch (mapSelected) {
             case DEFAULT_MAP:
+                tp(player,EXE_BLOCK.down(1)); //tp executed player to the block
+                world.setBlockState(EXE_BLOCK.up(50), Blocks.ANVIL.getDefaultState()); //create anvil 50 blocks up above execution
                 break;
             case SCHOOL_MAP:
+                //TODO open pit here and teleport player
                 break;
         }
-
-        player.kill(world); //just kills the player not really useful
-        killPlayer(player);
-        player.removeCommandTag(CURRENT_EXECUTEE); //Remove after animation stuff is done
+        //All this should happen in OnTick now
+        //player.kill(world); //just kills the player not really useful
+        //killPlayer(player);
+        //player.removeCommandTag(CURRENT_EXECUTEE); //Remove after animation stuff is done
     }
 
     private int beginExecution(CommandContext<ServerCommandSource> context){
