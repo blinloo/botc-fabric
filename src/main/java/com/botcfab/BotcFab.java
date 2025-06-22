@@ -755,7 +755,10 @@ public class BotcFab implements ModInitializer {
         removeTagAllPlayers(REVIVE_FLAG);
         removeTagAllPlayers(CURRENT_EXECUTEE);
         removeTagAllPlayers(MARKED);
-        scoreboard.getTeam(TEAM_ALL).setNameTagVisibilityRule(AbstractTeam.VisibilityRule.NEVER);
+        Team team = scoreboard.getTeam(TEAM_ALL);
+        if (team != null) { //Make nametags visible at morning.
+            team.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.NEVER);
+        }
 
         src.sendFeedback(() -> NIGHT_MESSAGE.append(RETURN_MESSAGE), false);
         return 1;
