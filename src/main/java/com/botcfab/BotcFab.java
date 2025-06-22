@@ -22,8 +22,6 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.network.encryption.PublicPlayerSession;
-import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.scoreboard.*;
@@ -61,7 +59,6 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 public class BotcFab implements ModInitializer {
     public static final String MOD_ID = "botc-fab";
@@ -109,8 +106,8 @@ public class BotcFab implements ModInitializer {
     private static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE);
 
     private static final String INFO_OBJECTIVE = "info";
-    private static final String ALIVE_SCORE_HOLDER = "#alive";
-    private static final String DEAD_SCORE_HOLDER = "#dead";
+    private static final String ALIVE_SCORE_HOLDER = "Alive";
+    private static final String DEAD_SCORE_HOLDER = "Dead";
     private static final List<String> POSSIBLE_COLOURS = Arrays.asList(
             "black",
             "yellow",
@@ -661,7 +658,6 @@ public class BotcFab implements ModInitializer {
             }
         }
         createOrSetAliveDisplay(scoreboard); //Update/create scoreboard for start of game.
-        reorderTabList(srv); //Sends data about new tab list order to players
         src.sendFeedback(() -> Text.literal(players.toString()), false);
 
         //Remove votes for missing players
@@ -1026,54 +1022,6 @@ public class BotcFab implements ModInitializer {
         timerBarActive = true;
 
         srv.sendMessage(Text.literal("Boss bar timer started."));
-    }
-
-    //ChatGPT stuff might be rubbish,  I might have fixed it? idk the more technical stuff is weird as hell
-    public void reorderTabList(MinecraftServer server) {
-        // Get all players on the server
-        List<ServerPlayerEntity> playersOrder = new ArrayList<>(server.getPlayerManager().getPlayerList());
-
-        // Sort players by name (or any custom sorting logic)
-        playersOrder.sort(Comparator.comparing(this::getSortOrderFromPlayer)); //Sorts by player order tag
-
-        // Now we create a custom player list packet to send to clients
-        for (ServerPlayerEntity player : playersOrder) {
-            sendPlayerListPacket(server, player);
-        }
-    }
-
-    private static PlayerListS2CPacket.Entry createPlayerListEntry(ServerPlayerEntity player) {
-        UUID uuid = player.getUuid();
-        GameProfile gameProfile = player.getGameProfile();
-        boolean online = true; // Player is online
-        int ping = player.networkHandler.getLatency(); // Player's latency
-        GameMode gameMode = player.interactionManager.getGameMode(); // Player's current game mode
-        Text playerName = player.getName(); // Player's name text
-        boolean isBot = false; // Assume the player is not a bot
-        int displayPosition = 0; // Display position, you can customize this
-        //This code is stupid fuck minecraft bullshit
-        PublicPlayerSession.Serialized sessionInfo = Objects.requireNonNull(player.getSession()).toSerialized();
-
-        return new PlayerListS2CPacket.Entry(
-                uuid, gameProfile, online, ping, gameMode, playerName, isBot, displayPosition, sessionInfo
-        );
-    }
-
-    // This method sends the updated tab list to a client
-    private static void sendPlayerListPacket(MinecraftServer server, ServerPlayerEntity player) {
-        List<ServerPlayerEntity> allPlayers = server.getPlayerManager().getPlayerList();
-
-        // Create entries for each player (with name and UUID)
-        List<PlayerListS2CPacket.Entry> entries = allPlayers.stream()
-                .map(p -> createPlayerListEntry(p))
-                .collect(Collectors.toList());
-
-        // Create the PlayerListS2CPacket and send it to all clients
-        //PlayerListS2CPacket packet = new PlayerListS2CPacket(entries);
-        PlayerListS2CPacket packet = new PlayerListS2CPacket(PlayerListS2CPacket.Action.ADD_PLAYER, (ServerPlayerEntity) entries);
-
-        // Send the packet to players
-        player.networkHandler.sendPacket(packet);
     }
 
     @Override
