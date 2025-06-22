@@ -1,5 +1,6 @@
 package com.botcfab;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
@@ -21,6 +22,9 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.network.encryption.PublicPlayerSession;
+import net.minecraft.network.packet.s2c.play.EntityAttributesS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.scoreboard.*;
@@ -58,6 +62,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 public class BotcFab implements ModInitializer {
     public static final String MOD_ID = "botc-fab";
@@ -120,6 +125,7 @@ public class BotcFab implements ModInitializer {
             "blue",
             "cyan",
             "gray");
+    private static final List<String> ORDER_TAGS = Arrays.asList("00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11");
     private final String path = ".\\BOTC-coords-sheet.csv"; //Attempt to give standard file path
     //private final String path = "C:\\Users\\Ruby\\IdeaProjects\\botc-fabric-copytest\\BOTC-coords-sheet.csv"; //Absolute file path
 
@@ -190,6 +196,16 @@ public class BotcFab implements ModInitializer {
             }
         }
         return null;
+    }
+
+    private String getSortOrderFromPlayer(ServerPlayerEntity player){
+        Set<String> tags = player.getCommandTags();
+        for (String t : tags){
+            if (ORDER_TAGS.contains(t)){ //checks if tag is contained in the list 00-11
+                return t;
+            }
+        }
+        return "";
     }
 
     private void showTitle(ServerPlayerEntity player, Text titleText){
@@ -360,6 +376,9 @@ public class BotcFab implements ModInitializer {
             player.removeCommandTag(tag);
         }
         for (String tag : POSSIBLE_COLOURS) {
+            player.removeCommandTag(tag);
+        }
+        for (String tag : ORDER_TAGS) {
             player.removeCommandTag(tag);
         }
     }
@@ -606,6 +625,7 @@ public class BotcFab implements ModInitializer {
                 String assignedColour = POSSIBLE_COLOURS.get(currentColourIndex-1);
                 String assignedColourTeam = TEAM_COLOURS.get(currentColourIndex-1);
                 player.addCommandTag(assignedColour); //Add colour tag to player
+                player.addCommandTag(ORDER_TAGS.get(currentColourIndex-1)); //Assigns ordering tag to player
                 scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(assignedColourTeam)); //Add player to colour team
                 //TODO spawn point doesn't seem to work?
                 player.setSpawnPoint(world.getRegistryKey(),mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
@@ -642,6 +662,7 @@ public class BotcFab implements ModInitializer {
             }
         }
         createOrSetAliveDisplay(scoreboard); //Update/create scoreboard for start of game.
+        reorderTabList(srv); //Sends data about new tab list order to players
         src.sendFeedback(() -> Text.literal(players.toString()), false);
 
         //Remove votes for missing players
@@ -1006,6 +1027,56 @@ public class BotcFab implements ModInitializer {
         timerBarActive = true;
 
         srv.sendMessage(Text.literal("Boss bar timer started."));
+    }
+
+    public void reorderTabList(MinecraftServer server) {
+        // Get all players on the server
+        List<ServerPlayerEntity> playersOrder = new ArrayList<>(server.getPlayerManager().getPlayerList());
+
+        // Sort players by name (or any custom sorting logic)
+        playersOrder.sort(Comparator.comparing(this::getSortOrderFromPlayer)); //Sorts by player order tag
+
+        // Now we create a custom player list packet to send to clients
+        for (ServerPlayerEntity player : playersOrder) {
+            sendPlayerListPacket(server, player);
+        }
+    }
+
+    //ChatGPT stuff might be rubbish
+    private static PlayerListS2CPacket.Entry createPlayerListEntry(ServerPlayerEntity player) {
+        UUID uuid = player.getUuid();
+        GameProfile gameProfile = player.getGameProfile();
+        boolean online = true; // Player is online
+        int ping = player.networkHandler.getLatency(); // Player's latency
+        GameMode gameMode = player.interactionManager.getGameMode(); // Player's current game mode
+        Text playerName = player.getName(); // Player's name text
+        boolean isBot = false; // Assume the player is not a bot
+        int displayPosition = 0; // Display position, you can customize this
+        //This code is stupid fuck minecraft bullshit
+        PublicPlayerSession.Serialized sessionInfo = Objects.requireNonNull(player.getSession()).toSerialized();
+
+        return new PlayerListS2CPacket.Entry(
+                uuid, gameProfile, online, ping, gameMode, playerName, isBot, displayPosition, sessionInfo
+        );
+    }
+
+    // This method sends the updated tab list to a client
+    private static void sendPlayerListPacket(MinecraftServer server, ServerPlayerEntity player) {
+        List<ServerPlayerEntity> allPlayers = server.getPlayerManager().getPlayerList();
+
+        // Create entries for each player (with name and UUID)
+        List<PlayerListS2CPacket.Entry> entries = allPlayers.stream()
+                .map(p -> createPlayerListEntry(p))
+                .collect(Collectors.toList());
+
+        // Create the PlayerListS2CPacket and send it to all clients
+        //PlayerListS2CPacket packet = new PlayerListS2CPacket(entries);
+        PlayerListS2CPacket packet = new PlayerListS2CPacket(PlayerListS2CPacket.Action.ADD_PLAYER, (ServerPlayerEntity) entries);
+
+        // Send the packet to all players
+        for (ServerPlayerEntity serverPlayer : allPlayers) {
+            serverPlayer.networkHandler.sendPacket(packet);
+        }
     }
 
     @Override
