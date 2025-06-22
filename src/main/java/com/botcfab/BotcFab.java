@@ -23,7 +23,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.encryption.PublicPlayerSession;
-import net.minecraft.network.packet.s2c.play.EntityAttributesS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
@@ -1029,6 +1028,7 @@ public class BotcFab implements ModInitializer {
         srv.sendMessage(Text.literal("Boss bar timer started."));
     }
 
+    //ChatGPT stuff might be rubbish,  I might have fixed it? idk the more technical stuff is weird as hell
     public void reorderTabList(MinecraftServer server) {
         // Get all players on the server
         List<ServerPlayerEntity> playersOrder = new ArrayList<>(server.getPlayerManager().getPlayerList());
@@ -1042,7 +1042,6 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    //ChatGPT stuff might be rubbish
     private static PlayerListS2CPacket.Entry createPlayerListEntry(ServerPlayerEntity player) {
         UUID uuid = player.getUuid();
         GameProfile gameProfile = player.getGameProfile();
@@ -1073,10 +1072,8 @@ public class BotcFab implements ModInitializer {
         //PlayerListS2CPacket packet = new PlayerListS2CPacket(entries);
         PlayerListS2CPacket packet = new PlayerListS2CPacket(PlayerListS2CPacket.Action.ADD_PLAYER, (ServerPlayerEntity) entries);
 
-        // Send the packet to all players
-        for (ServerPlayerEntity serverPlayer : allPlayers) {
-            serverPlayer.networkHandler.sendPacket(packet);
-        }
+        // Send the packet to players
+        player.networkHandler.sendPacket(packet);
     }
 
     @Override
