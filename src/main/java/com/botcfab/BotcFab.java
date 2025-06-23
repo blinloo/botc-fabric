@@ -1,9 +1,7 @@
 package com.botcfab;
 
-import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.context.ParsedCommandNode;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -15,12 +13,14 @@ import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.BlockFace;
 import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.component.type.DyedColorComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.DyeItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
@@ -123,12 +123,12 @@ public class BotcFab implements ModInitializer {
     private final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
             .setStyle(Style.EMPTY.withColor(Formatting.BLUE))
             .append(Text.literal("\n"));
-    private final MutableText KILL_TEXT = Text.literal(" has been killed.") //Make these not final for school map, change to expelled, suspended etc
-            .formatted(Formatting.DARK_RED);
-    private final MutableText REVIVE_TEXT = Text.literal(" has been revived.")
-            .formatted(Formatting.YELLOW);
-    private final MutableText EXECUTE_TEXT = Text.literal(" has been executed.")
-            .formatted(Formatting.RED);
+    private final MutableText KILL_TEXT = Text.literal(" has been ") //Make these not final for school map, change to expelled, suspended etc
+            .append(Text.literal("killed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
+    private final MutableText REVIVE_TEXT = Text.literal(" has been ")
+            .append(Text.literal("revived.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
+    private final MutableText EXECUTE_TEXT = Text.literal(" has been ")
+            .append(Text.literal("executed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
 
     MutableText message = Text.literal("the ")
             .append(Text.literal("cat").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFFFF55))))  // Yellow for "cat"
@@ -312,15 +312,14 @@ public class BotcFab implements ModInitializer {
     }
 
     //TODO It's bollocks, fuck chatgpt lying all the damn time
-    private void setColourBoots(MinecraftServer server, ServerPlayerEntity p, String c){ //Give player boots with assigned colour
+    private void setColourBoots(ServerPlayerEntity p, String c){ //Give player boots with assigned colour
         int colourHex = getColourHex(c);
         String colourRGB = Color.decode(Integer.toString(colourHex)).toString();
-        //Just runs the command cus editing items is fucking dumb
-        String command = "/item replace entity " + p.getName() + " armor.feet with leather_boots[dyed_color={rgb:" + colourRGB + "},enchantment_glint_override=false,enchantments={levels:{binding_curse:1,feather_falling:10},show_in_tooltip:false},unbreakable={}]";
 
-        CommandManager cmdMng = server.getCommandManager();
-        ParseResults<ServerCommandSource> parseResults = cmdMng.getDispatcher().parse(command, server.getCommandSource());
-        cmdMng.execute(parseResults,command);
+        ItemStack boots = new ItemStack(Items.LEATHER_BOOTS);
+        List<DyeItem> dyes = List.of(DyeItem.byColor(DyeColor.byName(c,DyeColor.LIME))); //Defaults to lime if colour not got from String
+        ItemStack dyedBoots = DyedColorComponent.setColor(boots, dyes);
+        p.getInventory().setStack(36,dyedBoots); //36 is slot for boots, idk why help
     }
 
     private void accusePlayer(ServerPlayerEntity player){
@@ -492,6 +491,7 @@ public class BotcFab implements ModInitializer {
         ServerWorld world = context.getSource().getWorld();
         players.clear();
         players.addAll(playerMgr.getPlayerList());
+        //TODO Randomise player list
         int startPoint = ThreadLocalRandom.current().nextInt(1, 12 + 1); //Determines start point for colour selection
         ServerPlayerEntity storyTeller = src.getPlayer(); // Gets the person that called the command. Whoever called it is Storyteller
 
@@ -509,6 +509,7 @@ public class BotcFab implements ModInitializer {
             storyTeller.addCommandTag(STORYTELLER); //Add tag for storyteller
             src.sendFeedback(() -> Text.literal("Storyteller is: " + storyTeller.getName().getString()), false);
             storyTeller.changeGameMode(GameMode.CREATIVE);
+            setColourBoots(storyTeller,"no");
             scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
         } else {
             src.sendFeedback(() -> Text.literal("Failed to find storyteller. Do not execute this command from the server window"), false);
@@ -527,7 +528,7 @@ public class BotcFab implements ModInitializer {
         }
         System.out.println(players); //Debugging
 
-        //storyTeller.setSpawnPoint(world,mapCoords.get()); //Might need to do this later
+        storyTeller.setSpawnPoint(World.OVERWORLD,EXE_BLOCK,0,true,true); //Should work now?
 
         // Assign colours to players
         int currentColourIndex = startPoint;
@@ -546,9 +547,9 @@ public class BotcFab implements ModInitializer {
                 String assignedColour = POSSIBLE_COLOURS.get(currentColourIndex-1);
                 player.addCommandTag(assignedColour); //Add colour tag to player
                 scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL)); //Add player to all player team
-                setColourBoots(srv,player,assignedColour);
+                setColourBoots(player,assignedColour);
                 //TODO spawn point doesn't seem to work?
-                player.setSpawnPoint(world.getRegistryKey(),mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
+                player.setSpawnPoint(World.OVERWORLD,mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
                 //Places signs, levers update in the updatePlayer function
                 switch (mapSelected) {
                     case DEFAULT_MAP:
@@ -582,12 +583,13 @@ public class BotcFab implements ModInitializer {
         createOrSetAliveDisplay(scoreboard); //Update/create scoreboard for start of game.
         src.sendFeedback(() -> Text.literal(players.toString()), false);
 
-        //Remove votes for missing players
+        //Remove votes and signs for missing players
         for (String c:POSSIBLE_COLOURS){
             if (getPlayerFromColour(c) == null){
                 world.setBlockState(mapCoords.get(c).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
                 world.setBlockState(mapCoords.get(c).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
                 world.setBlockState(mapCoords.get(c).lever, Blocks.AIR.getDefaultState()); //Remove lever
+                world.setBlockState(mapCoords.get(c).sign, Blocks.AIR.getDefaultState()); //Remove empty signs
             }
         }
 
@@ -664,7 +666,9 @@ public class BotcFab implements ModInitializer {
                 //TODO Change this add to coloured particles? maybe a beacon highlight in vote phase.
                 if (tags.contains(DEAD) || tags.contains(GHOST) || (tags.contains(STORYTELLER))) {
                     p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
-                    world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.00001);
+                    if (!tags.contains(SPEC)) {
+                        world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.00001);
+                    }
                 }
                 if (tags.contains(ALIVE)) {
                     p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invis for alive players
@@ -831,14 +835,11 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = context.getSource();
         src.sendFeedback(() -> Text.literal("converting... "), false);
         ServerWorld world = context.getSource().getWorld();
-        int delayPerBlock = 25; // 1 second = 20 ticks
-        final int[] totalVotes = new int[3]; // 0 is total, 1 is alive, 2 is a ghost
-        int voteThreshold;
-        int alivePlayers = getTagCount(ALIVE);
+        int delayPerBlock = 40; // 1 second = 20 ticks
+        int voteThreshold, startColourIndex, count = 0, alivePlayers = getTagCount(ALIVE);
+
         src.sendFeedback(() -> Text.literal("Starting redstone removal..."), false);
-
         List<DelayedBlockSetter> taskList = new ArrayList<>();
-
         //Get vote threshold for alive players
         voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
 
@@ -847,19 +848,39 @@ public class BotcFab implements ModInitializer {
             src.sendFeedback(() -> Text.literal("No player accused, please accuse someone!"), false);
             return;
         }
+        String accusedColour = getColourFromPlayer(accusedPlayer);
+        ArrayList<Integer> indexBounds = new ArrayList<>();
+        for (String c: POSSIBLE_COLOURS){
+            ServerPlayerEntity p = getPlayerFromColour(c);
+            if (p != null) {
+                indexBounds.add(POSSIBLE_COLOURS.indexOf(c));
+            }
+        }
+        startColourIndex = POSSIBLE_COLOURS.indexOf(accusedColour)+1; //+1 to start from player after accused
+        if (!indexBounds.contains(startColourIndex)) {
+            startColourIndex = indexBounds.get(0);
+        }
 
-        //TODO This whole bit does not work at all, change to run on every tick and count? - actually maybe does work I just didn't have enough players online
+        for (int i = startColourIndex; count <= players.size(); i++) {
+            int delay = count * delayPerBlock; //Add delay between vote locks
+            if (!indexBounds.contains(i)){
+                i = indexBounds.get(0); //Sets index to start of colour index bounds
+            }
+            BlockPos redstoneBlock = mapCoords.get(POSSIBLE_COLOURS.get(i)).triggersLampPiston;
+            taskList.add(new DelayedBlockSetter(world, redstoneBlock, Blocks.AIR.getDefaultState(), delay)); //Set redstone block to air
+            count++;
+        }
+
+        //TODO
+        int finalStartColourIndex = startColourIndex;
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
-            int startColourIndex;
-            int ghostVotes = 0;
-            int aliveVotes = 0;
+            int playerCount = 0, aliveVotesTotal = 0, ghostVotesTotal = 0;
 
-            int count = 0;
-            String accusedColour = getColourFromPlayer(accusedPlayer);
-            startColourIndex = POSSIBLE_COLOURS.indexOf(accusedColour);
-
-            for (int i = startColourIndex; count <= players.size(); i++) {
+            for (int i = finalStartColourIndex; playerCount <= players.size(); i++) {
+                if (!indexBounds.contains(i)){
+                    i = indexBounds.get(0); //Sets index to start of colour index bounds
+                }
                 String colour = POSSIBLE_COLOURS.get(i);
                 BlockPos pos = mapCoords.get(colour).triggersLampPiston;
                 BlockPos lockedVote;
@@ -869,62 +890,57 @@ public class BotcFab implements ModInitializer {
                         break;
                     case SCHOOL_MAP:
                         lockedVote = pos.east(2); //Position of locked in vote lamp Change direction based on orientation
+                        src.sendFeedback(() -> Text.literal("FUCK YOU IDE"), false);
                         break;
                     default:
                         lockedVote = pos.up(2);
                 }
 
-                int delay = count * delayPerBlock; //Add delay between vote locks
-                taskList.add(new DelayedBlockSetter(world, pos, Blocks.AIR.getDefaultState(), delay)); //Set redstone block to air
-
                 BlockState lockedVoteState = world.getBlockState(lockedVote);
                 if (lockedVoteState.getBlock() == Blocks.WAXED_COPPER_BULB && lockedVoteState.get(Properties.LIT)) {
-                    aliveVotes++;
+                    aliveVotesTotal++;
                 } else if (lockedVoteState.getBlock() == Blocks.SEA_LANTERN) {
-                    ghostVotes++;
+                    ghostVotesTotal++;
                     // remove ghost vote tag from player
                     ServerPlayerEntity playerVote = getPlayerFromColour(colour);
                     if (playerVote != null) {
                         playerVote.addCommandTag(DEAD);
                         playerVote.removeCommandTag(GHOST);
                     }
-
                 }
-                if (i == 11){
-                    i = -1; //Set to -1 so it continues to loop through colours at 0 when the loop resets.
-                }
+                world.setBlockState(pos, Blocks.REDSTONE_BLOCK.getDefaultState()); //Set back redstone blocks
 
-                count++;
+                playerCount++;
             }
-            totalVotes[0] = aliveVotes + ghostVotes; //total votes
-            totalVotes[1] = aliveVotes; //alive player votes
-            totalVotes[2] = ghostVotes; //ghost votes used
+            int displayTotalVotes = aliveVotesTotal + ghostVotesTotal; //total votes
+            int displayAliveVotes = aliveVotesTotal; //alive player votes
+            int displayGhostVotes = ghostVotesTotal; //ghost votes used
+            ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED);
+
+            src.sendFeedback(() -> Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes."), false);
+            if ((displayTotalVotes > highestVote) && (displayTotalVotes >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
+                highestVote = displayTotalVotes; //Change the highest vote to this vote
+                //Mark player for execution
+                accusedPlayer.addCommandTag(MARKED);
+                if (markedPlayer != null) { //Remove any previous marked players
+                    markedPlayer.removeCommandTag(MARKED);
+                }
+                src.sendFeedback(accusedPlayer::getStyledDisplayName, false);
+                src.sendFeedback(() -> Text.literal("has now been marked for execution"),false);
+            }
+            if (displayTotalVotes == highestVote){ //On matching highest vote, remove all marked players
+                if (markedPlayer != null) {
+                    markedPlayer.removeCommandTag(MARKED);
+                }
+            }
+            accusedPlayer.removeCommandTag(ACCUSED);
+
+            //TODO This needs to run at least one tick later
+//            for (ServerPlayerEntity p : players) {
+//                updateVoteStatus(world, p); //Update votes to remove any used ghost votes
+//            }
         };
         TickScheduler.scheduleGroup(taskList, onAllDone);
-        ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED);
-
-        src.sendFeedback(() -> Text.literal("A total of " + totalVotes[0] + "votes were received, including " + totalVotes[2] + " ghost votes."), false);
-        if ((totalVotes[0] > highestVote) && (totalVotes[0] >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
-            highestVote = totalVotes[0]; //Change the highest vote to this vote
-            //Mark player for execution
-            accusedPlayer.addCommandTag(MARKED);
-            if (markedPlayer != null) { //Remove any previous marked players
-                markedPlayer.removeCommandTag(MARKED);
-            }
-            highestVote = totalVotes[0];
-            src.sendFeedback(accusedPlayer::getStyledDisplayName, false);
-            src.sendFeedback(() -> Text.literal("has now been marked for execution"),false);
-        }
-        if (totalVotes[0] == highestVote){ //On matching highest vote, remove all marked players
-            if (markedPlayer != null) {
-                markedPlayer.removeCommandTag(MARKED);
-            }
-        }
-        accusedPlayer.removeCommandTag(ACCUSED);
-
-        for (ServerPlayerEntity p : players) {
-            updateVoteStatus(world, p); //Update votes to remove any used ghost votes
-        }
     }
 
     private void executePlayer(ServerPlayerEntity player){
