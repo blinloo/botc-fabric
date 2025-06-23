@@ -1,8 +1,9 @@
 package com.botcfab;
 
-import com.mojang.authlib.GameProfile;
+import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.context.ParsedCommandNode;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -39,10 +40,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.DyeColor;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
+import net.minecraft.util.*;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -56,6 +54,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -95,7 +94,7 @@ public class BotcFab implements ModInitializer {
             "blue",
             "cyan",
             "gray");
-    private static final List<Integer> COLOUR_HEX = Arrays.asList(0xFFFFFF, 0xFFFFBA, 0xFFDFBA, 0xffd4e5, 0xffb3ba, 0xeecbff, 0xbe9b7b, 0xbaffc9, 0x000000, 0xadb2fb, 0x99ffff, 0xc0c0c0);
+    private static final List<Integer> COLOUR_HEX = Arrays.asList(0x000000, 0xFFEE00, 0xFF8D00, 0xFFAFC7, 0xE50000, 0x760088, 0x613915, 0x028121, 0xFFFFFF, 0x004CFF, 0x73D7EE, 0x888888);
     private final String path = ".\\BOTC-coords-sheet.csv"; //Attempt to give standard file path, works in "run" folder
     //private final String path = "C:\\Users\\Ruby\\IdeaProjects\\botc-fabric-copytest\\BOTC-coords-sheet.csv"; //Absolute file path
 
@@ -122,7 +121,7 @@ public class BotcFab implements ModInitializer {
             .setStyle(Style.EMPTY.withColor(Formatting.GOLD))
             .append(Text.literal("\n"));
     private final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
-            .setStyle(Style.EMPTY.withColor(Formatting.DARK_BLUE))
+            .setStyle(Style.EMPTY.withColor(Formatting.BLUE))
             .append(Text.literal("\n"));
     private final MutableText KILL_TEXT = Text.literal(" has been killed.") //Make these not final for school map, change to expelled, suspended etc
             .formatted(Formatting.DARK_RED);
@@ -276,11 +275,11 @@ public class BotcFab implements ModInitializer {
         if (team == null) {
             // Create the team if it doesn't exist
             team = scoreboard.addTeam(teamName);
-            team.setShowFriendlyInvisibles(true); //makes invis players visible
             System.out.println("Created new team: " + teamName);
         } else {
             System.out.println("Team already exists: " + teamName);
         }
+        team.setShowFriendlyInvisibles(true); //makes invis players visible
     }
 
     private void resetPlayer(@NotNull PlayerEntity player) { //Removes all game based tags from a player
@@ -310,6 +309,18 @@ public class BotcFab implements ModInitializer {
             }
         }
         return count;
+    }
+
+    //TODO It's bollocks, fuck chatgpt lying all the damn time
+    private void setColourBoots(MinecraftServer server, ServerPlayerEntity p, String c){ //Give player boots with assigned colour
+        int colourHex = getColourHex(c);
+        String colourRGB = Color.decode(Integer.toString(colourHex)).toString();
+        //Just runs the command cus editing items is fucking dumb
+        String command = "/item replace entity " + p.getName() + " armor.feet with leather_boots[dyed_color={rgb:" + colourRGB + "},enchantment_glint_override=false,enchantments={levels:{binding_curse:1,feather_falling:10},show_in_tooltip:false},unbreakable={}]";
+
+        CommandManager cmdMng = server.getCommandManager();
+        ParseResults<ServerCommandSource> parseResults = cmdMng.getDispatcher().parse(command, server.getCommandSource());
+        cmdMng.execute(parseResults,command);
     }
 
     private void accusePlayer(ServerPlayerEntity player){
@@ -352,6 +363,9 @@ public class BotcFab implements ModInitializer {
             player.removeCommandTag(DEAD);
             player.addCommandTag(ALIVE);
             updateVoteStatus(world,player);
+        }
+        else {
+            world.getServer().getCommandSource().sendFeedback(() -> Text.literal("They're already alive :)"),false);
         }
     }
 
@@ -419,7 +433,7 @@ public class BotcFab implements ModInitializer {
         objective = scoreboard.addObjective(
                 INFO_OBJECTIVE, // Objective name (unique id)
                 ScoreboardCriterion.DUMMY, // Criterion type (dummy = manual numbers)
-                Text.literal("--|Player Info|--"), // Display name (shown in sidebar, below name, etc.)
+                Text.literal("Player Info"), // Display name (shown in sidebar, below name, etc.)
                 ScoreboardCriterion.RenderType.INTEGER, // Render type (number type)
                 true, //Whether the value updates live
                 numberFormat //Format of numbers, colour and display
@@ -427,9 +441,9 @@ public class BotcFab implements ModInitializer {
         }
         ScoreAccess aliveScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(ALIVE_SCORE_HOLDER),objective);
         ScoreAccess deadScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(DEAD_SCORE_HOLDER),objective);
-        aliveScoreAccess.setDisplayText(Text.literal("Alive : "));
+        aliveScoreAccess.setDisplayText(Text.literal("Alive "));
         aliveScoreAccess.setScore(alivePlayers);
-        deadScoreAccess.setDisplayText(Text.literal("Dead  : "));
+        deadScoreAccess.setDisplayText(Text.literal("Dead "));
         deadScoreAccess.setScore(deadPlayers);
         scoreboard.setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR,objective);
     }
@@ -491,6 +505,7 @@ public class BotcFab implements ModInitializer {
             // Remove all tags before adding new ones
             players.remove(storyTeller);
             resetPlayer(storyTeller);
+            storyTeller.getInventory().setStack(36,ItemStack.EMPTY); //Remove boots
             storyTeller.addCommandTag(STORYTELLER); //Add tag for storyteller
             src.sendFeedback(() -> Text.literal("Storyteller is: " + storyTeller.getName().getString()), false);
             storyTeller.changeGameMode(GameMode.CREATIVE);
@@ -521,6 +536,7 @@ public class BotcFab implements ModInitializer {
         } else {
             for (ServerPlayerEntity player : players) {
                 resetPlayer(player);
+                player.getInventory().setStack(36,ItemStack.EMPTY); //Remove boots
                 player.addCommandTag(PLAYER);
                 player.addCommandTag(ALIVE);
                 player.changeGameMode(GameMode.ADVENTURE);
@@ -530,6 +546,7 @@ public class BotcFab implements ModInitializer {
                 String assignedColour = POSSIBLE_COLOURS.get(currentColourIndex-1);
                 player.addCommandTag(assignedColour); //Add colour tag to player
                 scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL)); //Add player to all player team
+                setColourBoots(srv,player,assignedColour);
                 //TODO spawn point doesn't seem to work?
                 player.setSpawnPoint(world.getRegistryKey(),mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
                 //Places signs, levers update in the updatePlayer function
@@ -645,9 +662,14 @@ public class BotcFab implements ModInitializer {
                 Set<String> tags = p.getCommandTags();
                 p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 1, false, false));
                 //TODO Change this add to coloured particles? maybe a beacon highlight in vote phase.
-                if (tags.contains(DEAD) || tags.contains(GHOST)) {
-                    world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0.5, 0.4, 0.0001);
+                if (tags.contains(DEAD) || tags.contains(GHOST) || (tags.contains(STORYTELLER))) {
+                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
+                    world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.00001);
                 }
+                if (tags.contains(ALIVE)) {
+                    p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invis for alive players
+                }
+
                 if (tags.contains(ACCUSED) || tags.contains(MARKED)) {
                     p.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, -1, 1, false, false));
                 } else {
@@ -991,7 +1013,7 @@ public class BotcFab implements ModInitializer {
         //Register chat commands
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("setupGame").executes(this::setupGame)));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("setupGame").executes(this::beginGame)));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startGame").executes(this::beginGame)));
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
             mapCoords = ImportExcelCoordinates.read(path); //Import coordinates for map from Excel sheet
