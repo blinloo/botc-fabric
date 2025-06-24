@@ -284,7 +284,7 @@ public class BotcFab implements ModInitializer {
         } else {
             System.out.println("Team already exists: " + teamName);
         }
-        team.setShowFriendlyInvisibles(true); //makes invis players visible
+        team.setShowFriendlyInvisibles(true); //makes invisible players visible
     }
 
     private void resetPlayer(@NotNull PlayerEntity player) { //Removes all game based tags from a player
@@ -316,14 +316,15 @@ public class BotcFab implements ModInitializer {
         return count;
     }
 
+    //int colourHex = getColourHex(c);
     private void setColourBoots(ServerPlayerEntity p, String c){ //Give player boots with assigned colour
-        int colourHex = getColourHex(c);
-        String colourRGB = Color.decode(Integer.toString(colourHex)).toString();
+
+        //String colourRGB = Color.decode(Integer.toString(colourHex)).toString();
 
         ItemStack boots = new ItemStack(Items.LEATHER_BOOTS);
         List<DyeItem> dyes = List.of(DyeItem.byColor(DyeColor.byName(c,DyeColor.LIME))); //Defaults to lime if colour not got from String
         ItemStack dyedBoots = DyedColorComponent.setColor(boots, dyes);
-        p.getInventory().setStack(36,dyedBoots); //36 is slot for boots, idk why help
+        p.getInventory().setStack(36,dyedBoots); //36 is slot for boots, IDK why help
     }
 
     private void accusePlayer(ServerPlayerEntity player){
@@ -426,11 +427,18 @@ public class BotcFab implements ModInitializer {
         return ActionResult.PASS; // Pass if not right-clicking with the correct item or targeting a player
     }
 
-    private ActionResult onRightClickItem(PlayerEntity player, World world, Hand hand) { //Checks if player right clicked with paper, then sends player order
+    private ActionResult onRightClickItem(PlayerEntity player, World world, Hand hand) { //Checks if player right-clicked with paper, then sends player order
         ItemStack itemInHand = player.getStackInHand(hand);
         // Check if the player is holding the specific item and Hand is not empty
         if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.PAPER) {
             player.sendMessage(getPlayerOrder(), false);
+            return ActionResult.SUCCESS;
+        }
+        //Check for heart pottery shard named "Emergency Teleport"
+        if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.HEART_POTTERY_SHERD) {
+            player.sendMessage(getPlayerOrder(), false);
+            String colour = getColourFromPlayer((ServerPlayerEntity) player);
+            tp((ServerPlayerEntity) player, mapCoords.get(colour).homeInside);
             return ActionResult.SUCCESS;
         }
         return ActionResult.PASS;
@@ -521,7 +529,7 @@ public class BotcFab implements ModInitializer {
             resetPlayer(storyTeller);
             storyTeller.getInventory().setStack(36,ItemStack.EMPTY); //Remove boots
             storyTeller.addCommandTag(STORYTELLER); //Add tag for storyteller
-            LOGGER.info("Storyteller is: " + storyTeller.getStyledDisplayName().toString());
+            srv.sendMessage(Text.literal("Storyteller is: " + storyTeller.getStyledDisplayName().toString()));
             storyTeller.changeGameMode(GameMode.CREATIVE);
             setColourBoots(storyTeller,"no");
             scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
@@ -618,8 +626,6 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
-        ServerScoreboard scoreboard = srv.getScoreboard();
-        ServerWorld world = context.getSource().getWorld();
 
         teleportPlayers("home"); //teleports players to homes
         sendMessageToPlayers(getPlayerOrder(),playerMgr.getPlayerList()); //Sends player order to all players
@@ -634,7 +640,6 @@ public class BotcFab implements ModInitializer {
         PlayerManager playerMgr = srv.getPlayerManager();
         String specName = StringArgumentType.getString(context, "player_name"); //Gets spectator player name from command
         ServerPlayerEntity specTarget = playerMgr.getPlayer(specName);
-        ServerScoreboard scoreboard = srv.getScoreboard();
         if (specTarget == null) {
 
             System.out.println("Couldn't find player");
@@ -686,7 +691,7 @@ public class BotcFab implements ModInitializer {
                     }
                 }
                 if (tags.contains(ALIVE)) {
-                    p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invis for alive players
+                    p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for alive players
                 }
 
                 if (tags.contains(ACCUSED) || tags.contains(MARKED)) {
@@ -967,10 +972,6 @@ public class BotcFab implements ModInitializer {
                 //TODO open pit here and teleport player
                 break;
         }
-        //All this should happen in OnTick now
-        //player.kill(world); //just kills the player not really useful
-        //killPlayer(player);
-        //player.removeCommandTag(CURRENT_EXECUTEE); //Remove after animation stuff is done
     }
 
     private int beginExecution(CommandContext<ServerCommandSource> context){
