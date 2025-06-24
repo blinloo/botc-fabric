@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
@@ -53,6 +54,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.*;
+import java.io.File;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -144,6 +147,20 @@ public class BotcFab implements ModInitializer {
 
     //TEST VALUES
     private final static BlockPos EXE_BLOCK = new BlockPos(6,-29,-2);
+
+    public static File getConfigFilePath() {
+        // Get the Minecraft config directory
+        Path configDir = FabricLoader.getInstance().getConfigDir();
+
+        // Make your mod's subfolder (recommended)
+        Path modFolder = configDir.resolve("botc-fab"); // e.g., "config/yourmod"
+        File folder = modFolder.toFile();
+        if (!folder.exists()) folder.mkdirs(); // create if it doesn't exist
+
+        // Final file path
+        //TODO Add code for both maps here: returns different csv
+        return modFolder.resolve("BOTC-coords-sheet.csv").toFile();
+    }
 
     private void sendMessageToPlayers(Text messageText,List<ServerPlayerEntity> playerList){
         for (ServerPlayerEntity p:playerList){
@@ -472,7 +489,7 @@ public class BotcFab implements ModInitializer {
         ServerCommandSource src = srv.getCommandSource();
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
-        mapCoords = ImportExcelCoordinates.read(path); //Import csv file here
+        mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import csv file here
 
         System.out.println("INITIALISED");
         src.sendFeedback(() -> Text.literal("Starting initialise code now"), false);
@@ -1047,7 +1064,7 @@ public class BotcFab implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("importCSV")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes((context) -> {
-                    mapCoords = ImportExcelCoordinates.read(path); //Import coordinates for map from Excel sheet
+                    mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import coordinates for map from Excel sheet
                     return 1;
                     })));
 

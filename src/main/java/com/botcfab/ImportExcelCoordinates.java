@@ -15,8 +15,7 @@ public class ImportExcelCoordinates {
     public static final String MOD_ID = "botc-fab";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     //Takes in csv file of coords and creates hash key of it
-    public static Map<String, CoordinateMapper> read(String filePath) {
-        File file = new File(filePath);
+    public static Map<String, CoordinateMapper> read(File file) {
         CsvMapper mapper = new CsvMapper().enable(CsvParser.Feature.IGNORE_TRAILING_UNMAPPABLE);
         CsvSchema schema = CsvSchema.emptySchema().withHeader();
         Map <String, CoordinateMapper> mc = new HashMap<>();
