@@ -489,9 +489,10 @@ public class BotcFab implements ModInitializer {
         ServerWorld world = context.getSource().getWorld();
         players.clear();
         players.addAll(playerMgr.getPlayerList());
-        //TODO Randomise player list
+        //TODO Test this
+        Collections.shuffle(players); //Randomises order of player list (default is server join order)
         indexBounds.clear();
-        int startPoint = ThreadLocalRandom.current().nextInt(1, 12 + 1); //Determines start point for colour selection
+        int startPoint = ThreadLocalRandom.current().nextInt(0, 11+1); //Determines start point for colour selection
         ServerPlayerEntity storyTeller = src.getPlayer(); // Gets the person that called the command. Whoever called it is Storyteller
 
         // Set everyone else to be a player
@@ -509,7 +510,6 @@ public class BotcFab implements ModInitializer {
             storyTeller.changeGameMode(GameMode.CREATIVE);
             setColourBoots(storyTeller,"no");
             scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
-            storyTeller.teleport(0.0,0.0,0.0,true);
         } else {
             src.sendFeedback(() -> Text.literal("Failed to find storyteller. Do not execute this command from the server window"), false);
             return 0;
@@ -543,7 +543,7 @@ public class BotcFab implements ModInitializer {
                 //playerMgr.removeFromOperators(player.getGameProfile()); //Don't auto remove from ops yet for testing
 
                 //Assign Colours HERE
-                String assignedColour = POSSIBLE_COLOURS.get(currentColourIndex-1);
+                String assignedColour = POSSIBLE_COLOURS.get(currentColourIndex);
                 player.addCommandTag(assignedColour); //Add colour tag to player
                 scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL)); //Add player to all player team
                 setColourBoots(player,assignedColour);
@@ -575,7 +575,7 @@ public class BotcFab implements ModInitializer {
                 updateVoteStatus(world,player); //player levers and update lamps
 
                 if (currentColourIndex == 12)
-                    currentColourIndex = 1;
+                    currentColourIndex = 0;
                 else
                     currentColourIndex++;
             }
@@ -709,7 +709,9 @@ public class BotcFab implements ModInitializer {
                 if (executionFinished) { //code that overlaps for all maps
                     killPlayer(executee);
                     //sends message in chat for kill
-                    world.getServer().getCommandSource().sendFeedback(() -> getEventText(executee,CURRENT_EXECUTEE), false);
+                    world.getServer().sendMessage(getEventText(executee,CURRENT_EXECUTEE));
+                    world.getServer().getCommandSource().sendFeedback(() -> getEventText(executee,CURRENT_EXECUTEE), false); //Only outputs to console
+                    world.getServer().getCommandSource().sendFeedback(() -> Text.literal("hi??"),false);
                     executee.removeCommandTag(CURRENT_EXECUTEE);
                     executionInProgress = false;
                 }
