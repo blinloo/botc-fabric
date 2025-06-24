@@ -16,6 +16,7 @@ repositories {
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
+	mavenCentral()
 }
 
 loom {
@@ -47,6 +48,11 @@ dependencies {
 
 	//CSV Importer
 	implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.13.0'
+	// Shade third-party libs into the final JAR
+	include 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.13.0'
+	include 'com.fasterxml.jackson.core:jackson-databind:2.13.0'
+	include 'com.fasterxml.jackson.core:jackson-core:2.13.0'
+	include 'com.fasterxml.jackson.core:jackson-annotations:2.13.0'
 }
 
 processResources {
