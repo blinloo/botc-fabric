@@ -414,6 +414,17 @@ public class BotcFab implements ModInitializer {
         }
     }
 
+    private int leaveMinigames(CommandContext<ServerCommandSource> context){ //Teleports player back to home
+        ServerPlayerEntity player = context.getSource().getPlayer(); //might need to change to take input player
+        if (player != null) {
+            String colour = getColourFromPlayer(player);
+            tp(player, mapCoords.get(colour).homeInside);
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
     private MutableText getEventText(ServerPlayerEntity player, String event){
         MutableText eventMsg;
         MutableText playerName = player.getStyledDisplayName().copy(); //Should be formatted with player colour from team
@@ -1123,6 +1134,9 @@ public class BotcFab implements ModInitializer {
                             return 1;
                         })
         )));
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("leaveMinigames")
+                .executes(this::leaveMinigames)));
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startTimer").then(
                 CommandManager.argument("stringTime", StringArgumentType.string())
