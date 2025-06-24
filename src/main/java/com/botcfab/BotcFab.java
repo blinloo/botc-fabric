@@ -387,7 +387,7 @@ public class BotcFab implements ModInitializer {
             case "vote","chair","town":
                 for (ServerPlayerEntity p : players) {
                     colour = getColourFromPlayer(p);
-                    tp(p,mapCoords.get(colour).chair);
+                    tp(p,mapCoords.get(colour).chair.up(1)); //Needs to go up 1 so space isn't occupied
                 } //TODO add code to lock players to seats for nominations
                 break;
         }
@@ -513,6 +513,7 @@ public class BotcFab implements ModInitializer {
             storyTeller.changeGameMode(GameMode.CREATIVE);
             setColourBoots(storyTeller,"no");
             scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
+            storyTeller.teleport(0.0,0.0,0.0,true);
         } else {
             src.sendFeedback(() -> Text.literal("Failed to find storyteller. Do not execute this command from the server window"), false);
             return 0;
@@ -691,7 +692,7 @@ public class BotcFab implements ModInitializer {
             if (executee != null){
                 switch (mapSelected) {
                     case DEFAULT_MAP:
-                        Vec3d murderZone = new Vec3d(EXE_BLOCK.down(1).getX()+0.5,EXE_BLOCK.down(1).getY(),EXE_BLOCK.down(1).getX()+0.5); //Get centre of block
+                        Vec3d murderZone = new Vec3d(EXE_BLOCK.down(1).getX()+0.5,EXE_BLOCK.down(1).getY()+0.3,EXE_BLOCK.down(1).getZ()+0.5); //Get centre of block
                         double distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
                         if (distance > 1) {
                             executee.teleport(murderZone.getX(),murderZone.getY(),murderZone.getZ(),false); //needs accurate tp
@@ -755,13 +756,13 @@ public class BotcFab implements ModInitializer {
                 BlockPos targetPos;
 
                 if (!tags.contains(CURRENT_EXECUTEE)) { //Check player is not currently being executed
-                    targetPos = mapCoords.get(playerColour).chair;
+                    targetPos = mapCoords.get(playerColour).chair.up(1);
                 } else {
                     break;
                 }
 
                 //double distance = playerPos.getSquaredDistance(targetPos);
-                double distance = playerPos.squaredDistanceTo(targetPos.getX()+0.5, targetPos.getY()+0.5, targetPos.getZ()+0.5); //accounts for hair of chair now
+                double distance = playerPos.squaredDistanceTo(targetPos.getX()+0.5, targetPos.getY()+0.5, targetPos.getZ()+0.5); //accounts for slab of chair now
                 if (distance > 1.5) {
                     tp(p,targetPos);
                     p.sendMessage(Text.literal("You were too far away. Teleporting to target..."), false);
@@ -1178,5 +1179,43 @@ public class BotcFab implements ModInitializer {
         )));
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("beginExecution").executes(this::beginExecution)));
+
+        //TODO REMOVE TEST COMMANDS WHEN DONE
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("testTeleport").executes(context -> {
+                    ServerPlayerEntity player = context.getSource().getPlayer();
+                    if (player != null){
+                        player.teleport(EXE_BLOCK.getX(),EXE_BLOCK.getY(),EXE_BLOCK.getZ(),false); //FAILED because block pos is corner
+                    }
+                    context.getSource().sendFeedback(() -> Text.literal("Teleport 1 success"), false);
+                    return 1;
+                }
+        )));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("testTeleport2").executes(context -> {
+                    ServerPlayerEntity player = context.getSource().getPlayer();
+                    if (player != null){
+                        tp(player,EXE_BLOCK); //This one worked!
+                    }
+                    context.getSource().sendFeedback(() -> Text.literal("Teleport 2 success"), false);
+                    return 1;
+                }
+        )));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("testTeleport3").executes(context -> {
+                    ServerPlayerEntity player = context.getSource().getPlayer();
+                    if (player != null){
+                        player.teleport(6.5,-29.7,-1.5,false); //This one worked! Height does not tho, seems to always place on floor
+                    }
+                    context.getSource().sendFeedback(() -> Text.literal("Teleport 3 success"), false);
+                    return 1;
+                }
+        )));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("testTeleport4").executes(context -> {
+                    ServerPlayerEntity player = context.getSource().getPlayer();
+                    if (player != null){
+                        tp(player,mapCoords.get("cyan").chair.up(1)); //THIS ALSO WORKED!
+                    }
+                    context.getSource().sendFeedback(() -> Text.literal("Teleport 4 success"), false);
+                    return 1;
+                }
+        )));
     }
 }
