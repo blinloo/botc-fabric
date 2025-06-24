@@ -101,6 +101,7 @@ public class BotcFab implements ModInitializer {
     //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
     Map<String, CoordinateMapper> mapCoords = new HashMap<>();
     private List<ServerPlayerEntity> players = new ArrayList<>();
+    private ArrayList<Integer> indexBounds = new ArrayList<>();
     //Highest vote count
     private int highestVote;
 
@@ -492,6 +493,7 @@ public class BotcFab implements ModInitializer {
         players.clear();
         players.addAll(playerMgr.getPlayerList());
         //TODO Randomise player list
+        indexBounds.clear();
         int startPoint = ThreadLocalRandom.current().nextInt(1, 12 + 1); //Determines start point for colour selection
         ServerPlayerEntity storyTeller = src.getPlayer(); // Gets the person that called the command. Whoever called it is Storyteller
 
@@ -548,6 +550,7 @@ public class BotcFab implements ModInitializer {
                 player.addCommandTag(assignedColour); //Add colour tag to player
                 scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL)); //Add player to all player team
                 setColourBoots(player,assignedColour);
+                indexBounds.add(POSSIBLE_COLOURS.indexOf(assignedColour)); //Used for vote lock in to decide bounds.
                 //TODO spawn point doesn't seem to work?
                 player.setSpawnPoint(World.OVERWORLD,mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
                 //Places signs, levers update in the updatePlayer function
@@ -691,12 +694,12 @@ public class BotcFab implements ModInitializer {
                         Vec3d murderZone = new Vec3d(EXE_BLOCK.down(1).getX()+0.5,EXE_BLOCK.down(1).getY(),EXE_BLOCK.down(1).getX()+0.5); //Get centre of block
                         double distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
                         if (distance > 1) {
-                            tp(executee, EXE_BLOCK);
+                            executee.teleport(murderZone.getX(),murderZone.getY(),murderZone.getZ(),false); //needs accurate tp
                             executee.sendMessage(Text.literal("Nice try :)"), false); //TODO Doesn't stop after execution? maybe due to blockpos coord pos being corner not centre of block
                         }
 
                         BlockState anvilPosState = world.getBlockState(EXE_BLOCK);
-                        if (anvilPosState.isOf(Blocks.ANVIL)) {
+                        if (anvilPosState.isOf(Blocks.ANVIL) || anvilPosState.isOf(Blocks.CHIPPED_ANVIL) || anvilPosState.isOf(Blocks.DAMAGED_ANVIL)) {
                             world.setBlockState(EXE_BLOCK, Blocks.AIR.getDefaultState());
                             executionFinished = true; //used so
                         }
@@ -849,16 +852,10 @@ public class BotcFab implements ModInitializer {
             return;
         }
         String accusedColour = getColourFromPlayer(accusedPlayer);
-        ArrayList<Integer> indexBounds = new ArrayList<>();
-        for (String c: POSSIBLE_COLOURS){
-            ServerPlayerEntity p = getPlayerFromColour(c);
-            if (p != null) {
-                indexBounds.add(POSSIBLE_COLOURS.indexOf(c));
-            }
-        }
+
         startColourIndex = POSSIBLE_COLOURS.indexOf(accusedColour)+1; //+1 to start from player after accused
         if (!indexBounds.contains(startColourIndex)) {
-            startColourIndex = indexBounds.get(0);
+            startColourIndex = indexBounds.get(0); //This is a list of current colours in the game, so it can loop back to the first if it hits the end.
         }
 
         for (int i = startColourIndex; count <= players.size(); i++) {
@@ -913,7 +910,6 @@ public class BotcFab implements ModInitializer {
                 playerCount++;
             }
             int displayTotalVotes = aliveVotesTotal + ghostVotesTotal; //total votes
-            int displayAliveVotes = aliveVotesTotal; //alive player votes
             int displayGhostVotes = ghostVotesTotal; //ghost votes used
             ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED);
 
@@ -935,7 +931,7 @@ public class BotcFab implements ModInitializer {
             }
             accusedPlayer.removeCommandTag(ACCUSED);
 
-            //TODO This needs to run at least one tick later
+            //TODO actually don't need, only needed after execution occurs
 //            for (ServerPlayerEntity p : players) {
 //                updateVoteStatus(world, p); //Update votes to remove any used ghost votes
 //            }
