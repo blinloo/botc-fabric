@@ -774,7 +774,7 @@ public class BotcFab implements ModInitializer {
 
     private int nightFalls(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
-        ServerWorld world = context.getSource().getWorld();
+        ServerWorld world = src.getWorld();
         ServerScoreboard scoreboard = world.getScoreboard();
         world.setTimeOfDay(18000L);
         playersLockedToSeats = false;
@@ -797,9 +797,11 @@ public class BotcFab implements ModInitializer {
     private int startDay(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
+        ServerWorld world = src.getWorld();
         ServerScoreboard scoreboard = srv.getScoreboard();
         Team team = scoreboard.getTeam(TEAM_ALL);
         playersLockedToSeats = false;
+        world.setTimeOfDay(1000L);
         if (team != null) { //Make nametags visible at morning.
             team.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.ALWAYS);
         }
@@ -859,7 +861,7 @@ public class BotcFab implements ModInitializer {
             startColourIndex = indexBounds.get(0); //This is a list of current colours in the game, so it can loop back to the first if it hits the end.
         }
 
-        for (int i = startColourIndex; count <= players.size(); i++) {
+        for (int i = startColourIndex; count <= players.size(); i++) { //need to be <= or else the accused doesn't get a vote
             int delay = count * delayPerBlock; //Add delay between vote locks
             if (!indexBounds.contains(i)){
                 i = indexBounds.get(0); //Sets index to start of colour index bounds
@@ -875,7 +877,7 @@ public class BotcFab implements ModInitializer {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
             int playerCount = 0, aliveVotesTotal = 0, ghostVotesTotal = 0;
 
-            for (int i = finalStartColourIndex; playerCount <= players.size(); i++) {
+            for (int i = finalStartColourIndex; playerCount < players.size(); i++) {
                 if (!indexBounds.contains(i)){
                     i = indexBounds.get(0); //Sets index to start of colour index bounds
                 }
@@ -899,7 +901,8 @@ public class BotcFab implements ModInitializer {
                     aliveVotesTotal++;
                 } else if (lockedVoteState.getBlock() == Blocks.SEA_LANTERN) {
                     ghostVotesTotal++;
-                    // remove ghost vote tag from player
+                    // remove ghost vote and tag from player
+                    world.setBlockState(lockedVote,Blocks.COAL_BLOCK.getDefaultState());
                     ServerPlayerEntity playerVote = getPlayerFromColour(colour);
                     if (playerVote != null) {
                         playerVote.addCommandTag(DEAD);
