@@ -82,6 +82,7 @@ public class BotcFab implements ModInitializer {
     private static final String INFO_OBJECTIVE = "info";
     private static final String ALIVE_SCORE_HOLDER = "Alive";
     private static final String DEAD_SCORE_HOLDER = "Dead";
+    private static final String VOTE_SCORE_HOLDER = "Vote Threshold";
     private static final List<String> POSSIBLE_COLOURS = Arrays.asList(
             "black",
             "yellow",
@@ -464,6 +465,7 @@ public class BotcFab implements ModInitializer {
     private void createOrSetAliveDisplay(ServerScoreboard scoreboard){
         int alivePlayers = getTagCount(ALIVE);
         int deadPlayers = getTagCount(GHOST) + getTagCount(DEAD);
+        int voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
         ScoreboardObjective objective = scoreboard.getNullableObjective(INFO_OBJECTIVE);
         NumberFormat numberFormat = StyledNumberFormat.YELLOW; //Can be RED, YELLOW or EMPTY
         if (objective == null){
@@ -478,10 +480,13 @@ public class BotcFab implements ModInitializer {
         }
         ScoreAccess aliveScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(ALIVE_SCORE_HOLDER),objective);
         ScoreAccess deadScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(DEAD_SCORE_HOLDER),objective);
+        ScoreAccess voteScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(VOTE_SCORE_HOLDER),objective);
         aliveScoreAccess.setDisplayText(Text.literal("Alive "));
         aliveScoreAccess.setScore(alivePlayers);
         deadScoreAccess.setDisplayText(Text.literal("Dead "));
         deadScoreAccess.setScore(deadPlayers);
+        voteScoreAccess.setDisplayText(Text.literal("Vote Threshold "));
+        voteScoreAccess.setScore(voteThreshold);
         scoreboard.setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR,objective);
     }
 
