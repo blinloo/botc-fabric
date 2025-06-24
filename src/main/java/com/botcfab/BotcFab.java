@@ -232,7 +232,6 @@ public class BotcFab implements ModInitializer {
         Set<String> tags = player.getCommandTags();
         String playerColour = getColourFromPlayer(player);
         //Replace lamps
-        //TODO add functionality for new map
         if (tags.contains(ALIVE)){
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
             world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_COPPER_BULB.getDefaultState());
@@ -312,7 +311,6 @@ public class BotcFab implements ModInitializer {
         return count;
     }
 
-    //TODO It's bollocks, fuck chatgpt lying all the damn time
     private void setColourBoots(ServerPlayerEntity p, String c){ //Give player boots with assigned colour
         int colourHex = getColourHex(c);
         String colourRGB = Color.decode(Integer.toString(colourHex)).toString();
@@ -375,7 +373,6 @@ public class BotcFab implements ModInitializer {
 
     private void teleportPlayers(String location){
         //location either "home" or "vote"
-        //TODO write this function!
         String colour;
         switch (location){
             case "home","house","dorm":
@@ -388,7 +385,7 @@ public class BotcFab implements ModInitializer {
                 for (ServerPlayerEntity p : players) {
                     colour = getColourFromPlayer(p);
                     tp(p,mapCoords.get(colour).chair.up(1)); //Needs to go up 1 so space isn't occupied
-                } //TODO add code to lock players to seats for nominations
+                }
                 break;
         }
     }
@@ -501,7 +498,6 @@ public class BotcFab implements ModInitializer {
         // Remove the storyTeller from the list of players. Remaining list is all players
 
         System.out.println(players);
-        //TODO remove boots
 
         if (storyTeller != null) {
             // Remove all tags before adding new ones
@@ -552,7 +548,7 @@ public class BotcFab implements ModInitializer {
                 scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL)); //Add player to all player team
                 setColourBoots(player,assignedColour);
                 indexBounds.add(POSSIBLE_COLOURS.indexOf(assignedColour)); //Used for vote lock in to decide bounds.
-                //TODO spawn point doesn't seem to work?
+                //TODO Test this to confirm, should work now tho
                 player.setSpawnPoint(World.OVERWORLD,mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
                 //Places signs, levers update in the updatePlayer function
                 switch (mapSelected) {
@@ -602,8 +598,6 @@ public class BotcFab implements ModInitializer {
 
     private int beginGame(CommandContext<ServerCommandSource> context) {
         //TODO
-        // -teleport players to homes
-        // - send chat message with player order
         // - give roles to players on named paper
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
@@ -670,8 +664,8 @@ public class BotcFab implements ModInitializer {
                 //TODO Change this add to coloured particles? maybe a beacon highlight in vote phase.
                 if (tags.contains(DEAD) || tags.contains(GHOST) || (tags.contains(STORYTELLER))) {
                     p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
-                    if (!tags.contains(SPEC)) {
-                        world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.00001);
+                    if (tags.contains(SPEC)) {
+                        world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.001);
                     }
                 }
                 if (tags.contains(ALIVE)) {
@@ -694,9 +688,9 @@ public class BotcFab implements ModInitializer {
                     case DEFAULT_MAP:
                         Vec3d murderZone = new Vec3d(EXE_BLOCK.down(1).getX()+0.5,EXE_BLOCK.down(1).getY()+0.3,EXE_BLOCK.down(1).getZ()+0.5); //Get centre of block
                         double distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
-                        if (distance > 1) {
+                        if (distance > 1.2) {
                             executee.teleport(murderZone.getX(),murderZone.getY(),murderZone.getZ(),false); //needs accurate tp
-                            executee.sendMessage(Text.literal("Nice try :)"), false); //TODO Doesn't stop after execution? maybe due to blockpos coord pos being corner not centre of block
+                            executee.sendMessage(Text.literal("Nice try :)"), false);
                         }
 
                         BlockState anvilPosState = world.getBlockState(EXE_BLOCK);
@@ -871,7 +865,6 @@ public class BotcFab implements ModInitializer {
             count++;
         }
 
-        //TODO
         int finalStartColourIndex = startColourIndex;
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
@@ -934,11 +927,6 @@ public class BotcFab implements ModInitializer {
                 }
             }
             accusedPlayer.removeCommandTag(ACCUSED);
-
-            //TODO actually don't need, only needed after execution occurs
-//            for (ServerPlayerEntity p : players) {
-//                updateVoteStatus(world, p); //Update votes to remove any used ghost votes
-//            }
         };
         TickScheduler.scheduleGroup(taskList, onAllDone);
     }
@@ -976,7 +964,6 @@ public class BotcFab implements ModInitializer {
     }
 
     private void startTimer(MinecraftServer srv,int duration){ //Starts a timer and shows boss bar as remaining, duration in seconds
-        //TODO Timer boss bar, write this function
         if (timerBar == null) {
             timerBar = new ServerBossBar(Text.literal("Time remaining:"), BossBar.Color.GREEN, BossBar.Style.NOTCHED_10);
         }
@@ -994,7 +981,6 @@ public class BotcFab implements ModInitializer {
     }
 
     private MutableText getPlayerOrder(){
-        //TODO Test this
         MutableText PlayerOrderMessage = Text.literal("Player Order: \n");
         for (ServerPlayerEntity p:players){
             String colour = getColourFromPlayer(p);
@@ -1182,43 +1168,5 @@ public class BotcFab implements ModInitializer {
         )));
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("beginExecution").executes(this::beginExecution)));
-
-        //TODO REMOVE TEST COMMANDS WHEN DONE
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("testTeleport").executes(context -> {
-                    ServerPlayerEntity player = context.getSource().getPlayer();
-                    if (player != null){
-                        player.teleport(EXE_BLOCK.getX(),EXE_BLOCK.getY(),EXE_BLOCK.getZ(),false); //FAILED because block pos is corner
-                    }
-                    context.getSource().sendFeedback(() -> Text.literal("Teleport 1 success"), false);
-                    return 1;
-                }
-        )));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("testTeleport2").executes(context -> {
-                    ServerPlayerEntity player = context.getSource().getPlayer();
-                    if (player != null){
-                        tp(player,EXE_BLOCK); //This one worked!
-                    }
-                    context.getSource().sendFeedback(() -> Text.literal("Teleport 2 success"), false);
-                    return 1;
-                }
-        )));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("testTeleport3").executes(context -> {
-                    ServerPlayerEntity player = context.getSource().getPlayer();
-                    if (player != null){
-                        player.teleport(6.5,-29.7,-1.5,false); //This one worked! Height does not tho, seems to always place on floor
-                    }
-                    context.getSource().sendFeedback(() -> Text.literal("Teleport 3 success"), false);
-                    return 1;
-                }
-        )));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("testTeleport4").executes(context -> {
-                    ServerPlayerEntity player = context.getSource().getPlayer();
-                    if (player != null){
-                        tp(player,mapCoords.get("cyan").chair.up(1)); //THIS ALSO WORKED!
-                    }
-                    context.getSource().sendFeedback(() -> Text.literal("Teleport 4 success"), false);
-                    return 1;
-                }
-        )));
     }
 }
