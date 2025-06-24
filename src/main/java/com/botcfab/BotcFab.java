@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
@@ -425,6 +426,16 @@ public class BotcFab implements ModInitializer {
         return ActionResult.PASS; // Pass if not right-clicking with the correct item or targeting a player
     }
 
+    private ActionResult onRightClickItem(PlayerEntity player, World world, Hand hand) { //Checks if player right clicked with paper, then sends player order
+        ItemStack itemInHand = player.getStackInHand(hand);
+        // Check if the player is holding the specific item and Hand is not empty
+        if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.PAPER) {
+            player.sendMessage(getPlayerOrder(), false);
+            return ActionResult.SUCCESS;
+        }
+        return ActionResult.PASS;
+    }
+
     private void createOrSetAliveDisplay(ServerScoreboard scoreboard){
         int alivePlayers = getTagCount(ALIVE);
         int deadPlayers = getTagCount(GHOST) + getTagCount(DEAD);
@@ -514,6 +525,7 @@ public class BotcFab implements ModInitializer {
             storyTeller.changeGameMode(GameMode.CREATIVE);
             setColourBoots(storyTeller,"no");
             scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
+            src.sendFeedback(() -> message, false);
         } else {
             src.sendFeedback(() -> Text.literal("Failed to find storyteller. Do not execute this command from the server window"), false);
             return 0;
@@ -1020,19 +1032,27 @@ public class BotcFab implements ModInitializer {
 
         //Register events
         UseEntityCallback.EVENT.register(this::onRightClickEntity);
+        UseItemCallback.EVENT.register(this::onRightClickItem);
 
         //Register chat commands
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("setupGame").executes(this::setupGame)));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("setupGame")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(this::setupGame)));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startGame").executes(this::beginGame)));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startGame")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(this::beginGame)));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("importCSV").executes((context) -> {
-            mapCoords = ImportExcelCoordinates.read(path); //Import coordinates for map from Excel sheet
-            return 1;
-        })));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("importCSV")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes((context) -> {
+                    mapCoords = ImportExcelCoordinates.read(path); //Import coordinates for map from Excel sheet
+                    return 1;
+                    })));
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("changeMap").then(
                 CommandManager.argument("map", StringArgumentType.string())
+                        .requires(source -> source.hasPermissionLevel(2))
                         .suggests((context, builder) -> {
                             // Suggest maps
                             for (String m:MAPS)
@@ -1054,12 +1074,14 @@ public class BotcFab implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("addSpectator").then(
                 CommandManager.argument("player_name", StringArgumentType.string())
+                        .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
                         .executes(this::onAddSpectator)
         )));
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("tpPlayers").then(
                 CommandManager.argument("tp_location", StringArgumentType.string())
+                        .requires(source -> source.hasPermissionLevel(2))
                         .suggests((context, builder) -> {
                             // Suggest teleport locations
                             for (String o:tpOptions)
@@ -1081,7 +1103,8 @@ public class BotcFab implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startTimer").then(
                 CommandManager.argument("stringTime", StringArgumentType.string())
-                        //
+                        //Starts a timer boss bar for [argument] minutes
+                        .requires(source -> source.hasPermissionLevel(2))
                         .executes(context -> {
                             String stringTime = StringArgumentType.getString(context, "stringTime");// Get the timer duration as string from argument
                             ServerCommandSource src = context.getSource();
@@ -1103,6 +1126,7 @@ public class BotcFab implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("executePlayer").then(
                 CommandManager.argument("player", EntityArgumentType.player())
+                        .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
                         .executes(context -> {
                             ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
@@ -1113,6 +1137,7 @@ public class BotcFab implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("demonKillMark").then(
                 CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player as the demon kill tonight.
+                        .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
                         .executes(context -> {
                             ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
@@ -1124,6 +1149,7 @@ public class BotcFab implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("reviveMark").then(
                 CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player to be revived in the day.
+                        .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
                         .executes(context -> {
                             ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
@@ -1135,6 +1161,7 @@ public class BotcFab implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("accuse").then(
                 CommandManager.argument("player", EntityArgumentType.player()) // accuse player for execution, in case right click selector doesn't work.
+                        .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
                         .executes(context -> {
                             ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
@@ -1144,10 +1171,16 @@ public class BotcFab implements ModInitializer {
                         })
         )));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startDay").executes(this::startDay)));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("nightFalls").executes(this::nightFalls)));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startDay")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(this::startDay)));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("nightFalls")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(this::nightFalls)));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("voteLockIn").executes(context -> {
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("voteLockIn")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(context -> {
                     LOGGER.info("Beginning vote lock in");
                     onVoteLockIn(context);
                     LOGGER.info("Completed /onVoteLockIn.");
@@ -1155,7 +1188,9 @@ public class BotcFab implements ModInitializer {
                 }
         )));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("toggleSeatLock").executes(context -> {
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("toggleSeatLock")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(context -> {
                     playersLockedToSeats = !playersLockedToSeats;
                     context.getSource().sendFeedback(() -> Text.literal("Toggled player seat lock to " + playersLockedToSeats), false);
                     return 1;
@@ -1173,6 +1208,8 @@ public class BotcFab implements ModInitializer {
                 }
         )));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("beginExecution").executes(this::beginExecution)));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("beginExecution")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(this::beginExecution)));
     }
 }
