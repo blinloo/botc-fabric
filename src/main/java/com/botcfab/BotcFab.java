@@ -99,7 +99,6 @@ public class BotcFab implements ModInitializer {
     private static final List<Integer> COLOUR_HEX = Arrays.asList(0x000000, 0xFFEE00, 0xFF8D00, 0xFFAFC7, 0xE50000,
             0x760088, 0x613915, 0x028121, 0xFFFFFF, 0x004CFF, 0x73D7EE, 0x888888); //Colour picked from progress pride flag
     private final String path = ".\\BOTC-coords-sheet.csv"; //Attempt to give standard file path, works in "run" folder
-    //private final String path = "C:\\Users\\Ruby\\IdeaProjects\\botc-fabric-copytest\\BOTC-coords-sheet.csv"; //Absolute file path
 
     //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
     Map<String, CoordinateMapper> mapCoords = new HashMap<>();
@@ -149,18 +148,22 @@ public class BotcFab implements ModInitializer {
     //TEST VALUES
     private final static BlockPos EXE_BLOCK = new BlockPos(6,-29,-2);
 
-    public static File getConfigFilePath() {
+    public File getConfigFilePath() {
         // Get the Minecraft config directory
         Path configDir = FabricLoader.getInstance().getConfigDir();
 
         // Make your mod's subfolder (recommended)
-        Path modFolder = configDir.resolve("botc-fab"); // e.g., "config/yourmod"
+        Path modFolder = configDir.resolve("botc-fab"); // "config/"string"
         File folder = modFolder.toFile();
-        if (!folder.exists()) folder.mkdirs(); // create if it doesn't exist
+        if (!folder.exists()) folder.mkdirs(); // create folder if it doesn't exist
 
         // Final file path
         //TODO Add code for both maps here: returns different csv
-        return modFolder.resolve("BOTC-coords-sheet.csv").toFile();
+        return switch (mapSelected) {
+            case DEFAULT_MAP -> modFolder.resolve("BOTC-coords-sheet.csv").toFile();
+            case SCHOOL_MAP -> modFolder.resolve("school-BOTC-coords-sheet.csv").toFile();
+            default -> modFolder.resolve("BOTC-coords-sheet.csv").toFile();
+        };
     }
 
     private void sendMessageToPlayers(Text messageText,List<ServerPlayerEntity> playerList){
