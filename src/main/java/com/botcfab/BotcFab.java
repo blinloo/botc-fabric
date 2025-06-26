@@ -1,5 +1,6 @@
 package com.botcfab;
 
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
@@ -14,6 +15,7 @@ import net.minecraft.block.*;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.BlockFace;
+import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.component.type.DyedColorComponent;
 import net.minecraft.entity.Entity;
@@ -27,9 +29,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
+import net.minecraft.resource.featuretoggle.FeatureFlags;
+import net.minecraft.util.Identifier;
 import net.minecraft.scoreboard.*;
 import net.minecraft.scoreboard.number.NumberFormat;
 import net.minecraft.scoreboard.number.StyledNumberFormat;
+import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.command.CommandManager;
@@ -59,6 +66,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+
+import static net.minecraft.server.command.CommandManager.literal;
 
 public class BotcFab implements ModInitializer {
     public static final String MOD_ID = "botc-fab";
@@ -116,6 +125,9 @@ public class BotcFab implements ModInitializer {
     //Variables for on tick checks
     private boolean playersLockedToSeats = false;
     private boolean executionInProgress = false;
+
+    //ScreenHandler for inventory selection menu
+    public static ScreenHandlerType<SelectionInventoryScreenHandler> MY_SCREEN_HANDLER;
 
     //Text for displays
     private final MutableText MEETING_MESSAGE = Text.literal("Please head to the town square");
@@ -1049,6 +1061,193 @@ public class BotcFab implements ModInitializer {
         return PlayerOrderMessage;
     }
 
+    private void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
+        dispatcher.register(literal("setupGame")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(this::setupGame));
+
+        dispatcher.register(literal("startGame")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(this::beginGame));
+
+        dispatcher.register(literal("importCSV")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes((context) -> {
+                    mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import coordinates for map from Excel sheet
+                    return 1;
+                }));
+
+        dispatcher.register(literal("changeMap").then(
+                CommandManager.argument("map", StringArgumentType.string())
+                        .requires(source -> source.hasPermissionLevel(2))
+                        .suggests((context, builder) -> {
+                            for (String m:MAPS)
+                                builder.suggest(m); //Suggest maps
+                            return builder.buildFuture();
+                        })
+                        .executes(context -> {
+                            String map = StringArgumentType.getString(context, "map");
+
+                            if (MAPS.contains(map)) {
+                                mapSelected = map;
+                            } else {
+                                context.getSource().sendFeedback(() -> Text.literal("Invalid map specified, setting to default"), false);
+                                mapSelected = DEFAULT_MAP;
+                            }
+                            return 1;
+                        })
+        ));
+
+        dispatcher.register(literal("addSpectator").then(
+                CommandManager.argument("player_name", StringArgumentType.string())
+                        .requires(source -> source.hasPermissionLevel(2))
+                        .suggests(new PlayerSuggestionProvider())
+                        .executes(this::onAddSpectator)
+        ));
+
+        dispatcher.register(literal("tpPlayers").then(
+                CommandManager.argument("tp_location", StringArgumentType.string())
+                        .requires(source -> source.hasPermissionLevel(2))
+                        .suggests((context, builder) -> {
+                            for (String o:tpOptions)
+                                builder.suggest(o); //Suggest teleport locations
+                            return builder.buildFuture();
+                        })
+                        .executes(context -> {
+                            String option = StringArgumentType.getString(context, "tp_location");
+                            option = option.toLowerCase(); //lowercase to account for typos
+
+                            if (tpOptions.contains(option)) {
+                                teleportPlayers(option);
+                            } else {
+                                context.getSource().sendFeedback(() -> Text.literal("Invalid teleport location"), false);
+                            }
+                            return 1;
+                        })
+        ));
+
+        dispatcher.register(literal("leaveMinigames")
+                .executes(this::leaveMinigames));
+
+        dispatcher.register(literal("startTimer").then( //Starts a timer boss bar for [argument] minutes
+                CommandManager.argument("stringTime", StringArgumentType.string())
+                        .requires(source -> source.hasPermissionLevel(2))
+                        .executes(context -> {
+                            String stringTime = StringArgumentType.getString(context, "stringTime");// Get the timer duration as string from argument
+                            ServerCommandSource src = context.getSource();
+                            MinecraftServer srv = src.getServer();
+                            float durationMins;
+                            int durationSecs;
+                            try {
+                                durationMins = Float.parseFloat(stringTime); //parse string value into float
+                            } catch (Exception e){
+                                durationMins = 0.1f; //default to 10seconds without arg
+                                src.sendFeedback(() -> Text.literal("Invalid or no duration supplied, defaulting to 10 second timer"), false);
+                            }
+                            durationSecs = Math.round(durationMins*60); //round to 2dp and convert to seconds
+                            src.sendFeedback(() -> Text.literal("Starting timer"), false);
+                            startTimer(srv,durationSecs);
+                            return 1;
+                        })
+        ));
+
+        dispatcher.register(literal("executePlayer").then(
+                CommandManager.argument("player", EntityArgumentType.player())
+                        .requires(source -> source.hasPermissionLevel(2))
+                        .suggests(new PlayerSuggestionProvider())
+                        .executes(context -> {
+                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                            executePlayer(player);
+                            return 1;
+                        })
+        ));
+
+        dispatcher.register(literal("demonKillMark").then(
+                CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player as the demon kill tonight.
+                        .requires(source -> source.hasPermissionLevel(2))
+                        .suggests(new PlayerSuggestionProvider())
+                        .executes(context -> {
+                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                            markPlayerDemonKill(player);
+                            context.getSource().sendFeedback(() -> Text.literal("Marked player for demon kill: ").append(player.getStyledDisplayName()), false);
+                            return 1;
+                        })
+        ));
+
+        dispatcher.register(literal("reviveMark").then(
+                CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player to be revived in the day.
+                        .requires(source -> source.hasPermissionLevel(2))
+                        .suggests(new PlayerSuggestionProvider())
+                        .executes(context -> {
+                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                            markPlayerRevived(player);
+                            context.getSource().sendFeedback(() -> Text.literal("Marked player for revival upon morning: ").append(player.getStyledDisplayName()), false);
+                            return 1;
+                        })
+        ));
+
+        dispatcher.register(literal("accuse").then(
+                CommandManager.argument("player", EntityArgumentType.player()) // accuse player for execution, in case right click selector doesn't work.
+                        .requires(source -> source.hasPermissionLevel(2))
+                        .suggests(new PlayerSuggestionProvider())
+                        .executes(context -> {
+                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                            accusePlayer(player);
+                            context.getSource().sendFeedback(() -> Text.literal("Accused: ").append(player.getStyledDisplayName()), false);
+                            return 1;
+                        })
+        ));
+
+        dispatcher.register(literal("startDay")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(this::startDay));
+        dispatcher.register(literal("nightFalls")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(this::nightFalls));
+
+        dispatcher.register(literal("voteLockIn")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(context -> {
+                            LOGGER.info("Beginning vote lock in");
+                            onVoteLockIn(context);
+                            LOGGER.info("Completed /onVoteLockIn.");
+                            return 1;
+                        }
+                ));
+
+        dispatcher.register(literal("toggleSeatLock")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(context -> {
+                            playersLockedToSeats = !playersLockedToSeats;
+                            context.getSource().sendFeedback(() -> Text.literal("Toggled player seat lock to " + playersLockedToSeats), false);
+                            return 1;
+                        }
+                ));
+
+        dispatcher.register(literal("showPlayerOrder")
+                .executes(context -> {
+                    ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
+                    if (player != null) {
+                        player.sendMessage(getPlayerOrder());
+                    } else {
+                        context.getSource().sendFeedback(() -> Text.literal("No player to send text to, do not run in server console."), false);
+                    }
+                    return 1;
+                }));
+
+        dispatcher.register(literal("beginExecution")
+                .requires(source -> source.hasPermissionLevel(2))
+                .executes(this::beginExecution));
+
+        dispatcher.register(literal("openMenu").executes(context -> {
+            ServerPlayerEntity player = context.getSource().getPlayer();
+            if (player != null) {
+                player.openHandledScreen(new SelectionInventoryScreenHandlerFactory());
+            }
+            return 1;
+        }));
+    }
+
     @Override
     public void onInitialize() {
         // This code runs as soon as Minecraft is in a mod-load-ready state.
@@ -1071,185 +1270,14 @@ public class BotcFab implements ModInitializer {
         UseEntityCallback.EVENT.register(this::onRightClickEntity);
         UseItemCallback.EVENT.register(this::onRightClickItem);
 
+        //Create ScreenHandler for ui stuff
+        MY_SCREEN_HANDLER = Registry.register(
+                Registries.SCREEN_HANDLER,
+                Identifier.of(MOD_ID, "my_screen"),
+                new ScreenHandlerType<>(SelectionInventoryScreenHandler::new, FeatureFlags.VANILLA_FEATURES)
+        );
+
         //Register chat commands
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("setupGame")
-                .requires(source -> source.hasPermissionLevel(2))
-                .executes(this::setupGame)));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startGame")
-                .requires(source -> source.hasPermissionLevel(2))
-                .executes(this::beginGame)));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("importCSV")
-                .requires(source -> source.hasPermissionLevel(2))
-                .executes((context) -> {
-                    mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import coordinates for map from Excel sheet
-                    return 1;
-                    })));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("changeMap").then(
-                CommandManager.argument("map", StringArgumentType.string())
-                        .requires(source -> source.hasPermissionLevel(2))
-                        .suggests((context, builder) -> {
-                            // Suggest maps
-                            for (String m:MAPS)
-                                builder.suggest(m);
-                            return builder.buildFuture();
-                        })
-                        .executes(context -> {
-                            String map = StringArgumentType.getString(context, "map");
-
-                            if (MAPS.contains(map)) {
-                                mapSelected = map;
-                            } else {
-                                context.getSource().sendFeedback(() -> Text.literal("Invalid map specified, setting to default"), false);
-                                mapSelected = DEFAULT_MAP;
-                            }
-                            return 1;
-                        })
-        )));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("addSpectator").then(
-                CommandManager.argument("player_name", StringArgumentType.string())
-                        .requires(source -> source.hasPermissionLevel(2))
-                        .suggests(new PlayerSuggestionProvider())
-                        .executes(this::onAddSpectator)
-        )));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("tpPlayers").then(
-                CommandManager.argument("tp_location", StringArgumentType.string())
-                        .requires(source -> source.hasPermissionLevel(2))
-                        .suggests((context, builder) -> {
-                            // Suggest teleport locations
-                            for (String o:tpOptions)
-                                builder.suggest(o); //Not sure if this works so use code below if not
-                            return builder.buildFuture();
-                        })
-                        .executes(context -> {
-                            String option = StringArgumentType.getString(context, "tp_location");
-                            option = option.toLowerCase(); //lowercase to account for typos
-
-                            if (tpOptions.contains(option)) {
-                                teleportPlayers(option);
-                            } else {
-                                context.getSource().sendFeedback(() -> Text.literal("Invalid teleport location"), false);
-                            }
-                            return 1;
-                        })
-        )));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("leaveMinigames")
-                .executes(this::leaveMinigames)));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startTimer").then(
-                CommandManager.argument("stringTime", StringArgumentType.string())
-                        //Starts a timer boss bar for [argument] minutes
-                        .requires(source -> source.hasPermissionLevel(2))
-                        .executes(context -> {
-                            String stringTime = StringArgumentType.getString(context, "stringTime");// Get the timer duration as string from argument
-                            ServerCommandSource src = context.getSource();
-                            MinecraftServer srv = src.getServer();
-                            float durationMins;
-                            int durationSecs;
-                            try {
-                                durationMins = Float.parseFloat(stringTime); //parse string value into float
-                            } catch (Exception e){
-                                durationMins = 0.1f; //default to 10seconds without arg
-                                src.sendFeedback(() -> Text.literal("Invalid or no duration supplied, defaulting to 10 second timer"), false);
-                            }
-                            durationSecs = Math.round(durationMins*60); //round to 2dp and convert to seconds
-                            src.sendFeedback(() -> Text.literal("Starting timer"), false);
-                            startTimer(srv,durationSecs);
-                            return 1;
-                        })
-        )));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("executePlayer").then(
-                CommandManager.argument("player", EntityArgumentType.player())
-                        .requires(source -> source.hasPermissionLevel(2))
-                        .suggests(new PlayerSuggestionProvider())
-                        .executes(context -> {
-                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                            executePlayer(player);
-                            return 1;
-                        })
-        )));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("demonKillMark").then(
-                CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player as the demon kill tonight.
-                        .requires(source -> source.hasPermissionLevel(2))
-                        .suggests(new PlayerSuggestionProvider())
-                        .executes(context -> {
-                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                            markPlayerDemonKill(player);
-                            context.getSource().sendFeedback(() -> Text.literal("Marked player for demon kill: ").append(player.getStyledDisplayName()), false);
-                            return 1;
-                        })
-        )));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("reviveMark").then(
-                CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player to be revived in the day.
-                        .requires(source -> source.hasPermissionLevel(2))
-                        .suggests(new PlayerSuggestionProvider())
-                        .executes(context -> {
-                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                            markPlayerRevived(player);
-                            context.getSource().sendFeedback(() -> Text.literal("Marked player for revival upon morning: ").append(player.getStyledDisplayName()), false);
-                            return 1;
-                        })
-        )));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("accuse").then(
-                CommandManager.argument("player", EntityArgumentType.player()) // accuse player for execution, in case right click selector doesn't work.
-                        .requires(source -> source.hasPermissionLevel(2))
-                        .suggests(new PlayerSuggestionProvider())
-                        .executes(context -> {
-                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                            accusePlayer(player);
-                            context.getSource().sendFeedback(() -> Text.literal("Accused: ").append(player.getStyledDisplayName()), false);
-                            return 1;
-                        })
-        )));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("startDay")
-                .requires(source -> source.hasPermissionLevel(2))
-                .executes(this::startDay)));
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("nightFalls")
-                .requires(source -> source.hasPermissionLevel(2))
-                .executes(this::nightFalls)));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("voteLockIn")
-                .requires(source -> source.hasPermissionLevel(2))
-                .executes(context -> {
-                    LOGGER.info("Beginning vote lock in");
-                    onVoteLockIn(context);
-                    LOGGER.info("Completed /onVoteLockIn.");
-                    return 1;
-                }
-        )));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("toggleSeatLock")
-                .requires(source -> source.hasPermissionLevel(2))
-                .executes(context -> {
-                    playersLockedToSeats = !playersLockedToSeats;
-                    context.getSource().sendFeedback(() -> Text.literal("Toggled player seat lock to " + playersLockedToSeats), false);
-                    return 1;
-                }
-        )));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("showPlayerOrder").executes(context -> {
-                    ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
-                    if (player != null) {
-                        player.sendMessage(getPlayerOrder());
-                    } else {
-                        context.getSource().sendFeedback(() -> Text.literal("No player to send text to, do not run in server console."), false);
-                    }
-                    return 1;
-                }
-        )));
-
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(CommandManager.literal("beginExecution")
-                .requires(source -> source.hasPermissionLevel(2))
-                .executes(this::beginExecution)));
+        CommandRegistrationCallback.EVENT.register(this::registerCommands);
     }
 }
