@@ -24,6 +24,7 @@ import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.DyeItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -32,6 +33,8 @@ import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.resource.featuretoggle.FeatureFlags;
+import net.minecraft.screen.GenericContainerScreenHandler;
+import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
 import net.minecraft.util.Identifier;
 import net.minecraft.scoreboard.*;
 import net.minecraft.scoreboard.number.NumberFormat;
@@ -125,9 +128,6 @@ public class BotcFab implements ModInitializer {
     //Variables for on tick checks
     private boolean playersLockedToSeats = false;
     private boolean executionInProgress = false;
-
-    //ScreenHandler for inventory selection menu
-    public static ScreenHandlerType<SelectionInventoryScreenHandler> MY_SCREEN_HANDLER;
 
     //Text for displays
     private final MutableText MEETING_MESSAGE = Text.literal("Please head to the town square");
@@ -1242,7 +1242,7 @@ public class BotcFab implements ModInitializer {
         dispatcher.register(literal("openMenu").executes(context -> {
             ServerPlayerEntity player = context.getSource().getPlayer();
             if (player != null) {
-                player.openHandledScreen(new SelectionInventoryScreenHandlerFactory());
+                SelectionInventory.openMenu(player);
             }
             return 1;
         }));
@@ -1269,13 +1269,6 @@ public class BotcFab implements ModInitializer {
         //Register events
         UseEntityCallback.EVENT.register(this::onRightClickEntity);
         UseItemCallback.EVENT.register(this::onRightClickItem);
-
-        //Create ScreenHandler for ui stuff
-        MY_SCREEN_HANDLER = Registry.register(
-                Registries.SCREEN_HANDLER,
-                Identifier.of(MOD_ID, "my_screen"),
-                new ScreenHandlerType<>(SelectionInventoryScreenHandler::new, FeatureFlags.VANILLA_FEATURES)
-        );
 
         //Register chat commands
         CommandRegistrationCallback.EVENT.register(this::registerCommands);
