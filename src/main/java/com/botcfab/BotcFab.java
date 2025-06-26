@@ -472,7 +472,6 @@ public class BotcFab implements ModInitializer {
         }
         //Check for heart pottery shard named "Emergency Teleport"
         if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.HEART_POTTERY_SHERD) {
-            player.sendMessage(getPlayerOrder(), false);
             String colour = getColourFromPlayer((ServerPlayerEntity) player);
             tp((ServerPlayerEntity) player, mapCoords.get(colour).homeInside);
             return ActionResult.SUCCESS;
@@ -555,13 +554,13 @@ public class BotcFab implements ModInitializer {
         //TODO Test this
         Collections.shuffle(players); //Randomises order of player list (default is server join order)
         indexBounds.clear();
-        int startPoint = ThreadLocalRandom.current().nextInt(0, 11+1); //Determines start point for colour selection
+        int startPoint = ThreadLocalRandom.current().nextInt(0, (11+1)); //Determines start point for colour selection
         ServerPlayerEntity storyTeller = src.getPlayer(); // Gets the person that called the command. Whoever called it is Storyteller
 
         // Set everyone else to be a player
         // Remove the storyTeller from the list of players. Remaining list is all players
 
-        System.out.println(players);
+        //System.out.println(players);
 
         if (storyTeller != null) {
             // Remove all tags before adding new ones
@@ -638,7 +637,7 @@ public class BotcFab implements ModInitializer {
                 }
                 updateVoteStatus(world,player); //player levers and update lamps
 
-                if (currentColourIndex == 12)
+                if (currentColourIndex == 11)
                     currentColourIndex = 0;
                 else
                     currentColourIndex++;
@@ -850,7 +849,7 @@ public class BotcFab implements ModInitializer {
         if (team != null) { //Make nametags visible at morning.
             team.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.NEVER);
         }
-        sendMessageToPlayers(NIGHT_MESSAGE.append(RETURN_MESSAGE),playerMgr.getPlayerList()); //Send msg to all players
+        sendMessageToPlayers(NIGHT_MESSAGE.copy().append(RETURN_MESSAGE),playerMgr.getPlayerList()); //Send msg to all players
         return 1;
     }
 
@@ -867,7 +866,7 @@ public class BotcFab implements ModInitializer {
             team.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.ALWAYS);
         }
 
-        sendMessageToPlayers(DAY_MESSAGE.append(MEETING_MESSAGE),playerList);
+        sendMessageToPlayers((DAY_MESSAGE.copy().append(MEETING_MESSAGE)),playerList);
         //Send player death message and update status
         int deaths = getTagCount(DEATH_FLAG);
         for (int i = 0;i < deaths;i++){
