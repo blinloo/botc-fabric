@@ -24,22 +24,14 @@ import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.DyeItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.resource.featuretoggle.FeatureFlags;
-import net.minecraft.screen.GenericContainerScreenHandler;
-import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
-import net.minecraft.util.Identifier;
 import net.minecraft.scoreboard.*;
 import net.minecraft.scoreboard.number.NumberFormat;
 import net.minecraft.scoreboard.number.StyledNumberFormat;
-import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.command.CommandManager;
@@ -552,12 +544,12 @@ public class BotcFab implements ModInitializer {
         src.sendFeedback(() -> Text.literal("Finished"), false);
     }
 
-    private int setupGame(CommandContext<ServerCommandSource> context) {
+    public int setupGame(CommandContext<ServerCommandSource> context) {
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
         ServerScoreboard scoreboard = srv.getScoreboard();
-        ServerWorld world = context.getSource().getWorld();
+        ServerWorld world = src.getWorld();
         players.clear();
         players.addAll(playerMgr.getPlayerList());
         //TODO Test this
@@ -800,6 +792,7 @@ public class BotcFab implements ModInitializer {
             if (timerBar != null) {
                 timerBar.setPercent(Math.max(progress, 0f));
             }
+            //TODO change colour on low percentage
 
             if (timerBarTicks >= timerDurationTicks) { //On timer finish
                 timerBarActive = false;
@@ -992,7 +985,9 @@ public class BotcFab implements ModInitializer {
                 }
                 src.sendFeedback(accusedPlayer::getStyledDisplayName, false);
 
-                MutableText message = MutableText.of((TextContent) accusedPlayer.getStyledDisplayName()).append(" has now been marked for execution");
+                Text name = accusedPlayer.getStyledDisplayName();
+                MutableText message = name.copy();
+                message.append(" has now been marked for execution");
                 sendMessageToPlayers(message, playerList);
             }
             if (displayTotalVotes == highestVote){ //On matching highest vote, remove all marked players
@@ -1062,22 +1057,22 @@ public class BotcFab implements ModInitializer {
     }
 
     private void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
-        dispatcher.register(literal("setupGame")
+        dispatcher.register(literal("botc_setupGame")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(this::setupGame));
 
-        dispatcher.register(literal("startGame")
+        dispatcher.register(literal("botc_startGame")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(this::beginGame));
 
-        dispatcher.register(literal("importCSV")
+        dispatcher.register(literal("botc_importCSV")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes((context) -> {
                     mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import coordinates for map from Excel sheet
                     return 1;
                 }));
 
-        dispatcher.register(literal("changeMap").then(
+        dispatcher.register(literal("botc_changeMap").then(
                 CommandManager.argument("map", StringArgumentType.string())
                         .requires(source -> source.hasPermissionLevel(2))
                         .suggests((context, builder) -> {
@@ -1098,14 +1093,14 @@ public class BotcFab implements ModInitializer {
                         })
         ));
 
-        dispatcher.register(literal("addSpectator").then(
+        dispatcher.register(literal("botc_addSpectator").then(
                 CommandManager.argument("player_name", StringArgumentType.string())
                         .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
                         .executes(this::onAddSpectator)
         ));
 
-        dispatcher.register(literal("tpPlayers").then(
+        dispatcher.register(literal("botc_tpPlayers").then(
                 CommandManager.argument("tp_location", StringArgumentType.string())
                         .requires(source -> source.hasPermissionLevel(2))
                         .suggests((context, builder) -> {
@@ -1129,7 +1124,7 @@ public class BotcFab implements ModInitializer {
         dispatcher.register(literal("leaveMinigames")
                 .executes(this::leaveMinigames));
 
-        dispatcher.register(literal("startTimer").then( //Starts a timer boss bar for [argument] minutes
+        dispatcher.register(literal("botc_startTimer").then( //Starts a timer boss bar for [argument] minutes
                 CommandManager.argument("stringTime", StringArgumentType.string())
                         .requires(source -> source.hasPermissionLevel(2))
                         .executes(context -> {
@@ -1151,7 +1146,7 @@ public class BotcFab implements ModInitializer {
                         })
         ));
 
-        dispatcher.register(literal("executePlayer").then(
+        dispatcher.register(literal("botc_executePlayer").then(
                 CommandManager.argument("player", EntityArgumentType.player())
                         .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
@@ -1162,7 +1157,7 @@ public class BotcFab implements ModInitializer {
                         })
         ));
 
-        dispatcher.register(literal("demonKillMark").then(
+        dispatcher.register(literal("botc_demonKillMark").then(
                 CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player as the demon kill tonight.
                         .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
@@ -1174,7 +1169,7 @@ public class BotcFab implements ModInitializer {
                         })
         ));
 
-        dispatcher.register(literal("reviveMark").then(
+        dispatcher.register(literal("botc_reviveMark").then(
                 CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player to be revived in the day.
                         .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
@@ -1186,7 +1181,7 @@ public class BotcFab implements ModInitializer {
                         })
         ));
 
-        dispatcher.register(literal("accuse").then(
+        dispatcher.register(literal("botc_accuse").then(
                 CommandManager.argument("player", EntityArgumentType.player()) // accuse player for execution, in case right click selector doesn't work.
                         .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
@@ -1198,14 +1193,14 @@ public class BotcFab implements ModInitializer {
                         })
         ));
 
-        dispatcher.register(literal("startDay")
+        dispatcher.register(literal("botc_startDay")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(this::startDay));
-        dispatcher.register(literal("nightFalls")
+        dispatcher.register(literal("botc_nightFalls")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(this::nightFalls));
 
-        dispatcher.register(literal("voteLockIn")
+        dispatcher.register(literal("botc_voteLockIn")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(context -> {
                             LOGGER.info("Beginning vote lock in");
@@ -1215,7 +1210,7 @@ public class BotcFab implements ModInitializer {
                         }
                 ));
 
-        dispatcher.register(literal("toggleSeatLock")
+        dispatcher.register(literal("botc_toggleSeatLock")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(context -> {
                             playersLockedToSeats = !playersLockedToSeats;
@@ -1224,7 +1219,7 @@ public class BotcFab implements ModInitializer {
                         }
                 ));
 
-        dispatcher.register(literal("showPlayerOrder")
+        dispatcher.register(literal("botc_showPlayerOrder")
                 .executes(context -> {
                     ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
                     if (player != null) {
@@ -1235,14 +1230,14 @@ public class BotcFab implements ModInitializer {
                     return 1;
                 }));
 
-        dispatcher.register(literal("beginExecution")
+        dispatcher.register(literal("botc_beginExecution")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(this::beginExecution));
 
-        dispatcher.register(literal("openMenu").executes(context -> {
+        dispatcher.register(literal("botc_openMenu").executes(context -> {
             ServerPlayerEntity player = context.getSource().getPlayer();
             if (player != null) {
-                SelectionInventory.openMenu(player);
+                SelectionInventory.openMenu(player,"commands");
             }
             return 1;
         }));
