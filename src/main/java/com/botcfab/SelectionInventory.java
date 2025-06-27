@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static com.botcfab.ItemUtils.setCustomName;
+import static com.botcfab.ItemUtils.*;
 
 public class SelectionInventory {
 
@@ -34,7 +34,7 @@ public class SelectionInventory {
                 List<ServerPlayerEntity> playerList = Objects.requireNonNull(player.getServer()).getPlayerManager().getPlayerList();
                 int slot = 9;
                 for (ServerPlayerEntity p : playerList){
-                    inventory.setStack(slot, new ItemStack(Items.PLAYER_HEAD).set());
+                    inventory.setStack(slot, setPlayerHead(new ItemStack(Items.PLAYER_HEAD),p));
                     slot++;
                 }
                 inventory.setStack(9, new ItemStack(Items.BLACK_WOOL));
