@@ -104,54 +104,54 @@ public class BotcFab implements ModInitializer {
             0x760088, 0x613915, 0x028121, 0xFFFFFF, 0x004CFF, 0x73D7EE, 0x888888); //Colour picked from progress pride flag
 
     //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
-    Map<String, CoordinateMapper> mapCoords = new HashMap<>();
-    private final ArrayList<Integer> indexBounds = new ArrayList<>();
+    static Map<String, CoordinateMapper> mapCoords = new HashMap<>();
+    private static final ArrayList<Integer> indexBounds = new ArrayList<>();
     //Highest vote count
-    private int highestVote;
+    private static int highestVote;
 
     //Timer bar variables
-    private ServerBossBar timerBar;
-    private boolean timerBarActive = false;
-    private int timerBarTicks = 0;
-    private int timerDurationTicks = 10*20; // 10 seconds default
+    private static ServerBossBar timerBar;
+    private static boolean timerBarActive = false;
+    private static int timerBarTicks = 0;
+    private static int timerDurationTicks = 10*20; // 10 seconds default
 
     //Variables for on tick checks
-    private boolean playersLockedToSeats = false;
-    private boolean executionInProgress = false;
+    private static boolean playersLockedToSeats = false;
+    private static boolean executionInProgress = false;
 
     //Text for displays
-    private final MutableText MEETING_MESSAGE = Text.literal("Please head to the town square");
-    private final MutableText RETURN_MESSAGE = Text.literal("Please return to your houses");
-    private final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀")
+    private static final MutableText MEETING_MESSAGE = Text.literal("Please head to the town square");
+    private static final MutableText RETURN_MESSAGE = Text.literal("Please return to your houses");
+    private static final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀")
             .setStyle(Style.EMPTY.withColor(Formatting.GOLD))
             .append(Text.literal("\n"));
-    private final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
+    private static final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
             .setStyle(Style.EMPTY.withColor(Formatting.BLUE))
             .append(Text.literal("\n"));
-    private final MutableText KILL_TEXT = Text.literal(" has been ") //Make these not final for school map, change to expelled, suspended etc
+    private static final MutableText KILL_TEXT = Text.literal(" has been ") //Make these not final for school map, change to expelled, suspended etc
             .append(Text.literal("killed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
-    private final MutableText REVIVE_TEXT = Text.literal(" has been ")
+    private static final MutableText REVIVE_TEXT = Text.literal(" has been ")
             .append(Text.literal("revived.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
-    private final MutableText EXECUTE_TEXT = Text.literal(" has been ")
+    private static final MutableText EXECUTE_TEXT = Text.literal(" has been ")
             .append(Text.literal("executed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
 
-    private final MutableText message = Text.literal("the ")
+    private static final MutableText message = Text.literal("the ")
             .append(Text.literal("cat").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFFFF55))))  // Yellow for "cat"
             .append(Text.literal(" is on "))
             .append(Text.literal("fire").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFF0000)))); // Red for "fire"
 
     //variables for command inputs
-    private final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town","dorm","legion","evil");
+    private static final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town","dorm","legion","evil");
     private final static String DEFAULT_MAP = "default";
     private final static String SCHOOL_MAP = "school";
     private final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP);
-    private String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
+    private static String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
 
     //BLOCK POS FOR CLOCKTOWER MAP
     private final static BlockPos EXECUTE_POS = new BlockPos(6,-29,-2);
     private final static BlockPos EVIL_ROOM_POS = new BlockPos(126,-28,57);
 
-    public File getConfigFilePath() {
+    public static File getConfigFilePath() {
         // Get the Minecraft config directory
         Path configDir = FabricLoader.getInstance().getConfigDir();
 
@@ -171,13 +171,13 @@ public class BotcFab implements ModInitializer {
         };
     }
 
-    private void sendMessageToPlayers(Text messageText,List<ServerPlayerEntity> playerList){
+    private static void sendMessageToPlayers(Text messageText, List<ServerPlayerEntity> playerList){
         for (ServerPlayerEntity p:playerList){
             p.sendMessage(messageText);
         }
     }
 
-    private String getColourFromPlayer(ServerPlayerEntity player){
+    private static String getColourFromPlayer(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
         for (String i : POSSIBLE_COLOURS){
             if (tags.contains(i)){
@@ -187,7 +187,7 @@ public class BotcFab implements ModInitializer {
         return "";
     }
 
-    private ServerPlayerEntity getPlayerFromColour(String colour, MinecraftServer srv){
+    private static ServerPlayerEntity getPlayerFromColour(String colour, MinecraftServer srv){
         List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         if (playerList != null){
             for (ServerPlayerEntity p : playerList) {
@@ -200,7 +200,7 @@ public class BotcFab implements ModInitializer {
         return null;
     }
 
-    private int getColourHex(String colour){
+    private static int getColourHex(String colour){
         if (POSSIBLE_COLOURS.contains(colour)) {
             return COLOUR_HEX.get(POSSIBLE_COLOURS.indexOf(colour));
         } else {
@@ -208,11 +208,11 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private void showTitle(ServerPlayerEntity player, Text titleText){
+    private static void showTitle(ServerPlayerEntity player, Text titleText){
         player.networkHandler.sendPacket(new TitleS2CPacket(titleText));
     }
 
-    private void placeLever(ServerWorld world, BlockPos pos, Direction facing, BlockFace wallSide) {
+    private static void placeLever(ServerWorld world, BlockPos pos, Direction facing, BlockFace wallSide) {
         if (world == null || world.isClient) return;
 
         LeverBlock lever = (LeverBlock) Blocks.LEVER;
@@ -230,7 +230,7 @@ public class BotcFab implements ModInitializer {
         } else LOGGER.info("lever failed");
     }
 
-    private void placeSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour) {
+    private static void placeSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour) {
         if (world == null || world.isClient) return;
 
         //WallSignBlock sign = (WallSignBlock) Blocks.SPRUCE_WALL_SIGN;
@@ -259,7 +259,7 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private void updateVoteStatus(ServerWorld world, ServerPlayerEntity player){
+    private static void updateVoteStatus(ServerWorld world, ServerPlayerEntity player){
         //Update vote marker and lamp for all players by checking tags
         Set<String> tags = player.getCommandTags();
         String playerColour = getColourFromPlayer(player);
@@ -301,7 +301,7 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private void createTeam(@NotNull ServerScoreboard scoreboard, String teamName) {
+    private static void createTeam(@NotNull ServerScoreboard scoreboard, String teamName) {
         // Check if the team already exists. Should only need to run once per server
         Team team = scoreboard.getTeam(teamName);
         if (team == null) {
@@ -314,7 +314,7 @@ public class BotcFab implements ModInitializer {
         team.setShowFriendlyInvisibles(true); //makes invisible players visible
     }
 
-    private void resetPlayer(@NotNull PlayerEntity player) { //Removes all game based tags from a player
+    private static void resetPlayer(@NotNull PlayerEntity player) { //Removes all game based tags from a player
         for (String tag : ALL_TAGS) {
             player.removeCommandTag(tag);
         }
@@ -323,7 +323,7 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private void removeTagAllPlayers(String tag, MinecraftServer srv){
+    private static void removeTagAllPlayers(String tag, MinecraftServer srv){
         List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         if (playerList != null) {
             for (ServerPlayerEntity p : playerList) {
@@ -332,7 +332,7 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private int getTagCount(String tag, MinecraftServer srv){
+    private static int getTagCount(String tag, MinecraftServer srv){
         List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         int count = 0;
         if (playerList != null) {
@@ -346,7 +346,7 @@ public class BotcFab implements ModInitializer {
     }
 
     //int colourHex = getColourHex(c);
-    private void setColourBoots(ServerPlayerEntity p, String c){ //Give player boots with assigned colour
+    private static void setColourBoots(ServerPlayerEntity p, String c){ //Give player boots with assigned colour
 
         //String colourRGB = Color.decode(Integer.toString(colourHex)).toString();
 
@@ -356,26 +356,26 @@ public class BotcFab implements ModInitializer {
         p.getInventory().setStack(36,dyedBoots); //36 is slot for boots, IDK why help
     }
 
-    private void accusePlayer(ServerPlayerEntity player){
+    private static void accusePlayer(ServerPlayerEntity player){
         removeTagAllPlayers(ACCUSED, Objects.requireNonNull(player.getServer()));
         player.addCommandTag(ACCUSED);
     }
 
-    private void markPlayerDemonKill(ServerPlayerEntity player){
+    private static void markPlayerDemonKill(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
         if (!tags.contains(GHOST) && !tags.contains(DEAD)) { //If player already dead, do not tag for announce.
             player.addCommandTag(DEATH_FLAG);
         }
     }
 
-    private void markPlayerRevived(ServerPlayerEntity player){
+    private static void markPlayerRevived(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
         if (!tags.contains(ALIVE)) { //If player still alive do not mark for revival
             player.addCommandTag(REVIVE_FLAG);
         }
     }
 
-    private void killPlayer(ServerPlayerEntity player){
+    private static void killPlayer(ServerPlayerEntity player){
         ServerWorld world = player.getServerWorld();
         Set<String> tags = player.getCommandTags();
         if (!tags.contains(GHOST) && !tags.contains(DEAD)) {
@@ -388,7 +388,7 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private void revivePlayer(ServerPlayerEntity player){
+    private static void revivePlayer(ServerPlayerEntity player){
         ServerWorld world = player.getServerWorld();
         Set<String> tags = player.getCommandTags();
         if (tags.contains(GHOST) || tags.contains(DEAD)) {
@@ -402,11 +402,11 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private void tp(ServerPlayerEntity player, BlockPos destination){ //teleports player to BlockPos by converting to x,y,z
+    private static void tp(ServerPlayerEntity player, BlockPos destination){ //teleports player to BlockPos by converting to x,y,z
         player.teleport(destination.getX()+0.5,destination.getY(),destination.getZ()+0.5,false); //0.5 for centre of block
     }
 
-    private void teleportPlayers(String location, MinecraftServer srv){
+    private static void teleportPlayers(String location, MinecraftServer srv){
         //location either "home" or "vote"
         List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         String colour;
@@ -438,7 +438,7 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private int leaveMinigames(CommandContext<ServerCommandSource> context){ //Teleports player back to home
+    private static int leaveMinigames(CommandContext<ServerCommandSource> context){ //Teleports player back to home
         ServerPlayerEntity player = context.getSource().getPlayer(); //might need to change to take input player
         if (player != null) {
             String colour = getColourFromPlayer(player);
@@ -453,7 +453,7 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private MutableText getEventText(ServerPlayerEntity player, String event){
+    private static MutableText getEventText(ServerPlayerEntity player, String event){
         MutableText eventMsg;
         MutableText playerName = player.getStyledDisplayName().copy(); //Should be formatted with player colour from team
         eventMsg = switch (event) {
@@ -500,7 +500,7 @@ public class BotcFab implements ModInitializer {
         return ActionResult.PASS;
     }
 
-    private void createOrSetAliveDisplay(ServerScoreboard scoreboard, MinecraftServer srv){
+    private static void createOrSetAliveDisplay(ServerScoreboard scoreboard, MinecraftServer srv){
         int alivePlayers = getTagCount(ALIVE, srv);
         int deadPlayers = getTagCount(GHOST, srv) + getTagCount(DEAD, srv);
         int voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
@@ -564,8 +564,8 @@ public class BotcFab implements ModInitializer {
         src.sendFeedback(() -> Text.literal("Finished"), false);
     }
 
-    public static int setupGame(CommandContext<ServerCommandSource> context) {
-        ServerCommandSource src = context.getSource();
+    public static int setupGame(ServerCommandSource src) {
+        //ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
         ServerScoreboard scoreboard = srv.getScoreboard();
@@ -676,7 +676,7 @@ public class BotcFab implements ModInitializer {
         return 1;
     }
 
-    private int beginGame(CommandContext<ServerCommandSource> context) {
+    private static int beginGame(CommandContext<ServerCommandSource> context) {
         //TODO
         // - give roles to players on named paper
         ServerCommandSource src = context.getSource();
@@ -690,7 +690,7 @@ public class BotcFab implements ModInitializer {
         return 1;
     }
 
-    private int onAddSpectator(CommandContext<ServerCommandSource> context) {
+    private static int onAddSpectator(CommandContext<ServerCommandSource> context) {
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
@@ -847,7 +847,7 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private int nightFalls(CommandContext<ServerCommandSource> context){
+    private static int nightFalls(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         ServerWorld world = src.getWorld();
@@ -871,7 +871,7 @@ public class BotcFab implements ModInitializer {
         return 1;
     }
 
-    private int startDay(CommandContext<ServerCommandSource> context){
+    private static int startDay(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         ServerWorld world = src.getWorld();
@@ -914,7 +914,7 @@ public class BotcFab implements ModInitializer {
         return 1;
     }
 
-    private void onVoteLockIn(CommandContext<ServerCommandSource> context) {
+    private static void onVoteLockIn(CommandContext<ServerCommandSource> context) {
         // remove redstone block
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
@@ -1020,7 +1020,7 @@ public class BotcFab implements ModInitializer {
         TickScheduler.scheduleGroup(taskList, onAllDone);
     }
 
-    private void executePlayer(ServerPlayerEntity player){
+    private static void executePlayer(ServerPlayerEntity player){
         player.addCommandTag(CURRENT_EXECUTEE);
         ServerWorld world = player.getServerWorld();
         MinecraftServer srv = world.getServer();
@@ -1040,7 +1040,7 @@ public class BotcFab implements ModInitializer {
         createOrSetAliveDisplay(scoreboard, srv);
     }
 
-    private int beginExecution(CommandContext<ServerCommandSource> context){
+    private static int beginExecution(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = context.getSource().getServer();
         ServerPlayerEntity player = getPlayerFromColour(MARKED,srv);
@@ -1052,7 +1052,7 @@ public class BotcFab implements ModInitializer {
         return 1;
     }
 
-    private void startTimer(MinecraftServer srv,int duration){ //Starts a timer and shows boss bar as remaining, duration in seconds
+    private static void startTimer(MinecraftServer srv, int duration){ //Starts a timer and shows boss bar as remaining, duration in seconds
         if (timerBar == null) {
             timerBar = new ServerBossBar(Text.literal("Time remaining:"), BossBar.Color.GREEN, BossBar.Style.NOTCHED_10);
         }
@@ -1069,7 +1069,7 @@ public class BotcFab implements ModInitializer {
         srv.sendMessage(Text.literal("Boss bar timer started."));
     }
 
-    private MutableText getPlayerOrder(MinecraftServer srv){
+    private static MutableText getPlayerOrder(MinecraftServer srv){
         MutableText PlayerOrderMessage = Text.literal("Player Order: \n");
         for (ServerPlayerEntity p:srv.getPlayerManager().getPlayerList()){
             if (!p.getCommandTags().contains(STORYTELLER)) {
@@ -1082,14 +1082,14 @@ public class BotcFab implements ModInitializer {
         return PlayerOrderMessage;
     }
 
-    private void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
+    private static void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
         dispatcher.register(literal("botc_setupGame")
                 .requires(source -> source.hasPermissionLevel(2))
-                .executes(this::setupGame));
+                .executes(context -> setupGame(context.getSource())));
 
         dispatcher.register(literal("botc_startGame")
                 .requires(source -> source.hasPermissionLevel(2))
-                .executes(this::beginGame));
+                .executes(BotcFab::beginGame));
 
         dispatcher.register(literal("botc_importCSV")
                 .requires(source -> source.hasPermissionLevel(2))
@@ -1123,7 +1123,7 @@ public class BotcFab implements ModInitializer {
                 CommandManager.argument("player_name", StringArgumentType.string())
                         .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
-                        .executes(this::onAddSpectator)
+                        .executes(BotcFab::onAddSpectator)
         ));
 
         dispatcher.register(literal("botc_tpPlayers").then(
@@ -1148,7 +1148,7 @@ public class BotcFab implements ModInitializer {
         ));
 
         dispatcher.register(literal("leaveMinigames")
-                .executes(this::leaveMinigames));
+                .executes(BotcFab::leaveMinigames));
 
         dispatcher.register(literal("botc_startTimer").then( //Starts a timer boss bar for [argument] minutes
                 CommandManager.argument("stringTime", StringArgumentType.string())
@@ -1221,10 +1221,10 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_startDay")
                 .requires(source -> source.hasPermissionLevel(2))
-                .executes(this::startDay));
+                .executes(BotcFab::startDay));
         dispatcher.register(literal("botc_nightFalls")
                 .requires(source -> source.hasPermissionLevel(2))
-                .executes(this::nightFalls));
+                .executes(BotcFab::nightFalls));
 
         dispatcher.register(literal("botc_voteLockIn")
                 .requires(source -> source.hasPermissionLevel(2))
@@ -1258,7 +1258,7 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_beginExecution")
                 .requires(source -> source.hasPermissionLevel(2))
-                .executes(this::beginExecution));
+                .executes(BotcFab::beginExecution));
 
         dispatcher.register(literal("botc_openMenu").executes(context -> {
             ServerPlayerEntity player = context.getSource().getPlayer();
@@ -1292,6 +1292,6 @@ public class BotcFab implements ModInitializer {
         UseItemCallback.EVENT.register(this::onRightClickItem);
 
         //Register chat commands
-        CommandRegistrationCallback.EVENT.register(this::registerCommands);
+        CommandRegistrationCallback.EVENT.register(BotcFab::registerCommands);
     }
 }

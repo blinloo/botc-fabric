@@ -21,7 +21,7 @@ public class SelectionInventory {
                 inventory.setStack(0, new ItemStack(Items.DIRT));
                 inventory.setStack(1, new ItemStack(Items.GRASS_BLOCK));
                 inventory.setStack(2, new ItemStack(Items.SUNFLOWER));
-                inventory.setStack(2, new ItemStack(Items.SNOWBALL));
+                inventory.setStack(3, new ItemStack(Items.SNOWBALL));
                 break;
             case "colours":
                 inventory.setStack(9, new ItemStack(Items.BLACK_WOOL));
@@ -58,15 +58,17 @@ public class SelectionInventory {
     public static void handleSelection(ServerPlayerEntity player, int index) {
         switch (index) {
             //TODO put BOTC commands here
-            case 0:
+            case 0: //setup
                 player.sendMessage(Text.literal("Setting up game"), false);
-                //setupGame(player.getCommandSource());
-                BotcFab.setupGame();
+                BotcFab.setupGame(player.getCommandSource());
                 break;
-            case 1:
+            case 1: //begin game
                 player.sendMessage(Text.literal("You selected Gold Ingot!"), false);
                 break;
-            case 2:
+            case 2: //start day
+                player.sendMessage(Text.literal("You selected Emerald!"), false);
+                break;
+            case 3: //night falls
                 player.sendMessage(Text.literal("You selected Emerald!"), false);
                 break;
             default: player.sendMessage(Text.literal("Unknown selection."), false);
