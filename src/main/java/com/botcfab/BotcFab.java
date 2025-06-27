@@ -135,7 +135,7 @@ public class BotcFab implements ModInitializer {
     private final MutableText EXECUTE_TEXT = Text.literal(" has been ")
             .append(Text.literal("executed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
 
-    MutableText message = Text.literal("the ")
+    private final MutableText message = Text.literal("the ")
             .append(Text.literal("cat").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFFFF55))))  // Yellow for "cat"
             .append(Text.literal(" is on "))
             .append(Text.literal("fire").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFF0000)))); // Red for "fire"
@@ -564,7 +564,7 @@ public class BotcFab implements ModInitializer {
         src.sendFeedback(() -> Text.literal("Finished"), false);
     }
 
-    public int setupGame(CommandContext<ServerCommandSource> context) {
+    public static int setupGame(CommandContext<ServerCommandSource> context) {
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();

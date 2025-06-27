@@ -61,6 +61,7 @@ public class SelectionInventory {
             case 0:
                 player.sendMessage(Text.literal("Setting up game"), false);
                 //setupGame(player.getCommandSource());
+                BotcFab.setupGame();
                 break;
             case 1:
                 player.sendMessage(Text.literal("You selected Gold Ingot!"), false);
