@@ -55,7 +55,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.*;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
@@ -81,7 +80,8 @@ public class BotcFab implements ModInitializer {
     private static final String REVIVE_FLAG = "revive_flag";
     private static final String ACCUSED = "accused";
     private static final String CURRENT_EXECUTEE = "current_executee";
-    private static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE);
+    private static final String LEGION = "legion";
+    private static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE, LEGION);
 
     private static final String INFO_OBJECTIVE = "info";
     private static final String ALIVE_SCORE_HOLDER = "Alive";
@@ -102,12 +102,10 @@ public class BotcFab implements ModInitializer {
             "gray");
     private static final List<Integer> COLOUR_HEX = Arrays.asList(0x000000, 0xFFEE00, 0xFF8D00, 0xFFAFC7, 0xE50000,
             0x760088, 0x613915, 0x028121, 0xFFFFFF, 0x004CFF, 0x73D7EE, 0x888888); //Colour picked from progress pride flag
-    private final String path = ".\\BOTC-coords-sheet.csv"; //Attempt to give standard file path, works in "run" folder
 
     //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
     Map<String, CoordinateMapper> mapCoords = new HashMap<>();
-    private List<ServerPlayerEntity> players = new ArrayList<>();
-    private ArrayList<Integer> indexBounds = new ArrayList<>();
+    private final ArrayList<Integer> indexBounds = new ArrayList<>();
     //Highest vote count
     private int highestVote;
 
@@ -143,14 +141,15 @@ public class BotcFab implements ModInitializer {
             .append(Text.literal("fire").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFF0000)))); // Red for "fire"
 
     //variables for command inputs
-    private final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town","dorm");
+    private final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town","dorm","legion","evil");
     private final static String DEFAULT_MAP = "default";
     private final static String SCHOOL_MAP = "school";
     private final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP);
     private String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
 
-    //TEST VALUES
-    private final static BlockPos EXE_BLOCK = new BlockPos(6,-29,-2);
+    //BLOCK POS FOR CLOCKTOWER MAP
+    private final static BlockPos EXECUTE_POS = new BlockPos(6,-29,-2);
+    private final static BlockPos EVIL_ROOM_POS = new BlockPos(126,-28,57);
 
     public File getConfigFilePath() {
         // Get the Minecraft config directory
@@ -159,7 +158,9 @@ public class BotcFab implements ModInitializer {
         // Make your mod's subfolder (recommended)
         Path modFolder = configDir.resolve("botc-fab"); // "config/"string"
         File folder = modFolder.toFile();
-        if (!folder.exists()) folder.mkdirs(); // create folder if it doesn't exist
+        if (!folder.exists()) {
+            if (folder.mkdirs()) LOGGER.info("Created config"); // create folder if it doesn't exist
+        }
 
         // Final file path
         //TODO Add code for both maps here: returns different csv
@@ -186,9 +187,10 @@ public class BotcFab implements ModInitializer {
         return "";
     }
 
-    private ServerPlayerEntity getPlayerFromColour(String colour){
-        if (players != null){
-            for (ServerPlayerEntity p : players) {
+    private ServerPlayerEntity getPlayerFromColour(String colour, MinecraftServer srv){
+        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
+        if (playerList != null){
+            for (ServerPlayerEntity p : playerList) {
                 Set<String> tags = p.getCommandTags();
                 if (tags.contains(colour)) {
                     return p;
@@ -321,18 +323,20 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private void removeTagAllPlayers(String tag){
-        if (players != null) {
-            for (ServerPlayerEntity p : players) {
+    private void removeTagAllPlayers(String tag, MinecraftServer srv){
+        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
+        if (playerList != null) {
+            for (ServerPlayerEntity p : playerList) {
                 p.removeCommandTag(tag);
             }
         }
     }
 
-    private int getTagCount(String tag){
+    private int getTagCount(String tag, MinecraftServer srv){
+        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         int count = 0;
-        if (players != null) {
-            for (ServerPlayerEntity p : players) {
+        if (playerList != null) {
+            for (ServerPlayerEntity p : playerList) {
                 Set<String> tags = p.getCommandTags();
                 if (tags.contains(tag))
                     count++;
@@ -353,7 +357,7 @@ public class BotcFab implements ModInitializer {
     }
 
     private void accusePlayer(ServerPlayerEntity player){
-        removeTagAllPlayers(ACCUSED);
+        removeTagAllPlayers(ACCUSED, Objects.requireNonNull(player.getServer()));
         player.addCommandTag(ACCUSED);
     }
 
@@ -402,20 +406,33 @@ public class BotcFab implements ModInitializer {
         player.teleport(destination.getX()+0.5,destination.getY(),destination.getZ()+0.5,false); //0.5 for centre of block
     }
 
-    private void teleportPlayers(String location){
+    private void teleportPlayers(String location, MinecraftServer srv){
         //location either "home" or "vote"
+        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         String colour;
         switch (location){
             case "home","house","dorm":
-                for (ServerPlayerEntity p : players) {
+                for (ServerPlayerEntity p : playerList) {
                     colour = getColourFromPlayer(p);
-                    tp(p,mapCoords.get(colour).homeInside); //teleport player to coords
+                    if (!Objects.equals(colour, "")) {
+                        tp(p, mapCoords.get(colour).homeInside); //teleport player to coords
+                    }
                 }
                 break;
             case "vote","chair","town":
-                for (ServerPlayerEntity p : players) {
+                for (ServerPlayerEntity p : playerList) {
                     colour = getColourFromPlayer(p);
-                    tp(p,mapCoords.get(colour).chair.up(1)); //Needs to go up 1 so space isn't occupied
+                    if (!Objects.equals(colour, "")) {
+                        tp(p, mapCoords.get(colour).chair.up(1)); //Needs to go up 1 so space isn't occupied
+                    }
+                }
+                break;
+            case "legion","evil":
+                for (ServerPlayerEntity p : playerList) {
+                    Set<String> tags = p.getCommandTags();
+                    if (tags.contains(LEGION)) {
+                        tp(p, EVIL_ROOM_POS); //Needs to go up 1 so space isn't occupied
+                    }
                 }
                 break;
         }
@@ -425,7 +442,11 @@ public class BotcFab implements ModInitializer {
         ServerPlayerEntity player = context.getSource().getPlayer(); //might need to change to take input player
         if (player != null) {
             String colour = getColourFromPlayer(player);
-            tp(player, mapCoords.get(colour).homeInside);
+            if (!Objects.equals(colour, "")) {
+                tp(player, mapCoords.get(colour).homeInside);
+            } else {
+                return 0;
+            }
             return 1;
         } else {
             return 0;
@@ -467,7 +488,7 @@ public class BotcFab implements ModInitializer {
         ItemStack itemInHand = player.getStackInHand(hand);
         // Check if the player is holding the specific item and Hand is not empty
         if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.PAPER) {
-            player.sendMessage(getPlayerOrder(), false);
+            player.sendMessage(getPlayerOrder(Objects.requireNonNull(world.getServer())), false);
             return ActionResult.SUCCESS;
         }
         //Check for heart pottery shard named "Emergency Teleport"
@@ -479,9 +500,9 @@ public class BotcFab implements ModInitializer {
         return ActionResult.PASS;
     }
 
-    private void createOrSetAliveDisplay(ServerScoreboard scoreboard){
-        int alivePlayers = getTagCount(ALIVE);
-        int deadPlayers = getTagCount(GHOST) + getTagCount(DEAD);
+    private void createOrSetAliveDisplay(ServerScoreboard scoreboard, MinecraftServer srv){
+        int alivePlayers = getTagCount(ALIVE, srv);
+        int deadPlayers = getTagCount(GHOST, srv) + getTagCount(DEAD, srv);
         int voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
         ScoreboardObjective objective = scoreboard.getNullableObjective(INFO_OBJECTIVE);
         NumberFormat numberFormat = StyledNumberFormat.YELLOW; //Can be RED, YELLOW or EMPTY
@@ -549,8 +570,7 @@ public class BotcFab implements ModInitializer {
         PlayerManager playerMgr = srv.getPlayerManager();
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
-        players.clear();
-        players.addAll(playerMgr.getPlayerList());
+        List<ServerPlayerEntity> players = new ArrayList<>(playerMgr.getPlayerList());
         //TODO Test this
         Collections.shuffle(players); //Randomises order of player list (default is server join order)
         indexBounds.clear();
@@ -559,8 +579,6 @@ public class BotcFab implements ModInitializer {
 
         // Set everyone else to be a player
         // Remove the storyTeller from the list of players. Remaining list is all players
-
-        //System.out.println(players);
 
         if (storyTeller != null) {
             // Remove all tags before adding new ones
@@ -577,7 +595,6 @@ public class BotcFab implements ModInitializer {
             src.sendFeedback(() -> Text.literal("Failed to find storyteller. Do not execute this command from the server window"), false);
             return 0;
         }
-        System.out.println(players); //Debugging
 
         //List<ServerPlayerEntity> spectators = new LinkedList<>();
         for (ServerPlayerEntity p : players){
@@ -588,9 +605,8 @@ public class BotcFab implements ModInitializer {
                 scoreboard.addScoreHolderToTeam(p.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
             }
         }
-        System.out.println(players); //Debugging
 
-        storyTeller.setSpawnPoint(World.OVERWORLD,EXE_BLOCK,0,true,true); //Should work now?
+        storyTeller.setSpawnPoint(World.OVERWORLD, EXECUTE_POS,0,true,true); //Should work now?
 
         // Assign colours to players
         int currentColourIndex = startPoint;
@@ -643,12 +659,13 @@ public class BotcFab implements ModInitializer {
                     currentColourIndex++;
             }
         }
-        createOrSetAliveDisplay(scoreboard); //Update/create scoreboard for start of game.
+        createOrSetAliveDisplay(scoreboard, srv); //Update/create scoreboard for start of game.
         srv.sendMessage(Text.literal(players.toString()));
+        srv.sendMessage(Text.literal(indexBounds.toString()));
 
         //Remove votes and signs for missing players
         for (String c:POSSIBLE_COLOURS){
-            if (getPlayerFromColour(c) == null){
+            if (getPlayerFromColour(c,srv) == null){
                 world.setBlockState(mapCoords.get(c).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
                 world.setBlockState(mapCoords.get(c).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
                 world.setBlockState(mapCoords.get(c).lever, Blocks.AIR.getDefaultState()); //Remove lever
@@ -666,8 +683,8 @@ public class BotcFab implements ModInitializer {
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
 
-        teleportPlayers("home"); //teleports players to homes
-        sendMessageToPlayers(getPlayerOrder(),playerMgr.getPlayerList()); //Sends player order to all players
+        teleportPlayers("home", srv); //teleports players to homes
+        sendMessageToPlayers(getPlayerOrder(srv),playerMgr.getPlayerList()); //Sends player order to all players
         nightFalls(context);
 
         return 1;
@@ -688,7 +705,6 @@ public class BotcFab implements ModInitializer {
         resetPlayer(specTarget);
         specTarget.addCommandTag(SPEC);
         specTarget.changeGameMode(GameMode.SPECTATOR);
-        players.remove(specTarget);
 
         src.sendFeedback(() -> Text.literal("Called /addSpectator with value 1 = %s ".formatted(specName)), false);
         return 1;
@@ -742,20 +758,20 @@ public class BotcFab implements ModInitializer {
             //Code for execution checks
             if (executionInProgress) {
                 boolean executionFinished = false;
-                ServerPlayerEntity executee = getPlayerFromColour(CURRENT_EXECUTEE);
+                ServerPlayerEntity executee = getPlayerFromColour(CURRENT_EXECUTEE,world.getServer());
                 if (executee != null){
                     switch (mapSelected) {
                         case DEFAULT_MAP:
-                            Vec3d murderZone = new Vec3d(EXE_BLOCK.down(1).getX()+0.5,EXE_BLOCK.down(1).getY()+0.3,EXE_BLOCK.down(1).getZ()+0.5); //Get centre of block
+                            Vec3d murderZone = new Vec3d(EXECUTE_POS.down(1).getX()+0.5, EXECUTE_POS.down(1).getY()+0.3, EXECUTE_POS.down(1).getZ()+0.5); //Get centre of block
                             double distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
                             if (distance > 1.2) {
                                 executee.teleport(murderZone.getX(),murderZone.getY(),murderZone.getZ(),false); //needs accurate tp
                                 executee.sendMessage(Text.literal("Nice try :)"), false);
                             }
 
-                            BlockState anvilPosState = world.getBlockState(EXE_BLOCK);
+                            BlockState anvilPosState = world.getBlockState(EXECUTE_POS);
                             if (anvilPosState.isOf(Blocks.ANVIL) || anvilPosState.isOf(Blocks.CHIPPED_ANVIL) || anvilPosState.isOf(Blocks.DAMAGED_ANVIL)) {
-                                world.setBlockState(EXE_BLOCK, Blocks.AIR.getDefaultState());
+                                world.setBlockState(EXECUTE_POS, Blocks.AIR.getDefaultState());
                                 executionFinished = true; //used so
                             }
                             break;
@@ -805,27 +821,28 @@ public class BotcFab implements ModInitializer {
                 }
             }
         }
-        if (playersLockedToSeats && players != null) { //checks if players locked is true and players list is not null
-            for (ServerPlayerEntity p:players) {
+        if (playersLockedToSeats && srv.getPlayerManager().getPlayerList() != null) { //checks if players locked is true and players list is not null
+            for (ServerPlayerEntity p:srv.getPlayerManager().getPlayerList()) {
                 Set<String> tags = p.getCommandTags();
-                String playerColour = getColourFromPlayer(p);
-                //BlockPos playerPos = p.getBlockPos();
-                Vec3d playerPos = p.getPos();
-                BlockPos targetPos;
+                if (!tags.contains(STORYTELLER) || !tags.contains(SPEC)){
+                    String playerColour = getColourFromPlayer(p);
+                    //BlockPos playerPos = p.getBlockPos();
+                    Vec3d playerPos = p.getPos();
+                    BlockPos targetPos;
 
-                if (!tags.contains(CURRENT_EXECUTEE)) { //Check player is not currently being executed
-                    targetPos = mapCoords.get(playerColour).chair.up(1);
-                } else {
-                    break;
+                    if (!tags.contains(CURRENT_EXECUTEE)) { //Check player is not currently being executed
+                        targetPos = mapCoords.get(playerColour).chair.up(1);
+                    } else {
+                        break;
+                    }
+
+                    //double distance = playerPos.getSquaredDistance(targetPos);
+                    double distance = playerPos.squaredDistanceTo(targetPos.getX()+0.5, targetPos.getY()+0.5, targetPos.getZ()+0.5); //accounts for slab of chair now
+                    if (distance > 1.5) {
+                        tp(p,targetPos);
+                        p.sendMessage(Text.literal("You were too far away. Teleporting to target..."), false);
+                    }
                 }
-
-                //double distance = playerPos.getSquaredDistance(targetPos);
-                double distance = playerPos.squaredDistanceTo(targetPos.getX()+0.5, targetPos.getY()+0.5, targetPos.getZ()+0.5); //accounts for slab of chair now
-                if (distance > 1.5) {
-                    tp(p,targetPos);
-                    p.sendMessage(Text.literal("You were too far away. Teleporting to target..."), false);
-                }
-
             }
         }
     }
@@ -839,12 +856,13 @@ public class BotcFab implements ModInitializer {
         world.setTimeOfDay(18000L);
         playersLockedToSeats = false;
         executionInProgress = false;
+        timerBarActive = false;
         //Remove all temp tags from players
-        removeTagAllPlayers(ACCUSED);
-        removeTagAllPlayers(DEATH_FLAG);
-        removeTagAllPlayers(REVIVE_FLAG);
-        removeTagAllPlayers(CURRENT_EXECUTEE);
-        removeTagAllPlayers(MARKED);
+        removeTagAllPlayers(ACCUSED,srv);
+        removeTagAllPlayers(DEATH_FLAG, srv);
+        removeTagAllPlayers(REVIVE_FLAG, srv);
+        removeTagAllPlayers(CURRENT_EXECUTEE, srv);
+        removeTagAllPlayers(MARKED, srv);
         Team team = scoreboard.getTeam(TEAM_ALL);
         if (team != null) { //Make nametags visible at morning.
             team.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.NEVER);
@@ -868,18 +886,18 @@ public class BotcFab implements ModInitializer {
 
         sendMessageToPlayers((DAY_MESSAGE.copy().append(MEETING_MESSAGE)),playerList);
         //Send player death message and update status
-        int deaths = getTagCount(DEATH_FLAG);
+        int deaths = getTagCount(DEATH_FLAG, srv);
         for (int i = 0;i < deaths;i++){
-            ServerPlayerEntity deadPlayer = getPlayerFromColour(DEATH_FLAG);
+            ServerPlayerEntity deadPlayer = getPlayerFromColour(DEATH_FLAG,srv);
             if (deadPlayer != null) {
                 sendMessageToPlayers(getEventText(deadPlayer,DEATH_FLAG) ,playerList);
                 killPlayer(deadPlayer);
                 deadPlayer.removeCommandTag(DEATH_FLAG);
             }
         }
-        int revives = getTagCount(REVIVE_FLAG);
+        int revives = getTagCount(REVIVE_FLAG, srv);
         for (int i = 0;i < revives;i++){
-            ServerPlayerEntity alivePlayer = getPlayerFromColour(REVIVE_FLAG);
+            ServerPlayerEntity alivePlayer = getPlayerFromColour(REVIVE_FLAG,srv);
             if (alivePlayer != null) {
                 sendMessageToPlayers(getEventText(alivePlayer,REVIVE_FLAG) ,playerList);
                 revivePlayer(alivePlayer);
@@ -888,25 +906,27 @@ public class BotcFab implements ModInitializer {
         }
         for (ServerPlayerEntity p : playerList){
             showTitle(p,DAY_MESSAGE);
+            p.playSound(SoundEvents.BLOCK_BELL_USE);
         }
         highestVote = 0; //reset highest vote
 
-        createOrSetAliveDisplay(scoreboard); //Updates scoreboard
+        createOrSetAliveDisplay(scoreboard, srv); //Updates scoreboard
         return 1;
     }
 
     private void onVoteLockIn(CommandContext<ServerCommandSource> context) {
         // remove redstone block
         ServerCommandSource src = context.getSource();
-        ServerWorld world = context.getSource().getWorld();
+        MinecraftServer srv = src.getServer();
+        ServerWorld world = src.getWorld();
         int delayPerBlock = 40; // 1 second = 20 ticks
-        int voteThreshold, startColourIndex, count = 0, alivePlayers = getTagCount(ALIVE);
+        int voteThreshold, startColourIndex, count = 1, alivePlayers = getTagCount(ALIVE, srv), playerTotal = getTagCount(PLAYER, srv);
 
         List<DelayedBlockSetter> taskList = new ArrayList<>();
         //Get vote threshold for alive players
         voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
 
-        final ServerPlayerEntity accusedPlayer = getPlayerFromColour(ACCUSED);
+        final ServerPlayerEntity accusedPlayer = getPlayerFromColour(ACCUSED, srv);
         if (accusedPlayer == null){
             src.sendFeedback(() -> Text.literal("No player accused, please accuse someone!"), false);
             return;
@@ -918,7 +938,7 @@ public class BotcFab implements ModInitializer {
             startColourIndex = indexBounds.get(0); //This is a list of current colours in the game, so it can loop back to the first if it hits the end.
         }
 
-        for (int i = startColourIndex; count <= players.size(); i++) { //need to be <= or else the accused doesn't get a vote
+        for (int i = startColourIndex; count <= playerTotal; i++) { //need to be <= or else the accused doesn't get a vote
             int delay = count * delayPerBlock; //Add delay between vote locks
             if (!indexBounds.contains(i)){
                 i = indexBounds.get(0); //Sets index to start of colour index bounds
@@ -933,8 +953,9 @@ public class BotcFab implements ModInitializer {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
             List<ServerPlayerEntity> playerList = src.getWorld().getPlayers();
             int playerCount = 0, aliveVotesTotal = 0, ghostVotesTotal = 0;
+            int playerSize = getTagCount(PLAYER,srv);
 
-            for (int i = finalStartColourIndex; playerCount < players.size(); i++) {
+            for (int i = finalStartColourIndex; playerCount < playerSize; i++) {
                 if (!indexBounds.contains(i)){
                     i = indexBounds.get(0); //Sets index to start of colour index bounds
                 }
@@ -960,7 +981,7 @@ public class BotcFab implements ModInitializer {
                     ghostVotesTotal++;
                     // remove ghost vote and tag from player
                     world.setBlockState(lockedVote,Blocks.COAL_BLOCK.getDefaultState());
-                    ServerPlayerEntity playerVote = getPlayerFromColour(colour);
+                    ServerPlayerEntity playerVote = getPlayerFromColour(colour,srv);
                     if (playerVote != null) {
                         playerVote.addCommandTag(DEAD);
                         playerVote.removeCommandTag(GHOST);
@@ -972,7 +993,7 @@ public class BotcFab implements ModInitializer {
             }
             int displayTotalVotes = aliveVotesTotal + ghostVotesTotal; //total votes
             int displayGhostVotes = ghostVotesTotal; //ghost votes used
-            ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED);
+            ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED,srv);
 
             sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes."),playerList);
             if ((displayTotalVotes > highestVote) && (displayTotalVotes >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
@@ -1002,24 +1023,28 @@ public class BotcFab implements ModInitializer {
     private void executePlayer(ServerPlayerEntity player){
         player.addCommandTag(CURRENT_EXECUTEE);
         ServerWorld world = player.getServerWorld();
+        MinecraftServer srv = world.getServer();
+        ServerScoreboard scoreboard = srv.getScoreboard();
         //TODO TEST THIS
         playersLockedToSeats = false;
         executionInProgress = true;
         switch (mapSelected) {
             case DEFAULT_MAP:
-                tp(player,EXE_BLOCK.down(1)); //tp executed player to the block
-                world.setBlockState(EXE_BLOCK.up(50), Blocks.ANVIL.getDefaultState()); //create anvil 50 blocks up above execution
+                tp(player, EXECUTE_POS.down(1)); //tp executed player to the block
+                world.setBlockState(EXECUTE_POS.up(250), Blocks.ANVIL.getDefaultState()); //create anvil 50 blocks up above execution
                 break;
             case SCHOOL_MAP:
                 //TODO open pit here and teleport player
                 break;
         }
+        createOrSetAliveDisplay(scoreboard, srv);
     }
 
     private int beginExecution(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
-        ServerPlayerEntity player = getPlayerFromColour(MARKED);
-        removeTagAllPlayers(ACCUSED); //Removed all accused players
+        MinecraftServer srv = context.getSource().getServer();
+        ServerPlayerEntity player = getPlayerFromColour(MARKED,srv);
+        removeTagAllPlayers(ACCUSED,srv); //Removed all accused players
         if (player != null) {
             player.removeCommandTag(MARKED);
             executePlayer(player);
@@ -1044,13 +1069,15 @@ public class BotcFab implements ModInitializer {
         srv.sendMessage(Text.literal("Boss bar timer started."));
     }
 
-    private MutableText getPlayerOrder(){
+    private MutableText getPlayerOrder(MinecraftServer srv){
         MutableText PlayerOrderMessage = Text.literal("Player Order: \n");
-        for (ServerPlayerEntity p:players){
-            String colour = getColourFromPlayer(p);
-            PlayerOrderMessage
-                    .append(p.getStyledDisplayName().copy().setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(colour)))))  // Player name with colour
-                    .append(Text.literal("\n")); //New line
+        for (ServerPlayerEntity p:srv.getPlayerManager().getPlayerList()){
+            if (!p.getCommandTags().contains(STORYTELLER)) {
+                String colour = getColourFromPlayer(p);
+                PlayerOrderMessage
+                        .append(p.getStyledDisplayName().copy().setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(colour)))))  // Player name with colour
+                        .append(Text.literal("\n")); //New line
+            }
         }
         return PlayerOrderMessage;
     }
@@ -1112,7 +1139,7 @@ public class BotcFab implements ModInitializer {
                             option = option.toLowerCase(); //lowercase to account for typos
 
                             if (tpOptions.contains(option)) {
-                                teleportPlayers(option);
+                                teleportPlayers(option, context.getSource().getServer());
                             } else {
                                 context.getSource().sendFeedback(() -> Text.literal("Invalid teleport location"), false);
                             }
@@ -1222,7 +1249,7 @@ public class BotcFab implements ModInitializer {
                 .executes(context -> {
                     ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
                     if (player != null) {
-                        player.sendMessage(getPlayerOrder());
+                        player.sendMessage(getPlayerOrder(context.getSource().getServer()));
                     } else {
                         context.getSource().sendFeedback(() -> Text.literal("No player to send text to, do not run in server console."), false);
                     }
