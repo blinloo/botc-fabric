@@ -8,6 +8,13 @@ import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import static com.botcfab.ItemUtils.setCustomName;
 
 public class SelectionInventory {
 
@@ -18,12 +25,18 @@ public class SelectionInventory {
         // Add selectable items
         switch (menuType) {
             case "commands":
-                inventory.setStack(0, new ItemStack(Items.DIRT));
-                inventory.setStack(1, new ItemStack(Items.GRASS_BLOCK));
-                inventory.setStack(2, new ItemStack(Items.SUNFLOWER));
-                inventory.setStack(3, new ItemStack(Items.SNOWBALL));
+                inventory.setStack(0, setCustomName(new ItemStack(Items.DIRT),Text.literal("Setup Game")));
+                inventory.setStack(1, setCustomName(new ItemStack(Items.GRASS_BLOCK),Text.literal("Begin game and teleport players")));
+                inventory.setStack(2, setCustomName(new ItemStack(Items.SUNFLOWER),Text.literal("Start day")));
+                inventory.setStack(3, setCustomName(new ItemStack(Items.SNOWBALL),Text.literal("Night falls")));
                 break;
             case "colours":
+                List<ServerPlayerEntity> playerList = Objects.requireNonNull(player.getServer()).getPlayerManager().getPlayerList();
+                int slot = 9;
+                for (ServerPlayerEntity p : playerList){
+                    inventory.setStack(slot, new ItemStack(Items.PLAYER_HEAD).set());
+                    slot++;
+                }
                 inventory.setStack(9, new ItemStack(Items.BLACK_WOOL));
                 inventory.setStack(10, new ItemStack(Items.YELLOW_WOOL));
                 inventory.setStack(11, new ItemStack(Items.ORANGE_WOOL));

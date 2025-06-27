@@ -11,6 +11,7 @@ import net.minecraft.item.ItemStack;
 public class SelectionInventorySH extends GenericContainerScreenHandler {
     private final Inventory inventory;
     private final PlayerEntity player;
+    private String colourSelected;
 
     public SelectionInventorySH(int syncId, PlayerInventory playerInventory, Inventory inventory, PlayerEntity player) {
         super(ScreenHandlerType.GENERIC_9X3, syncId, playerInventory, inventory, 3);
@@ -22,7 +23,7 @@ public class SelectionInventorySH extends GenericContainerScreenHandler {
     public void onSlotClick(int slotIndex, int button, net.minecraft.screen.slot.SlotActionType actionType,PlayerEntity clicker) {
         if (slotIndex >= 0 && slotIndex < inventory.size()) {
             ItemStack clicked = inventory.getStack(slotIndex);
-            if (!clicked.isEmpty()) {
+            if (!clicked.isEmpty() && slotIndex < 4) { //checks command doesn't need colour input
                 // Run your procedure
                 SelectionInventory.handleSelection((ServerPlayerEntity) clicker, slotIndex);
 
