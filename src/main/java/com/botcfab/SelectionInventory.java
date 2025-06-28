@@ -8,9 +8,7 @@ import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,7 +34,7 @@ public class SelectionInventory {
                 for (ServerPlayerEntity p : playerList){
                     inventory.setStack(slot, setPlayerHead(new ItemStack(Items.PLAYER_HEAD),p));
                     slot++;
-                }
+                } //BotcFab.getPlayerFromColour()
                 inventory.setStack(9, new ItemStack(Items.BLACK_WOOL));
                 inventory.setStack(10, new ItemStack(Items.YELLOW_WOOL));
                 inventory.setStack(11, new ItemStack(Items.ORANGE_WOOL));

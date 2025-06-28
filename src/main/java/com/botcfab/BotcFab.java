@@ -12,22 +12,16 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.*;
-import net.minecraft.block.entity.SignBlockEntity;
-import net.minecraft.block.entity.SignText;
-import net.minecraft.block.enums.BlockFace;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.component.type.DyedColorComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.DyeItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.scoreboard.*;
 import net.minecraft.scoreboard.number.NumberFormat;
@@ -61,33 +55,36 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static com.botcfab.PlayerUtils.*;
+import static  com.botcfab.ItemUtils.*;
+
 import static net.minecraft.server.command.CommandManager.literal;
 
 public class BotcFab implements ModInitializer {
     public static final String MOD_ID = "botc-fab";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     //Removed all other teams, screw coloured names
-    private static final String TEAM_ALL = "team_all";
+    static final String TEAM_ALL = "team_all";
     //Variable for tag definitions
-    private static final String STORYTELLER = "storyteller";
-    private static final String PLAYER = "player";
-    private static final String SPEC = "spectator";
-    private static final String ALIVE = "alive";
-    private static final String MARKED = "marked";
-    private static final String DEAD = "dead";
-    private static final String GHOST = "ghost";
-    private static final String DEATH_FLAG = "death_flag";
-    private static final String REVIVE_FLAG = "revive_flag";
-    private static final String ACCUSED = "accused";
-    private static final String CURRENT_EXECUTEE = "current_executee";
-    private static final String LEGION = "legion";
-    private static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE, LEGION);
+    static final String STORYTELLER = "storyteller";
+    static final String PLAYER = "player";
+    static final String SPEC = "spectator";
+    static final String ALIVE = "alive";
+    static final String MARKED = "marked";
+    static final String DEAD = "dead";
+    static final String GHOST = "ghost";
+    static final String DEATH_FLAG = "death_flag";
+    static final String REVIVE_FLAG = "revive_flag";
+    static final String ACCUSED = "accused";
+    static final String CURRENT_EXECUTEE = "current_executee";
+    static final String LEGION = "legion";
+    static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE, LEGION);
 
-    private static final String INFO_OBJECTIVE = "info";
-    private static final String ALIVE_SCORE_HOLDER = "Alive";
-    private static final String DEAD_SCORE_HOLDER = "Dead";
-    private static final String VOTE_SCORE_HOLDER = "Vote Threshold";
-    private static final List<String> POSSIBLE_COLOURS = Arrays.asList(
+    static final String INFO_OBJECTIVE = "info";
+    static final String ALIVE_SCORE_HOLDER = "Alive";
+    static final String DEAD_SCORE_HOLDER = "Dead";
+    static final String VOTE_SCORE_HOLDER = "Vote Threshold";
+    static final List<String> POSSIBLE_COLOURS = Arrays.asList(
             "black",
             "yellow",
             "orange",
@@ -100,14 +97,12 @@ public class BotcFab implements ModInitializer {
             "blue",
             "cyan",
             "gray");
-    private static final List<Integer> COLOUR_HEX = Arrays.asList(0x000000, 0xFFEE00, 0xFF8D00, 0xFFAFC7, 0xE50000,
-            0x760088, 0x613915, 0x028121, 0xFFFFFF, 0x004CFF, 0x73D7EE, 0x888888); //Colour picked from progress pride flag
 
     //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
     static Map<String, CoordinateMapper> mapCoords = new HashMap<>();
-    private static final ArrayList<Integer> indexBounds = new ArrayList<>();
+    static final ArrayList<Integer> indexBounds = new ArrayList<>();
     //Highest vote count
-    private static int highestVote;
+    static int highestVote;
 
     //Timer bar variables
     private static ServerBossBar timerBar;
@@ -116,8 +111,8 @@ public class BotcFab implements ModInitializer {
     private static int timerDurationTicks = 10*20; // 10 seconds default
 
     //Variables for on tick checks
-    private static boolean playersLockedToSeats = false;
-    private static boolean executionInProgress = false;
+    static boolean playersLockedToSeats = false;
+    static boolean executionInProgress = false;
 
     //Text for displays
     private static final MutableText MEETING_MESSAGE = Text.literal("Please head to the town square");
@@ -142,14 +137,14 @@ public class BotcFab implements ModInitializer {
 
     //variables for command inputs
     private static final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town","dorm","legion","evil");
-    private final static String DEFAULT_MAP = "default";
-    private final static String SCHOOL_MAP = "school";
-    private final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP);
-    private static String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
+    final static String DEFAULT_MAP = "default";
+    final static String SCHOOL_MAP = "school";
+    final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP);
+    static String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
 
     //BLOCK POS FOR CLOCKTOWER MAP
-    private final static BlockPos EXECUTE_POS = new BlockPos(6,-29,-2);
-    private final static BlockPos EVIL_ROOM_POS = new BlockPos(126,-28,57);
+    final static BlockPos EXECUTE_POS = new BlockPos(6,-29,-2);
+    final static BlockPos EVIL_ROOM_POS = new BlockPos(126,-28,57);
 
     public static File getConfigFilePath() {
         // Get the Minecraft config directory
@@ -167,365 +162,8 @@ public class BotcFab implements ModInitializer {
         return switch (mapSelected) {
             case DEFAULT_MAP -> modFolder.resolve("BOTC-coords-sheet.csv").toFile();
             case SCHOOL_MAP -> modFolder.resolve("school-BOTC-coords-sheet.csv").toFile();
-            default -> modFolder.resolve("BOTC-coords-sheet.csv").toFile();
+            default -> null;
         };
-    }
-
-    private static void sendMessageToPlayers(Text messageText, List<ServerPlayerEntity> playerList){
-        for (ServerPlayerEntity p:playerList){
-            p.sendMessage(messageText);
-        }
-    }
-
-    private static String getColourFromPlayer(ServerPlayerEntity player){
-        Set<String> tags = player.getCommandTags();
-        for (String i : POSSIBLE_COLOURS){
-            if (tags.contains(i)){
-                return i;
-            }
-        }
-        return "";
-    }
-
-    private static ServerPlayerEntity getPlayerFromColour(String colour, MinecraftServer srv){
-        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
-        if (playerList != null){
-            for (ServerPlayerEntity p : playerList) {
-                Set<String> tags = p.getCommandTags();
-                if (tags.contains(colour)) {
-                    return p;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static int getColourHex(String colour){
-        if (POSSIBLE_COLOURS.contains(colour)) {
-            return COLOUR_HEX.get(POSSIBLE_COLOURS.indexOf(colour));
-        } else {
-            return 0;
-        }
-    }
-
-    private static void showTitle(ServerPlayerEntity player, Text titleText){
-        player.networkHandler.sendPacket(new TitleS2CPacket(titleText));
-    }
-
-    private static void placeLever(ServerWorld world, BlockPos pos, Direction facing, BlockFace wallSide) {
-        if (world == null || world.isClient) return;
-
-        LeverBlock lever = (LeverBlock) Blocks.LEVER;
-        LOGGER.info("Setting lever state...");
-        // Create the desired lever block state
-        var state = lever.getDefaultState()
-                //.with(Properties.HORIZONTAL_FACING, facing)
-                .with(LeverBlock.FACING, facing)
-                .with(LeverBlock.FACE, wallSide)
-                .with(Properties.POWERED, false); // default off
-
-        // Place it in the world
-        if (world.setBlockState(pos, state, Block.NOTIFY_ALL)) {
-            LOGGER.info("lever placed success");
-        } else LOGGER.info("lever failed");
-    }
-
-    private static void placeSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour) {
-        if (world == null || world.isClient) return;
-
-        //WallSignBlock sign = (WallSignBlock) Blocks.SPRUCE_WALL_SIGN;
-
-        // Place a spruce wall sign facing arg direction
-        world.setBlockState(pos, Blocks.SPRUCE_WALL_SIGN.getDefaultState()
-                .with(Properties.HORIZONTAL_FACING, facing));
-
-        SignBlockEntity sign = (SignBlockEntity) world.getBlockEntity(pos);
-        if (sign != null) {
-            Text[] signPlayerName = new Text[]{
-                    Text.literal(""),
-                    text, // Replace line 2 with player name, leave other lines empty
-                    Text.literal(""),
-                    Text.literal("")
-            };
-
-            //Format the sign text player name with colour
-            SignText formatText = new SignText(signPlayerName, signPlayerName, DyeColor.byName(colour, DyeColor.BLACK), true);
-            sign.setText(formatText, true);
-            sign.setWaxed(true);
-
-            // Mark updated
-            sign.markDirty();
-            world.updateListeners(pos, sign.getCachedState(), sign.getCachedState(), 3);
-        }
-    }
-
-    private static void updateVoteStatus(ServerWorld world, ServerPlayerEntity player){
-        //Update vote marker and lamp for all players by checking tags
-        Set<String> tags = player.getCommandTags();
-        String playerColour = getColourFromPlayer(player);
-        //Replace lamps
-        if (tags.contains(ALIVE)){
-            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
-            world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_COPPER_BULB.getDefaultState());
-            //Add back lever in case of revivals
-            switch (mapSelected) {
-                case DEFAULT_MAP: //Levers face different ways on maps
-                    switch (playerColour) {
-                        case "black", "cyan", "white":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR);
-                            break;
-                        case "yellow", "pink", "gray":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
-                            break;
-                        case "orange", "red", "brown":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, BlockFace.FLOOR);
-                            break;
-                        case "purple", "green", "blue":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
-                            break;
-                    }
-                    break;
-                case SCHOOL_MAP: //
-                    placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR); //Make sure direction is correct later
-            }
-
-        }
-        if (tags.contains(GHOST)){
-            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.IRON_BLOCK.getDefaultState());
-            world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState());
-        }
-        if (tags.contains(DEAD)){
-            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
-            world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
-            world.setBlockState(mapCoords.get(playerColour).lever, Blocks.AIR.getDefaultState()); //Remove lever
-        }
-    }
-
-    private static void createTeam(@NotNull ServerScoreboard scoreboard, String teamName) {
-        // Check if the team already exists. Should only need to run once per server
-        Team team = scoreboard.getTeam(teamName);
-        if (team == null) {
-            // Create the team if it doesn't exist
-            team = scoreboard.addTeam(teamName);
-            System.out.println("Created new team: " + teamName);
-        } else {
-            System.out.println("Team already exists: " + teamName);
-        }
-        team.setShowFriendlyInvisibles(true); //makes invisible players visible
-    }
-
-    private static void resetPlayer(@NotNull PlayerEntity player) { //Removes all game based tags from a player
-        for (String tag : ALL_TAGS) {
-            player.removeCommandTag(tag);
-        }
-        for (String tag : POSSIBLE_COLOURS) {
-            player.removeCommandTag(tag);
-        }
-    }
-
-    private static void removeTagAllPlayers(String tag, MinecraftServer srv){
-        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
-        if (playerList != null) {
-            for (ServerPlayerEntity p : playerList) {
-                p.removeCommandTag(tag);
-            }
-        }
-    }
-
-    private static int getTagCount(String tag, MinecraftServer srv){
-        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
-        int count = 0;
-        if (playerList != null) {
-            for (ServerPlayerEntity p : playerList) {
-                Set<String> tags = p.getCommandTags();
-                if (tags.contains(tag))
-                    count++;
-            }
-        }
-        return count;
-    }
-
-    //int colourHex = getColourHex(c);
-    private static void setColourBoots(ServerPlayerEntity p, String c){ //Give player boots with assigned colour
-
-        //String colourRGB = Color.decode(Integer.toString(colourHex)).toString();
-
-        ItemStack boots = new ItemStack(Items.LEATHER_BOOTS);
-        List<DyeItem> dyes = List.of(DyeItem.byColor(DyeColor.byName(c,DyeColor.LIME))); //Defaults to lime if colour not got from String
-        ItemStack dyedBoots = DyedColorComponent.setColor(boots, dyes);
-        p.getInventory().setStack(36,dyedBoots); //36 is slot for boots, IDK why help
-    }
-
-    private static void accusePlayer(ServerPlayerEntity player){
-        removeTagAllPlayers(ACCUSED, Objects.requireNonNull(player.getServer()));
-        player.addCommandTag(ACCUSED);
-    }
-
-    private static void markPlayerDemonKill(ServerPlayerEntity player){
-        Set<String> tags = player.getCommandTags();
-        if (!tags.contains(GHOST) && !tags.contains(DEAD)) { //If player already dead, do not tag for announce.
-            player.addCommandTag(DEATH_FLAG);
-        }
-    }
-
-    private static void markPlayerRevived(ServerPlayerEntity player){
-        Set<String> tags = player.getCommandTags();
-        if (!tags.contains(ALIVE)) { //If player still alive do not mark for revival
-            player.addCommandTag(REVIVE_FLAG);
-        }
-    }
-
-    private static void killPlayer(ServerPlayerEntity player){
-        ServerWorld world = player.getServerWorld();
-        Set<String> tags = player.getCommandTags();
-        if (!tags.contains(GHOST) && !tags.contains(DEAD)) {
-            player.addCommandTag(GHOST);
-            player.removeCommandTag(ALIVE);
-            updateVoteStatus(world,player);
-        }
-        else {
-            world.getServer().getCommandSource().sendFeedback(() -> Text.literal("They're already dead :("),false);
-        }
-    }
-
-    private static void revivePlayer(ServerPlayerEntity player){
-        ServerWorld world = player.getServerWorld();
-        Set<String> tags = player.getCommandTags();
-        if (tags.contains(GHOST) || tags.contains(DEAD)) {
-            player.removeCommandTag(GHOST);
-            player.removeCommandTag(DEAD);
-            player.addCommandTag(ALIVE);
-            updateVoteStatus(world,player);
-        }
-        else {
-            world.getServer().getCommandSource().sendFeedback(() -> Text.literal("They're already alive :)"),false);
-        }
-    }
-
-    private static void tp(ServerPlayerEntity player, BlockPos destination){ //teleports player to BlockPos by converting to x,y,z
-        player.teleport(destination.getX()+0.5,destination.getY(),destination.getZ()+0.5,false); //0.5 for centre of block
-    }
-
-    private static void teleportPlayers(String location, MinecraftServer srv){
-        //location either "home" or "vote"
-        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
-        String colour;
-        switch (location){
-            case "home","house","dorm":
-                for (ServerPlayerEntity p : playerList) {
-                    colour = getColourFromPlayer(p);
-                    if (!Objects.equals(colour, "")) {
-                        tp(p, mapCoords.get(colour).homeInside); //teleport player to coords
-                    }
-                }
-                break;
-            case "vote","chair","town":
-                for (ServerPlayerEntity p : playerList) {
-                    colour = getColourFromPlayer(p);
-                    if (!Objects.equals(colour, "")) {
-                        tp(p, mapCoords.get(colour).chair.up(1)); //Needs to go up 1 so space isn't occupied
-                    }
-                }
-                break;
-            case "legion","evil":
-                for (ServerPlayerEntity p : playerList) {
-                    Set<String> tags = p.getCommandTags();
-                    if (tags.contains(LEGION)) {
-                        tp(p, EVIL_ROOM_POS); //Needs to go up 1 so space isn't occupied
-                    }
-                }
-                break;
-        }
-    }
-
-    private static int leaveMinigames(CommandContext<ServerCommandSource> context){ //Teleports player back to home
-        ServerPlayerEntity player = context.getSource().getPlayer(); //might need to change to take input player
-        if (player != null) {
-            String colour = getColourFromPlayer(player);
-            if (!Objects.equals(colour, "")) {
-                tp(player, mapCoords.get(colour).homeInside);
-            } else {
-                return 0;
-            }
-            return 1;
-        } else {
-            return 0;
-        }
-    }
-
-    private static MutableText getEventText(ServerPlayerEntity player, String event){
-        MutableText eventMsg;
-        MutableText playerName = player.getStyledDisplayName().copy(); //Should be formatted with player colour from team
-        eventMsg = switch (event) {
-            case REVIVE_FLAG -> REVIVE_TEXT;
-            case DEATH_FLAG -> KILL_TEXT;
-            case CURRENT_EXECUTEE -> EXECUTE_TEXT;
-            default -> Text.literal(" needs to tell Ruby she is bad at coding");
-        };
-        return playerName.append(eventMsg);
-    }
-
-    private ActionResult onRightClickEntity(PlayerEntity player, World world, Hand hand, Entity entity, @Nullable EntityHitResult entityHitResult) {
-        // Make sure the entity is a player (targeting another player)
-        if (entity instanceof PlayerEntity target) {
-            ItemStack itemInHand = player.getStackInHand(hand);
-
-            // Check if the player is holding the specific item and Hand is not empty
-            if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.BREEZE_ROD) {
-                if (target instanceof ServerPlayerEntity serverTarget) {
-                    // Added selector tag to player
-                    accusePlayer(serverTarget); //TODO seems to trigger twice? need to fix, non-urgent
-                    player.sendMessage(Text.literal("You tagged ").append(target.getName()), false);
-                    world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 0.6F, 0.7F);
-                }
-                return ActionResult.SUCCESS; // Return success to stop further processing
-            }
-        }
-        return ActionResult.PASS; // Pass if not right-clicking with the correct item or targeting a player
-    }
-
-    private ActionResult onRightClickItem(PlayerEntity player, World world, Hand hand) { //Checks if player right-clicked with paper, then sends player order
-        ItemStack itemInHand = player.getStackInHand(hand);
-        // Check if the player is holding the specific item and Hand is not empty
-        if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.PAPER) {
-            player.sendMessage(getPlayerOrder(Objects.requireNonNull(world.getServer())), false);
-            return ActionResult.SUCCESS;
-        }
-        //Check for heart pottery shard named "Emergency Teleport"
-        if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.HEART_POTTERY_SHERD) {
-            String colour = getColourFromPlayer((ServerPlayerEntity) player);
-            tp((ServerPlayerEntity) player, mapCoords.get(colour).homeInside);
-            return ActionResult.SUCCESS;
-        }
-        return ActionResult.PASS;
-    }
-
-    private static void createOrSetAliveDisplay(ServerScoreboard scoreboard, MinecraftServer srv){
-        int alivePlayers = getTagCount(ALIVE, srv);
-        int deadPlayers = getTagCount(GHOST, srv) + getTagCount(DEAD, srv);
-        int voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
-        ScoreboardObjective objective = scoreboard.getNullableObjective(INFO_OBJECTIVE);
-        NumberFormat numberFormat = StyledNumberFormat.YELLOW; //Can be RED, YELLOW or EMPTY
-        if (objective == null){
-        objective = scoreboard.addObjective(
-                INFO_OBJECTIVE, // Objective name (unique id)
-                ScoreboardCriterion.DUMMY, // Criterion type (dummy = manual numbers)
-                Text.literal("Player Info"), // Display name (shown in sidebar, below name, etc.)
-                ScoreboardCriterion.RenderType.INTEGER, // Render type (number type)
-                true, //Whether the value updates live
-                numberFormat //Format of numbers, colour and display
-        );
-        }
-        ScoreAccess aliveScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(ALIVE_SCORE_HOLDER),objective);
-        ScoreAccess deadScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(DEAD_SCORE_HOLDER),objective);
-        ScoreAccess voteScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(VOTE_SCORE_HOLDER),objective);
-        aliveScoreAccess.setDisplayText(Text.literal("Alive "));
-        aliveScoreAccess.setScore(alivePlayers);
-        deadScoreAccess.setDisplayText(Text.literal("Dead "));
-        deadScoreAccess.setScore(deadPlayers);
-        voteScoreAccess.setDisplayText(Text.literal("Vote Threshold "));
-        voteScoreAccess.setScore(voteThreshold);
-        scoreboard.setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR,objective);
     }
 
     private void onGameInit(MinecraftServer srv) { //Run this on server startup, players do not need to be connected
@@ -551,7 +189,7 @@ public class BotcFab implements ModInitializer {
         world.getGameRules().get(GameRules.PLAYERS_SLEEPING_PERCENTAGE).set(200, world.getServer());
 
         // Create the one and only team we need
-        createTeam(scoreboard, TEAM_ALL);
+        createTeam(scoreboard);
 
         // Loop through all colours in map
         for (String i : mapCoords.keySet()) {
@@ -688,163 +326,6 @@ public class BotcFab implements ModInitializer {
         nightFalls(context);
 
         return 1;
-    }
-
-    private static int onAddSpectator(CommandContext<ServerCommandSource> context) {
-        ServerCommandSource src = context.getSource();
-        MinecraftServer srv = src.getServer();
-        PlayerManager playerMgr = srv.getPlayerManager();
-        String specName = StringArgumentType.getString(context, "player_name"); //Gets spectator player name from command
-        ServerPlayerEntity specTarget = playerMgr.getPlayer(specName);
-        if (specTarget == null) {
-
-            System.out.println("Couldn't find player");
-            return 0;
-        }
-
-        resetPlayer(specTarget);
-        specTarget.addCommandTag(SPEC);
-        specTarget.changeGameMode(GameMode.SPECTATOR);
-
-        src.sendFeedback(() -> Text.literal("Called /addSpectator with value 1 = %s ".formatted(specName)), false);
-        return 1;
-    }
-
-    private void onWorldTick(ServerWorld world) {
-        List<ServerPlayerEntity> playerList = world.getServer().getPlayerManager().getPlayerList(); //gets all players every tick
-        for (String i : mapCoords.keySet()) {
-            BlockPos leverPos = mapCoords.get(i).lever; // Get the block state at that position
-            BlockState leverState = world.getBlockState(leverPos); // Get the block state at that position
-            // Check if lever powered (true = powered)
-            if (leverState.isOf(Blocks.LEVER)){
-                BlockPos voteLampPos = mapCoords.get(i).lampsVoteMarker;
-                BlockState voteLampState = world.getBlockState(mapCoords.get(i).lampsVoteMarker);
-                //Update lamp state based on lever state
-                if (voteLampState.contains(Properties.LIT)){
-                    BlockState updatedBulbState = voteLampState.with(Properties.LIT, leverState.get(Properties.POWERED));
-                    world.setBlockState(voteLampPos, updatedBulbState, 3);
-                }
-                if (voteLampState.isOf(Blocks.WAXED_OXIDIZED_COPPER) || voteLampState.isOf(Blocks.SEA_LANTERN)) {
-                    if (leverState.get(Properties.POWERED)) {
-                        world.setBlockState(voteLampPos, Blocks.SEA_LANTERN.getDefaultState(), 3);
-                    } else {
-                        world.setBlockState(voteLampPos, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState(), 3);
-                    }
-                }
-            }
-        }
-        if (playerList != null) {
-            //Code for player death particles and particle effects
-            for (ServerPlayerEntity p : playerList) { //uses full server list to avoid calling null
-                Set<String> tags = p.getCommandTags();
-                p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 1, false, false));
-                //TODO Change this add to coloured particles? maybe a beacon highlight in vote phase.
-                if (tags.contains(DEAD) || tags.contains(GHOST) || (tags.contains(STORYTELLER))) {
-                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
-                    if (tags.contains(SPEC)) {
-                        world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.001);
-                    }
-                }
-                if (tags.contains(ALIVE)) {
-                    p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for alive players
-                }
-
-                if (tags.contains(ACCUSED) || tags.contains(MARKED)) {
-                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, -1, 1, false, false));
-                } else {
-                    p.removeStatusEffect(StatusEffects.GLOWING);
-                }
-            }
-            //Code for execution checks
-            if (executionInProgress) {
-                boolean executionFinished = false;
-                ServerPlayerEntity executee = getPlayerFromColour(CURRENT_EXECUTEE,world.getServer());
-                if (executee != null){
-                    switch (mapSelected) {
-                        case DEFAULT_MAP:
-                            Vec3d murderZone = new Vec3d(EXECUTE_POS.down(1).getX()+0.5, EXECUTE_POS.down(1).getY()+0.3, EXECUTE_POS.down(1).getZ()+0.5); //Get centre of block
-                            double distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
-                            if (distance > 1.2) {
-                                executee.teleport(murderZone.getX(),murderZone.getY(),murderZone.getZ(),false); //needs accurate tp
-                                executee.sendMessage(Text.literal("Nice try :)"), false);
-                            }
-
-                            BlockState anvilPosState = world.getBlockState(EXECUTE_POS);
-                            if (anvilPosState.isOf(Blocks.ANVIL) || anvilPosState.isOf(Blocks.CHIPPED_ANVIL) || anvilPosState.isOf(Blocks.DAMAGED_ANVIL)) {
-                                world.setBlockState(EXECUTE_POS, Blocks.AIR.getDefaultState());
-                                executionFinished = true; //used so
-                            }
-                            break;
-                        case SCHOOL_MAP:
-                            if (executee.getBlockPos().getY() < -30) { //checks if played being executed is below certain y level.
-                                executionFinished = true;
-                                //also place all pit cover blocks back
-                            }
-                            break;
-                    }
-                    if (executionFinished) { //code that overlaps for all maps
-                        killPlayer(executee);
-                        //sends message in chat for kill
-                        world.getServer().sendMessage(getEventText(executee,CURRENT_EXECUTEE));
-                        sendMessageToPlayers(getEventText(executee,CURRENT_EXECUTEE), playerList); //Sends execution message to all players
-                        executee.removeCommandTag(CURRENT_EXECUTEE);
-                        executionInProgress = false;
-                    }
-                } else {
-                    //No player is being executed
-                    world.getServer().sendMessage(Text.literal("No pony is being executed, cancelling execution phase"));
-                    executionInProgress = false;
-                }
-            }
-        }
-
-    }
-
-    private void onServerTick(MinecraftServer srv){
-        if (timerBarActive) { //Timer bar for talk time
-            timerBarTicks++;
-            float progress = 1.0f - (float) timerBarTicks / timerDurationTicks;
-            if (timerBar != null) {
-                timerBar.setPercent(Math.max(progress, 0f));
-            }
-            //TODO change colour on low percentage
-
-            if (timerBarTicks >= timerDurationTicks) { //On timer finish
-                timerBarActive = false;
-                timerBarTicks = 0;
-                if (timerBar != null) {
-                    timerBar.setPercent(0f);
-                    timerBar.setVisible(false); //Make timer invisible as finished
-                    for (ServerPlayerEntity p : srv.getPlayerManager().getPlayerList()) {
-                        showTitle(p,Text.literal("TIME UP"));
-                    }
-                }
-            }
-        }
-        if (playersLockedToSeats && srv.getPlayerManager().getPlayerList() != null) { //checks if players locked is true and players list is not null
-            for (ServerPlayerEntity p:srv.getPlayerManager().getPlayerList()) {
-                Set<String> tags = p.getCommandTags();
-                if (!tags.contains(STORYTELLER) || !tags.contains(SPEC)){
-                    String playerColour = getColourFromPlayer(p);
-                    //BlockPos playerPos = p.getBlockPos();
-                    Vec3d playerPos = p.getPos();
-                    BlockPos targetPos;
-
-                    if (!tags.contains(CURRENT_EXECUTEE)) { //Check player is not currently being executed
-                        targetPos = mapCoords.get(playerColour).chair.up(1);
-                    } else {
-                        break;
-                    }
-
-                    //double distance = playerPos.getSquaredDistance(targetPos);
-                    double distance = playerPos.squaredDistanceTo(targetPos.getX()+0.5, targetPos.getY()+0.5, targetPos.getZ()+0.5); //accounts for slab of chair now
-                    if (distance > 1.5) {
-                        tp(p,targetPos);
-                        p.sendMessage(Text.literal("You were too far away. Teleporting to target..."), false);
-                    }
-                }
-            }
-        }
     }
 
     private static int nightFalls(CommandContext<ServerCommandSource> context){
@@ -1020,26 +501,6 @@ public class BotcFab implements ModInitializer {
         TickScheduler.scheduleGroup(taskList, onAllDone);
     }
 
-    private static void executePlayer(ServerPlayerEntity player){
-        player.addCommandTag(CURRENT_EXECUTEE);
-        ServerWorld world = player.getServerWorld();
-        MinecraftServer srv = world.getServer();
-        ServerScoreboard scoreboard = srv.getScoreboard();
-        //TODO TEST THIS
-        playersLockedToSeats = false;
-        executionInProgress = true;
-        switch (mapSelected) {
-            case DEFAULT_MAP:
-                tp(player, EXECUTE_POS.down(1)); //tp executed player to the block
-                world.setBlockState(EXECUTE_POS.up(250), Blocks.ANVIL.getDefaultState()); //create anvil 50 blocks up above execution
-                break;
-            case SCHOOL_MAP:
-                //TODO open pit here and teleport player
-                break;
-        }
-        createOrSetAliveDisplay(scoreboard, srv);
-    }
-
     private static int beginExecution(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = context.getSource().getServer();
@@ -1050,6 +511,59 @@ public class BotcFab implements ModInitializer {
             executePlayer(player);
         } else src.sendFeedback(() -> Text.literal("No pony is marked for execution so no pony was killed"),false);
         return 1;
+    }
+
+    static void createTeam(@NotNull ServerScoreboard scoreboard) {
+        // Check if the team already exists. Should only need to run once per server
+        Team team = scoreboard.getTeam(BotcFab.TEAM_ALL);
+        if (team == null) {
+            // Create the team if it doesn't exist
+            team = scoreboard.addTeam(BotcFab.TEAM_ALL);
+            System.out.println("Created new team: " + BotcFab.TEAM_ALL);
+        } else {
+            System.out.println("Team already exists: " + BotcFab.TEAM_ALL);
+        }
+        team.setShowFriendlyInvisibles(true); //makes invisible players visible
+    }
+
+    static void createOrSetAliveDisplay(ServerScoreboard scoreboard, MinecraftServer srv){
+        int alivePlayers = getTagCount(ALIVE, srv);
+        int deadPlayers = getTagCount(GHOST, srv) + getTagCount(DEAD, srv);
+        int voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
+        ScoreboardObjective objective = scoreboard.getNullableObjective(INFO_OBJECTIVE);
+        NumberFormat numberFormat = StyledNumberFormat.YELLOW; //Can be RED, YELLOW or EMPTY
+        if (objective == null){
+            objective = scoreboard.addObjective(
+                    INFO_OBJECTIVE, // Objective name (unique id)
+                    ScoreboardCriterion.DUMMY, // Criterion type (dummy = manual numbers)
+                    Text.literal("Player Info"), // Display name (shown in sidebar, below name, etc.)
+                    ScoreboardCriterion.RenderType.INTEGER, // Render type (number type)
+                    true, //Whether the value updates live
+                    numberFormat //Format of numbers, colour and display
+            );
+        }
+        ScoreAccess aliveScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(ALIVE_SCORE_HOLDER),objective);
+        ScoreAccess deadScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(DEAD_SCORE_HOLDER),objective);
+        ScoreAccess voteScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(VOTE_SCORE_HOLDER),objective);
+        aliveScoreAccess.setDisplayText(Text.literal("Alive "));
+        aliveScoreAccess.setScore(alivePlayers);
+        deadScoreAccess.setDisplayText(Text.literal("Dead "));
+        deadScoreAccess.setScore(deadPlayers);
+        voteScoreAccess.setDisplayText(Text.literal("Vote Threshold "));
+        voteScoreAccess.setScore(voteThreshold);
+        scoreboard.setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR,objective);
+    }
+
+    private static MutableText getEventText(ServerPlayerEntity player, String event){
+        MutableText eventMsg;
+        MutableText playerName = player.getStyledDisplayName().copy(); //Should be formatted with player colour from team
+        eventMsg = switch (event) {
+            case REVIVE_FLAG -> REVIVE_TEXT;
+            case DEATH_FLAG -> KILL_TEXT;
+            case CURRENT_EXECUTEE -> EXECUTE_TEXT;
+            default -> Text.literal(" needs to tell Ruby she is bad at coding");
+        };
+        return playerName.append(eventMsg);
     }
 
     private static void startTimer(MinecraftServer srv, int duration){ //Starts a timer and shows boss bar as remaining, duration in seconds
@@ -1069,17 +583,176 @@ public class BotcFab implements ModInitializer {
         srv.sendMessage(Text.literal("Boss bar timer started."));
     }
 
-    private static MutableText getPlayerOrder(MinecraftServer srv){
-        MutableText PlayerOrderMessage = Text.literal("Player Order: \n");
-        for (ServerPlayerEntity p:srv.getPlayerManager().getPlayerList()){
-            if (!p.getCommandTags().contains(STORYTELLER)) {
-                String colour = getColourFromPlayer(p);
-                PlayerOrderMessage
-                        .append(p.getStyledDisplayName().copy().setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(colour)))))  // Player name with colour
-                        .append(Text.literal("\n")); //New line
+    private void onWorldTick(ServerWorld world) {
+        List<ServerPlayerEntity> playerList = world.getServer().getPlayerManager().getPlayerList(); //gets all players every tick
+        for (String i : mapCoords.keySet()) {
+            BlockPos leverPos = mapCoords.get(i).lever; // Get the block state at that position
+            BlockState leverState = world.getBlockState(leverPos); // Get the block state at that position
+            // Check if lever powered (true = powered)
+            if (leverState.isOf(Blocks.LEVER)){
+                BlockPos voteLampPos = mapCoords.get(i).lampsVoteMarker;
+                BlockState voteLampState = world.getBlockState(mapCoords.get(i).lampsVoteMarker);
+                //Update lamp state based on lever state
+                if (voteLampState.contains(Properties.LIT)){
+                    BlockState updatedBulbState = voteLampState.with(Properties.LIT, leverState.get(Properties.POWERED));
+                    world.setBlockState(voteLampPos, updatedBulbState, 3);
+                }
+                if (voteLampState.isOf(Blocks.WAXED_OXIDIZED_COPPER) || voteLampState.isOf(Blocks.SEA_LANTERN)) {
+                    if (leverState.get(Properties.POWERED)) {
+                        world.setBlockState(voteLampPos, Blocks.SEA_LANTERN.getDefaultState(), 3);
+                    } else {
+                        world.setBlockState(voteLampPos, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState(), 3);
+                    }
+                }
             }
         }
-        return PlayerOrderMessage;
+        if (playerList != null) {
+            //Code for player death particles and particle effects
+            for (ServerPlayerEntity p : playerList) { //uses full server list to avoid calling null
+                Set<String> tags = p.getCommandTags();
+                p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 1, false, false));
+                //TODO Change this add to coloured particles? maybe a beacon highlight in vote phase.
+                if (tags.contains(DEAD) || tags.contains(GHOST) || (tags.contains(STORYTELLER))) {
+                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
+                    if (tags.contains(SPEC)) {
+                        world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.001);
+                    }
+                }
+                if (tags.contains(ALIVE)) {
+                    p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for alive players
+                }
+
+                if (tags.contains(ACCUSED) || tags.contains(MARKED)) {
+                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, -1, 1, false, false));
+                } else {
+                    p.removeStatusEffect(StatusEffects.GLOWING);
+                }
+            }
+            //Code for execution checks
+            if (executionInProgress) {
+                boolean executionFinished = false;
+                ServerPlayerEntity executee = getPlayerFromColour(CURRENT_EXECUTEE,world.getServer());
+                if (executee != null){
+                    switch (mapSelected) {
+                        case DEFAULT_MAP:
+                            Vec3d murderZone = new Vec3d(EXECUTE_POS.down(1).getX()+0.5, EXECUTE_POS.down(1).getY()+0.3, EXECUTE_POS.down(1).getZ()+0.5); //Get centre of block
+                            double distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
+                            if (distance > 1.2) {
+                                executee.teleport(murderZone.getX(),murderZone.getY(),murderZone.getZ(),false); //needs accurate tp
+                                executee.sendMessage(Text.literal("Nice try :)"), false);
+                            }
+
+                            BlockState anvilPosState = world.getBlockState(EXECUTE_POS);
+                            if (anvilPosState.isOf(Blocks.ANVIL) || anvilPosState.isOf(Blocks.CHIPPED_ANVIL) || anvilPosState.isOf(Blocks.DAMAGED_ANVIL)) {
+                                world.setBlockState(EXECUTE_POS, Blocks.AIR.getDefaultState());
+                                executionFinished = true; //used so
+                            }
+                            break;
+                        case SCHOOL_MAP:
+                            if (executee.getBlockPos().getY() < -30) { //checks if played being executed is below certain y level.
+                                executionFinished = true;
+                                //also place all pit cover blocks back
+                            }
+                            break;
+                    }
+                    if (executionFinished) { //code that overlaps for all maps
+                        killPlayer(executee);
+                        //sends message in chat for kill
+                        world.getServer().sendMessage(getEventText(executee,CURRENT_EXECUTEE));
+                        sendMessageToPlayers(getEventText(executee,CURRENT_EXECUTEE), playerList); //Sends execution message to all players
+                        executee.removeCommandTag(CURRENT_EXECUTEE);
+                        executionInProgress = false;
+                    }
+                } else {
+                    //No player is being executed
+                    world.getServer().sendMessage(Text.literal("No pony is being executed, cancelling execution phase"));
+                    executionInProgress = false;
+                }
+            }
+        }
+
+    }
+
+    private void onServerTick(MinecraftServer srv){
+        if (timerBarActive) { //Timer bar for talk time
+            timerBarTicks++;
+            float progress = 1.0f - (float) timerBarTicks / timerDurationTicks;
+            if (timerBar != null) {
+                timerBar.setPercent(Math.max(progress, 0f));
+            }
+            //TODO change colour on low percentage
+
+            if (timerBarTicks >= timerDurationTicks) { //On timer finish
+                timerBarActive = false;
+                timerBarTicks = 0;
+                if (timerBar != null) {
+                    timerBar.setPercent(0f);
+                    timerBar.setVisible(false); //Make timer invisible as finished
+                    for (ServerPlayerEntity p : srv.getPlayerManager().getPlayerList()) {
+                        showTitle(p,Text.literal("TIME UP"));
+                    }
+                }
+            }
+        }
+        if (playersLockedToSeats && srv.getPlayerManager().getPlayerList() != null) { //checks if players locked is true and players list is not null
+            for (ServerPlayerEntity p:srv.getPlayerManager().getPlayerList()) {
+                Set<String> tags = p.getCommandTags();
+                if (!tags.contains(STORYTELLER) || !tags.contains(SPEC)){
+                    String playerColour = getColourFromPlayer(p);
+                    //BlockPos playerPos = p.getBlockPos();
+                    Vec3d playerPos = p.getPos();
+                    BlockPos targetPos;
+
+                    if (!tags.contains(CURRENT_EXECUTEE)) { //Check player is not currently being executed
+                        targetPos = mapCoords.get(playerColour).chair.up(1);
+                    } else {
+                        break;
+                    }
+
+                    //double distance = playerPos.getSquaredDistance(targetPos);
+                    double distance = playerPos.squaredDistanceTo(targetPos.getX()+0.5, targetPos.getY()+0.5, targetPos.getZ()+0.5); //accounts for slab of chair now
+                    if (distance > 1.5) {
+                        tp(p,targetPos);
+                        p.sendMessage(Text.literal("You were too far away. Teleporting to target..."), false);
+                    }
+                }
+            }
+        }
+    }
+
+    private ActionResult onRightClickEntity(PlayerEntity player, World world, Hand hand, Entity entity, @Nullable EntityHitResult entityHitResult) {
+        // Make sure the entity is a player (targeting another player)
+        if (entity instanceof PlayerEntity target) {
+            ItemStack itemInHand = player.getStackInHand(hand);
+
+            // Check if the player is holding the specific item and Hand is not empty
+            if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.BREEZE_ROD) {
+                if (target instanceof ServerPlayerEntity serverTarget) {
+                    // Added selector tag to player
+                    accusePlayer(serverTarget); //TODO seems to trigger twice? need to fix, non-urgent
+                    player.sendMessage(Text.literal("You tagged ").append(target.getName()), false);
+                    world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 0.6F, 0.7F);
+                }
+                return ActionResult.SUCCESS; // Return success to stop further processing
+            }
+        }
+        return ActionResult.PASS; // Pass if not right-clicking with the correct item or targeting a player
+    }
+
+    private ActionResult onRightClickItem(PlayerEntity player, World world, Hand hand) { //Checks if player right-clicked with paper, then sends player order
+        ItemStack itemInHand = player.getStackInHand(hand);
+        // Check if the player is holding the specific item and Hand is not empty
+        if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.PAPER) {
+            player.sendMessage(getPlayerOrder(Objects.requireNonNull(world.getServer())), false);
+            return ActionResult.SUCCESS;
+        }
+        //Check for heart pottery shard named "Emergency Teleport"
+        if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.HEART_POTTERY_SHERD) {
+            String colour = getColourFromPlayer((ServerPlayerEntity) player);
+            tp((ServerPlayerEntity) player, mapCoords.get(colour).homeInside);
+            return ActionResult.SUCCESS;
+        }
+        return ActionResult.PASS;
     }
 
     private static void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
@@ -1123,7 +796,7 @@ public class BotcFab implements ModInitializer {
                 CommandManager.argument("player_name", StringArgumentType.string())
                         .requires(source -> source.hasPermissionLevel(2))
                         .suggests(new PlayerSuggestionProvider())
-                        .executes(BotcFab::onAddSpectator)
+                        .executes(PlayerUtils::onAddSpectator)
         ));
 
         dispatcher.register(literal("botc_tpPlayers").then(
@@ -1148,7 +821,7 @@ public class BotcFab implements ModInitializer {
         ));
 
         dispatcher.register(literal("leaveMinigames")
-                .executes(BotcFab::leaveMinigames));
+                .executes(PlayerUtils::leaveMinigames));
 
         dispatcher.register(literal("botc_startTimer").then( //Starts a timer boss bar for [argument] minutes
                 CommandManager.argument("stringTime", StringArgumentType.string())
@@ -1274,7 +947,6 @@ public class BotcFab implements ModInitializer {
         // This code runs as soon as Minecraft is in a mod-load-ready state.
         // However, some things (like resources) may still be uninitialized.
         // Proceed with mild caution.
-        //TODO Find a way for commands to be op only
 
         LOGGER.info("Hello Fabric world!");
         //Run on each world end tick
