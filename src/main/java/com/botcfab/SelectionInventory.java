@@ -92,7 +92,7 @@ public class SelectionInventory {
                 case 4: //Lock in votes
                     player.sendMessage(Text.literal("Locking in votes"), true);
                     BotcFab.voteLockIn(player.getCommandSource());
-                    break;
+                    break; //TODO Finish adding commands
                 case 7: //Demon kill mark for night
                     if (selectedPlayer != null) {
                         player.sendMessage(Text.literal("Marked " + selectedPlayer.getNameForScoreboard() + " for demon kill (" + selectedColour), true);
@@ -102,8 +102,12 @@ public class SelectionInventory {
                     }
                     break;
                 case 8: //Revive player for night
-                    player.sendMessage(Text.literal(""), true);
-                    BotcFab.startDay(player.getCommandSource());
+                    if (selectedPlayer != null) {
+                        player.sendMessage(Text.literal("Added " + selectedPlayer.getNameForScoreboard() + " to revival list (" + selectedColour), true);
+                        PlayerUtils.markPlayerRevived(selectedPlayer);
+                    } else {
+                        player.sendMessage(Text.literal("Please select a valid colour from the row below first"), false);
+                    }
                     break;
                 default:
                     player.sendMessage(Text.literal("Unknown selection."), false);
