@@ -69,55 +69,50 @@ public class SelectionInventory {
         player.openHandledScreen(screenHandlerFactory);
     }
 
-    public static void handleSelection(ServerPlayerEntity player, int index, String type) {
-        if (Objects.equals(type, "command")) {
-            switch (index) {
-                //TODO put BOTC commands here
-                case 0: //setup
-                    player.sendMessage(Text.literal("Setting up game"), false);
-                    BotcFab.setupGame(player.getCommandSource());
-                    break;
-                case 1: //begin game
-                    player.sendMessage(Text.literal("Beginning game and teleporting players"), false);
-                    BotcFab.beginGame(player.getCommandSource());
-                    break;
-                case 2: //start day
-                    player.sendMessage(Text.literal("Starting day"), false);
-                    BotcFab.startDay(player.getCommandSource());
-                    break;
-                case 3: //night falls
-                    player.sendMessage(Text.literal("Ending day"), false);
-                    BotcFab.nightFalls(player.getCommandSource());
-                    break;
-                case 4: //Lock in votes
-                    player.sendMessage(Text.literal("Locking in votes"), true);
-                    BotcFab.voteLockIn(player.getCommandSource());
-                    break; //TODO Finish adding commands
-                case 7: //Demon kill mark for night
-                    if (selectedPlayer != null) {
-                        player.sendMessage(Text.literal("Marked " + selectedPlayer.getNameForScoreboard() + " for demon kill (" + selectedColour), true);
-                        PlayerUtils.markPlayerDemonKill(selectedPlayer);
-                    } else {
-                        player.sendMessage(Text.literal("Please select a valid colour from the row below first"), false);
-                    }
-                    break;
-                case 8: //Revive player for night
-                    if (selectedPlayer != null) {
-                        player.sendMessage(Text.literal("Added " + selectedPlayer.getNameForScoreboard() + " to revival list (" + selectedColour), true);
-                        PlayerUtils.markPlayerRevived(selectedPlayer);
-                    } else {
-                        player.sendMessage(Text.literal("Please select a valid colour from the row below first"), false);
-                    }
-                    break;
-                default:
-                    player.sendMessage(Text.literal("Unknown selection."), false);
-            }
-        }
-        if (Objects.equals(type, "colour")) {
-
+    public static void handleSelectionCommand(ServerPlayerEntity player, int index) {
+        switch (index) {
+            //TODO put BOTC commands here
+            case 0: //setup
+                player.sendMessage(Text.literal("Setting up game"), false);
+                BotcFab.setupGame(player.getCommandSource());
+                break;
+            case 1: //begin game
+                player.sendMessage(Text.literal("Beginning game and teleporting players"), false);
+                BotcFab.beginGame(player.getCommandSource());
+                break;
+            case 2: //start day
+                player.sendMessage(Text.literal("Starting day"), false);
+                BotcFab.startDay(player.getCommandSource());
+                break;
+            case 3: //night falls
+                player.sendMessage(Text.literal("Ending day"), false);
+                BotcFab.nightFalls(player.getCommandSource());
+                break;
+            case 4: //Lock in votes
+                player.sendMessage(Text.literal("Locking in votes"), true);
+                BotcFab.voteLockIn(player.getCommandSource());
+                break; //TODO Finish adding commands
+            case 7: //Demon kill mark for night
+                if (selectedPlayer != null) {
+                    player.sendMessage(Text.literal("Marked " + selectedPlayer.getNameForScoreboard() + " for demon kill (" + selectedColour), true);
+                    PlayerUtils.markPlayerDemonKill(selectedPlayer);
+                } else {
+                    player.sendMessage(Text.literal("Please select a valid colour from the row below first"), false);
+                }
+                break;
+            case 8: //Revive player for night
+                if (selectedPlayer != null) {
+                    player.sendMessage(Text.literal("Added " + selectedPlayer.getNameForScoreboard() + " to revival list (" + selectedColour), true);
+                    PlayerUtils.markPlayerRevived(selectedPlayer);
+                } else {
+                    player.sendMessage(Text.literal("Please select a valid colour from the row below first"), false);
+                }
+                break;
+            default:
+                player.sendMessage(Text.literal("Unknown selection."), false);
         }
     }
-    public static boolean handleSelectionColour(ServerPlayerEntity player, int index, String type) {
+    public static boolean handleSelectionColour(ServerPlayerEntity player, int index) {
         //TODO check colour select
         selectedColour = POSSIBLE_COLOURS.get(index);
         selectedPlayer = getPlayerFromColour(selectedColour, Objects.requireNonNull(player.getServer()));

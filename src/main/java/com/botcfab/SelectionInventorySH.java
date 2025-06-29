@@ -8,10 +8,7 @@ import net.minecraft.inventory.Inventory;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.item.ItemStack;
 
-import java.util.Objects;
-
 import static com.botcfab.BotcFab.POSSIBLE_COLOURS;
-import static com.botcfab.PlayerUtils.getPlayerFromColour;
 import static com.botcfab.ItemUtils.*;
 
 public class SelectionInventorySH extends GenericContainerScreenHandler {
@@ -32,21 +29,21 @@ public class SelectionInventorySH extends GenericContainerScreenHandler {
             if (!clicked.isEmpty()) {
                 //Handle selection
                 if (slotIndex >= 9){ //If selection is within colour area
-                    SelectionInventory.handleSelection((ServerPlayerEntity) clicker, slotIndex-9, "colour"); //-9 to index to match with colour indexes
                     //TODO set selected colour to glass
                     // -also reset old selection to wool
-                    if (SelectionInventory.handleSelectionColour((ServerPlayerEntity) clicker, slotIndex-9, "colour")) {
+                    if (SelectionInventory.handleSelectionColour((ServerPlayerEntity) clicker, slotIndex-9)) { //-9 to index to match with colour indexes
                         String c = POSSIBLE_COLOURS.get(slotIndex-9);
                         this.inventory.setStack(slotIndex,getGlassFromColour(c));
                     }
                 } else {
-                    SelectionInventory.handleSelection((ServerPlayerEntity) clicker, slotIndex, "command");
+                    SelectionInventory.handleSelectionCommand((ServerPlayerEntity) clicker, slotIndex);
 
                     // close screen of player so they can't select again
                     if (clicker instanceof ServerPlayerEntity serverPlayer) {
                         serverPlayer.closeHandledScreen();
                     }
                 }
+                //TODO add seperate handle procedure for commands with player input to avoid duplicate checks.
 
                 // Prevent item from being taken
                 // Prevent item from being taken (clear the slot manually)
