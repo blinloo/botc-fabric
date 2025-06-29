@@ -29,6 +29,12 @@ public class SelectionInventory {
             inventory.setStack(1, setCustomName(new ItemStack(Items.GRASS_BLOCK), Text.literal("Begin game and teleport players")));
             inventory.setStack(2, setCustomName(new ItemStack(Items.SUNFLOWER), Text.literal("Start day")));
             inventory.setStack(3, setCustomName(new ItemStack(Items.SNOWBALL), Text.literal("Night falls")));
+            inventory.setStack(4, setCustomName(new ItemStack(Items.WAXED_COPPER_BULB), Text.literal("Lock in votes")));
+            inventory.setStack(5, setCustomName(new ItemStack(Items.DARK_OAK_HANGING_SIGN), Text.literal("Begin execution of marked player")));
+            //Slots that require player input
+            inventory.setStack(6, setCustomName(new ItemStack(Items.AIR), Text.literal("")));
+            inventory.setStack(7, setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")));
+            inventory.setStack(8, setCustomName(new ItemStack(Items.NETHER_STAR), Text.literal("Mark for revival")));
             int slot = 9;
             for (String colour : POSSIBLE_COLOURS) {
                 ServerPlayerEntity p = getPlayerFromColour(colour, Objects.requireNonNull(player.getServer()));
@@ -37,20 +43,7 @@ public class SelectionInventory {
                     inventory.setStack(slot, setCustomName(getWoolFromColour(colour), p.getStyledDisplayName()));
                 }
                 slot++;
-            } //BotcFab.getPlayerFromColour()
-            //TODO remove if above works
-//                inventory.setStack(9, new ItemStack(Items.BLACK_WOOL));
-//                inventory.setStack(10, new ItemStack(Items.YELLOW_WOOL));
-//                inventory.setStack(11, new ItemStack(Items.ORANGE_WOOL));
-//                inventory.setStack(12, new ItemStack(Items.PINK_WOOL));
-//                inventory.setStack(13, new ItemStack(Items.RED_WOOL));
-//                inventory.setStack(14, new ItemStack(Items.PURPLE_WOOL));
-//                inventory.setStack(15, new ItemStack(Items.BROWN_WOOL));
-//                inventory.setStack(16, new ItemStack(Items.GREEN_WOOL));
-//                inventory.setStack(17, new ItemStack(Items.WHITE_WOOL));
-//                inventory.setStack(18, new ItemStack(Items.BLUE_WOOL));
-//                inventory.setStack(19, new ItemStack(Items.CYAN_WOOL));
-//                inventory.setStack(20, new ItemStack(Items.GRAY_WOOL));
+            }
         } else {
             inventory.setStack(0, new ItemStack(Items.DIAMOND));
             inventory.setStack(1, new ItemStack(Items.GOLD_INGOT));
@@ -91,27 +84,36 @@ public class SelectionInventory {
             case 4: //Lock in votes
                 player.sendMessage(Text.literal("Locking in votes"), true);
                 BotcFab.voteLockIn(player.getCommandSource());
-                break; //TODO Finish adding commands
-            case 7: //Demon kill mark for night
-                if (selectedPlayer != null) {
-                    player.sendMessage(Text.literal("Marked " + selectedPlayer.getNameForScoreboard() + " for demon kill (" + selectedColour), true);
-                    PlayerUtils.markPlayerDemonKill(selectedPlayer);
-                } else {
-                    player.sendMessage(Text.literal("Please select a valid colour from the row below first"), false);
-                }
                 break;
-            case 8: //Revive player for night
-                if (selectedPlayer != null) {
-                    player.sendMessage(Text.literal("Added " + selectedPlayer.getNameForScoreboard() + " to revival list (" + selectedColour), true);
-                    PlayerUtils.markPlayerRevived(selectedPlayer);
-                } else {
-                    player.sendMessage(Text.literal("Please select a valid colour from the row below first"), false);
-                }
+            case 5: //Begin execution
+                player.sendMessage(Text.literal("Starting execution"), true);
+                BotcFab.beginExecution(player.getCommandSource());
                 break;
+
+            //TODO Finish adding commands
             default:
                 player.sendMessage(Text.literal("Unknown selection."), false);
         }
     }
+
+    public static void handleSelectionCommandPlayerInput(ServerPlayerEntity player, int index) {
+        if (selectedPlayer != null) {
+            switch (index) {
+                case 7: //Demon kill mark for night
+                    player.sendMessage(Text.literal("Marked " + selectedPlayer.getNameForScoreboard() + " for demon kill (" + selectedColour), true);
+                    PlayerUtils.markPlayerDemonKill(selectedPlayer);
+                    break;
+                case 8: //Revive player for night
+                    player.sendMessage(Text.literal("Added " + selectedPlayer.getNameForScoreboard() + " to revival list (" + selectedColour), true);
+                    PlayerUtils.markPlayerRevived(selectedPlayer);
+                    break;
+            }
+        } else {
+            player.sendMessage(Text.literal("Please select a valid colour from the row below first"), false);
+        }
+    }
+
+
     public static boolean handleSelectionColour(ServerPlayerEntity player, int index) {
         //TODO check colour select
         selectedColour = POSSIBLE_COLOURS.get(index);

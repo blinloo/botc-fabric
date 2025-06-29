@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 
 import static com.botcfab.BotcFab.POSSIBLE_COLOURS;
 import static com.botcfab.ItemUtils.*;
+import static com.botcfab.SelectionInventory.handleSelectionCommandPlayerInput;
 
 public class SelectionInventorySH extends GenericContainerScreenHandler {
     private final Inventory inventory;
@@ -27,7 +28,7 @@ public class SelectionInventorySH extends GenericContainerScreenHandler {
             ItemStack clicked = inventory.getStack(slotIndex);
             if (!clicked.isEmpty()) {
                 //Handle selection
-                if (slotIndex >= 9){ //If selection is within colour area
+                if (slotIndex >= 9 && slotIndex <= 20){ //If selection is within colour area
                     //TODO set selected colour to glass
                     // -also reset old selection to wool
                     if (SelectionInventory.handleSelectionColour((ServerPlayerEntity) clicker, slotIndex-9)) { //-9 to index to match with colour indexes
@@ -35,19 +36,21 @@ public class SelectionInventorySH extends GenericContainerScreenHandler {
                         this.inventory.setStack(slotIndex,getGlassFromColour(c));
                     }
                 } else {
-                    SelectionInventory.handleSelectionCommand((ServerPlayerEntity) clicker, slotIndex);
-
+                    if (slotIndex >= 6) { //For commands that need player selection
+                        handleSelectionCommandPlayerInput((ServerPlayerEntity) clicker, slotIndex);
+                    } else {
+                        SelectionInventory.handleSelectionCommand((ServerPlayerEntity) clicker, slotIndex);
+                    }
                     // close screen of player so they can't select again
                     if (clicker instanceof ServerPlayerEntity serverPlayer) {
                         serverPlayer.closeHandledScreen();
                     }
+                    // Prevent item from being taken
+                    // Prevent item from being taken (clear the slot manually)
+                    this.setPreviousTrackedSlot(slotIndex, clicked.copy()); // optional tracking
+                    this.inventory.setStack(slotIndex, clicked); // reset original stack
                 }
                 //TODO add separate handle procedure for commands with player input to avoid duplicate checks.
-
-                // Prevent item from being taken
-                // Prevent item from being taken (clear the slot manually)
-                this.setPreviousTrackedSlot(slotIndex, clicked.copy()); // optional tracking
-                this.inventory.setStack(slotIndex, clicked); // reset original stack
             }
         }
 

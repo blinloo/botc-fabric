@@ -108,6 +108,7 @@ public class BotcFab implements ModInitializer {
     private static boolean timerBarActive = false;
     private static int timerBarTicks = 0;
     private static int timerDurationTicks = 10*20; // 10 seconds default
+    private static boolean discussionTime = false;
 
     //Variables for on tick checks
     static boolean playersLockedToSeats = false;
@@ -355,7 +356,7 @@ public class BotcFab implements ModInitializer {
         ServerScoreboard scoreboard = srv.getScoreboard();
         Team team = scoreboard.getTeam(TEAM_ALL);
         playersLockedToSeats = false;
-        world.setTimeOfDay(1000L);
+        world.setTimeOfDay(500L);
         if (team != null) { //Make nametags visible at morning.
             team.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.ALWAYS);
         }
@@ -408,13 +409,22 @@ public class BotcFab implements ModInitializer {
         }
         String accusedColour = getColourFromPlayer(accusedPlayer);
 
-        startColourIndex = POSSIBLE_COLOURS.indexOf(accusedColour)+1; //+1 to start from player after accused
-        if (!indexBounds.contains(startColourIndex)) {
-            startColourIndex = indexBounds.get(0); //This is a list of current colours in the game, so it can loop back to the first if it hits the end.
+        int accusedIndex = POSSIBLE_COLOURS.indexOf(accusedColour);
+        startColourIndex = accusedIndex+1; //+1 to start from player after accused
+
+        //TODO FIX THIS
+        if (startColourIndex > 11){
+            startColourIndex = 0; //sets start to 0 if > 11 then checks if this is within bounds
+        }
+        if (!indexBounds.contains(startColourIndex)){
+            startColourIndex = indexBounds.get(0); //Sets index to start of colour index bounds
         }
 
         for (int i = startColourIndex; count <= playerTotal; i++) { //need to be <= or else the accused doesn't get a vote
             int delay = count * delayPerBlock; //Add delay between vote locks
+            if (i > 11){
+                i = 0;
+            }
             if (!indexBounds.contains(i)){
                 i = indexBounds.get(0); //Sets index to start of colour index bounds
             }
@@ -423,6 +433,7 @@ public class BotcFab implements ModInitializer {
             count++;
         }
 
+        //TODO Fix, it counts the first one twice for some reason
         int finalStartColourIndex = startColourIndex;
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
@@ -431,6 +442,9 @@ public class BotcFab implements ModInitializer {
             int playerSize = getTagCount(PLAYER,srv);
 
             for (int i = finalStartColourIndex; playerCount < playerSize; i++) {
+                if (i > 11){
+                    i = 0;
+                }
                 if (!indexBounds.contains(i)){
                     i = indexBounds.get(0); //Sets index to start of colour index bounds
                 }
@@ -504,6 +518,12 @@ public class BotcFab implements ModInitializer {
             executePlayer(player);
         } else src.sendFeedback(() -> Text.literal("No pony is marked for execution so no pony was killed"),false);
         return 1;
+    }
+
+    static void startDiscussionTime(ServerCommandSource src){
+        ServerWorld world = src.getWorld();
+        world.setTimeOfDay(1000L);
+        discussionTime = true;
     }
 
     static void createTeam(@NotNull ServerScoreboard scoreboard) {
@@ -599,6 +619,40 @@ public class BotcFab implements ModInitializer {
                 }
             }
         }
+
+        if (timerBarActive) { //Timer bar for talk time
+            timerBarTicks++;
+            float percent = (float) timerBarTicks / timerDurationTicks;
+            float progress = 1.0f - percent;
+            if (timerBar != null) {
+                timerBar.setPercent(Math.max(progress, 0f));
+                //day lasts ~7000 ticks, advances time to fill that during the day
+                if (discussionTime) {
+                    world.setTimeOfDay(world.getTime() + (7000 / timerDurationTicks));
+                }
+                if (percent < 0.4f && percent > 0.3f){
+                    timerBar.setColor(BossBar.Color.YELLOW);
+                }
+                if (percent < 0.15f && percent > 0.1f){
+                    timerBar.setColor(BossBar.Color.RED);
+                }
+            }
+            //TODO change colour on low percentage
+
+            if (timerBarTicks >= timerDurationTicks) { //On timer finish
+                timerBarActive = false;
+                discussionTime = false;
+                timerBarTicks = 0;
+                if (timerBar != null) {
+                    timerBar.setPercent(0f);
+                    timerBar.setVisible(false); //Make timer invisible as finished
+                    for (ServerPlayerEntity p : playerList) {
+                        showTitle(p,Text.literal("TIME UP"));
+                    }
+                }
+            }
+        }
+
         if (playerList != null) {
             //Code for player death particles and particle effects
             for (ServerPlayerEntity p : playerList) { //uses full server list to avoid calling null
@@ -667,26 +721,7 @@ public class BotcFab implements ModInitializer {
     }
 
     private void onServerTick(MinecraftServer srv){
-        if (timerBarActive) { //Timer bar for talk time
-            timerBarTicks++;
-            float progress = 1.0f - (float) timerBarTicks / timerDurationTicks;
-            if (timerBar != null) {
-                timerBar.setPercent(Math.max(progress, 0f));
-            }
-            //TODO change colour on low percentage
 
-            if (timerBarTicks >= timerDurationTicks) { //On timer finish
-                timerBarActive = false;
-                timerBarTicks = 0;
-                if (timerBar != null) {
-                    timerBar.setPercent(0f);
-                    timerBar.setVisible(false); //Make timer invisible as finished
-                    for (ServerPlayerEntity p : srv.getPlayerManager().getPlayerList()) {
-                        showTitle(p,Text.literal("TIME UP"));
-                    }
-                }
-            }
-        }
         if (playersLockedToSeats && srv.getPlayerManager().getPlayerList() != null) { //checks if players locked is true and players list is not null
             for (ServerPlayerEntity p:srv.getPlayerManager().getPlayerList()) {
                 Set<String> tags = p.getCommandTags();
