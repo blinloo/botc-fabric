@@ -14,7 +14,6 @@ import static com.botcfab.ItemUtils.*;
 public class SelectionInventorySH extends GenericContainerScreenHandler {
     private final Inventory inventory;
     private final PlayerEntity player;
-    private String colourSelected;
 
     public SelectionInventorySH(int syncId, PlayerInventory playerInventory, Inventory inventory, PlayerEntity player) {
         super(ScreenHandlerType.GENERIC_9X3, syncId, playerInventory, inventory, 3);
@@ -43,7 +42,7 @@ public class SelectionInventorySH extends GenericContainerScreenHandler {
                         serverPlayer.closeHandledScreen();
                     }
                 }
-                //TODO add seperate handle procedure for commands with player input to avoid duplicate checks.
+                //TODO add separate handle procedure for commands with player input to avoid duplicate checks.
 
                 // Prevent item from being taken
                 // Prevent item from being taken (clear the slot manually)
