@@ -2,7 +2,6 @@ package com.botcfab;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -202,8 +201,7 @@ public class BotcFab implements ModInitializer {
         src.sendFeedback(() -> Text.literal("Finished"), false);
     }
 
-    public static int setupGame(ServerCommandSource src) {
-        //ServerCommandSource src = context.getSource();
+    static int setupGame(ServerCommandSource src) {
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
         ServerScoreboard scoreboard = srv.getScoreboard();
@@ -314,22 +312,20 @@ public class BotcFab implements ModInitializer {
         return 1;
     }
 
-    private static int beginGame(CommandContext<ServerCommandSource> context) {
+    static int beginGame(ServerCommandSource src) {
         //TODO
         // - give roles to players on named paper
-        ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
 
         teleportPlayers("home", srv); //teleports players to homes
         sendMessageToPlayers(getPlayerOrder(srv),playerMgr.getPlayerList()); //Sends player order to all players
-        nightFalls(context);
+        nightFalls(src);
 
         return 1;
     }
 
-    private static int nightFalls(CommandContext<ServerCommandSource> context){
-        ServerCommandSource src = context.getSource();
+    static int nightFalls(ServerCommandSource src){
         MinecraftServer srv = src.getServer();
         ServerWorld world = src.getWorld();
         PlayerManager playerMgr = srv.getPlayerManager();
@@ -352,8 +348,7 @@ public class BotcFab implements ModInitializer {
         return 1;
     }
 
-    private static int startDay(CommandContext<ServerCommandSource> context){
-        ServerCommandSource src = context.getSource();
+    static int startDay(ServerCommandSource src){
         MinecraftServer srv = src.getServer();
         ServerWorld world = src.getWorld();
         List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
@@ -395,9 +390,8 @@ public class BotcFab implements ModInitializer {
         return 1;
     }
 
-    private static void onVoteLockIn(CommandContext<ServerCommandSource> context) {
+    static void voteLockIn(ServerCommandSource src) {
         // remove redstone block
-        ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         ServerWorld world = src.getWorld();
         int delayPerBlock = 40; // 1 second = 20 ticks
@@ -501,9 +495,8 @@ public class BotcFab implements ModInitializer {
         TickScheduler.scheduleGroup(taskList, onAllDone);
     }
 
-    private static int beginExecution(CommandContext<ServerCommandSource> context){
-        ServerCommandSource src = context.getSource();
-        MinecraftServer srv = context.getSource().getServer();
+    static int beginExecution(ServerCommandSource src){
+        MinecraftServer srv = src.getServer();
         ServerPlayerEntity player = getPlayerFromColour(MARKED,srv);
         removeTagAllPlayers(ACCUSED,srv); //Removed all accused players
         if (player != null) {
@@ -762,7 +755,7 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_startGame")
                 .requires(source -> source.hasPermissionLevel(2))
-                .executes(BotcFab::beginGame));
+                .executes(context -> beginGame(context.getSource())));
 
         dispatcher.register(literal("botc_importCSV")
                 .requires(source -> source.hasPermissionLevel(2))
@@ -894,17 +887,17 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_startDay")
                 .requires(source -> source.hasPermissionLevel(2))
-                .executes(BotcFab::startDay));
+                .executes(context -> startDay(context.getSource())));
         dispatcher.register(literal("botc_nightFalls")
                 .requires(source -> source.hasPermissionLevel(2))
-                .executes(BotcFab::nightFalls));
+                .executes(context -> nightFalls(context.getSource())));
 
         dispatcher.register(literal("botc_voteLockIn")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(context -> {
                             LOGGER.info("Beginning vote lock in");
-                            onVoteLockIn(context);
-                            LOGGER.info("Completed /onVoteLockIn.");
+                            voteLockIn(context.getSource());
+                            LOGGER.info("Completed /voteLockIn.");
                             return 1;
                         }
                 ));
@@ -931,7 +924,7 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_beginExecution")
                 .requires(source -> source.hasPermissionLevel(2))
-                .executes(BotcFab::beginExecution));
+                .executes(context -> beginExecution(context.getSource())));
 
         dispatcher.register(literal("botc_openMenu").executes(context -> {
             ServerPlayerEntity player = context.getSource().getPlayer();

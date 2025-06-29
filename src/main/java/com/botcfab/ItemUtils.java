@@ -122,4 +122,39 @@ public class ItemUtils {
             return 0;
         }
     }
+
+    static ItemStack getWoolFromColour(String colour){
+        return switch (colour) {
+            case "black" -> new ItemStack(Items.BLACK_WOOL);
+            case "yellow" -> new ItemStack(Items.YELLOW_WOOL);
+            case "orange" -> new ItemStack(Items.ORANGE_WOOL);
+            case "pink" -> new ItemStack(Items.PINK_WOOL);
+            case "red" -> new ItemStack(Items.RED_WOOL);
+            case "purple" -> new ItemStack(Items.PURPLE_WOOL);
+            case "brown" -> new ItemStack(Items.BROWN_WOOL);
+            case "green" -> new ItemStack(Items.GREEN_WOOL);
+            case "white" -> new ItemStack(Items.WHITE_WOOL);
+            case "blue" -> new ItemStack(Items.BLUE_WOOL);
+            case "cyan" -> new ItemStack(Items.CYAN_WOOL);
+            case "gray" -> new ItemStack(Items.GRAY_WOOL);
+            default -> null;
+        };
+    }
+    static ItemStack getGlassFromColour(String colour){
+        return switch (colour) {
+            case "black" -> new ItemStack(Items.BLACK_STAINED_GLASS);
+            case "yellow" -> new ItemStack(Items.YELLOW_STAINED_GLASS);
+            case "orange" -> new ItemStack(Items.ORANGE_STAINED_GLASS);
+            case "pink" -> new ItemStack(Items.PINK_STAINED_GLASS);
+            case "red" -> new ItemStack(Items.RED_STAINED_GLASS);
+            case "purple" -> new ItemStack(Items.PURPLE_STAINED_GLASS);
+            case "brown" -> new ItemStack(Items.BROWN_STAINED_GLASS);
+            case "green" -> new ItemStack(Items.GREEN_STAINED_GLASS);
+            case "white" -> new ItemStack(Items.WHITE_STAINED_GLASS);
+            case "blue" -> new ItemStack(Items.BLUE_STAINED_GLASS);
+            case "cyan" -> new ItemStack(Items.CYAN_STAINED_GLASS);
+            case "gray" -> new ItemStack(Items.GRAY_STAINED_GLASS);
+            default -> null;
+        };
+    }
 }
