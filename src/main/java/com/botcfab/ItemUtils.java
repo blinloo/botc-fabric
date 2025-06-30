@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.botcfab.BotcFab.POSSIBLE_COLOURS;
-import static com.mojang.text2speech.Narrator.LOGGER;
 
 public class ItemUtils {
     static final List<Integer> COLOUR_HEX = Arrays.asList(0x000000, 0xFFEE00, 0xFF8D00, 0xFFAFC7, 0xE50000,
@@ -41,7 +40,7 @@ public class ItemUtils {
             throw new IllegalArgumentException("ItemStack and name must not be null");
         }
 
-        // Apply the CustomNameComponent via components
+        // Rename using components
         item.set(DataComponentTypes.CUSTOM_NAME, name);
 
         return item;
@@ -64,7 +63,6 @@ public class ItemUtils {
         if (world == null || world.isClient) return;
 
         LeverBlock lever = (LeverBlock) Blocks.LEVER;
-        LOGGER.info("Setting lever state...");
         // Create the desired lever block state
         var state = lever.getDefaultState()
                 //.with(Properties.HORIZONTAL_FACING, facing)
@@ -73,9 +71,7 @@ public class ItemUtils {
                 .with(Properties.POWERED, false); // default off
 
         // Place it in the world
-        if (world.setBlockState(pos, state, Block.NOTIFY_ALL)) {
-            LOGGER.info("lever placed success");
-        } else LOGGER.info("lever failed");
+        world.setBlockState(pos, state, Block.NOTIFY_ALL);
     }
 
     static void placeSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour) {

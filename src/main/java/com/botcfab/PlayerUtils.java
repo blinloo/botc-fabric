@@ -179,7 +179,6 @@ public class PlayerUtils {
                 case SCHOOL_MAP: //
                     placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR); //Make sure direction is correct later
             }
-
         }
         if (tags.contains(GHOST)){
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.IRON_BLOCK.getDefaultState());
@@ -214,11 +213,13 @@ public class PlayerUtils {
 
     static MutableText getPlayerOrder(MinecraftServer srv){
         MutableText PlayerOrderMessage = Text.literal("Player Order: \n");
-        for (ServerPlayerEntity p:srv.getPlayerManager().getPlayerList()){
-            if (!p.getCommandTags().contains(STORYTELLER)) {
-                String colour = getColourFromPlayer(p);
+        for (String c:POSSIBLE_COLOURS){
+            ServerPlayerEntity p = getPlayerFromColour(c, srv);
+            if (p != null){
                 PlayerOrderMessage
-                        .append(p.getStyledDisplayName().copy().setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(colour)))))  // Player name with colour
+                        .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
+                        .append(p.getStyledDisplayName().copy()) //Player name
+                        .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
                         .append(Text.literal("\n")); //New line
             }
         }

@@ -77,7 +77,7 @@ public class BotcFab implements ModInitializer {
     static final String ACCUSED = "accused";
     static final String CURRENT_EXECUTEE = "current_executee";
     static final String LEGION = "legion";
-    static final List<String> ALL_TAGS = Arrays.asList(STORYTELLER, SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE, LEGION);
+    static final List<String> ALL_TAGS = Arrays.asList(PLAYER,STORYTELLER,SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE, LEGION);
 
     static final String INFO_OBJECTIVE = "info";
     static final String ALIVE_SCORE_HOLDER = "Alive";
@@ -225,7 +225,6 @@ public class BotcFab implements ModInitializer {
             storyTeller.addCommandTag(STORYTELLER); //Add tag for storyteller
             srv.sendMessage(Text.literal("Storyteller is: " + storyTeller.getStyledDisplayName().toString()));
             storyTeller.changeGameMode(GameMode.CREATIVE);
-            setColourBoots(storyTeller,"no");
             scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
             src.sendFeedback(() -> message, false);
         } else {
@@ -420,7 +419,7 @@ public class BotcFab implements ModInitializer {
             startColourIndex = indexBounds.get(0); //Sets index to start of colour index bounds
         }
 
-        for (int i = startColourIndex; count <= playerTotal; i++) { //need to be <= or else the accused doesn't get a vote
+        for (int i = startColourIndex; count <= playerTotal+1; i++) { //need to be <= or else the accused doesn't get a vote (+1 cus it starts at 1 to have initial delay
             int delay = count * delayPerBlock; //Add delay between vote locks
             if (i > 11){
                 i = 0;
@@ -433,13 +432,12 @@ public class BotcFab implements ModInitializer {
             count++;
         }
 
-        //TODO Fix, it counts the first one twice for some reason
         int finalStartColourIndex = startColourIndex;
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
             List<ServerPlayerEntity> playerList = src.getWorld().getPlayers();
             int playerCount = 0, aliveVotesTotal = 0, ghostVotesTotal = 0;
-            int playerSize = getTagCount(PLAYER,srv);
+            int playerSize = getTagCount(PLAYER, srv);
 
             for (int i = finalStartColourIndex; playerCount < playerSize; i++) {
                 if (i > 11){
@@ -521,9 +519,12 @@ public class BotcFab implements ModInitializer {
     }
 
     static void startDiscussionTime(ServerCommandSource src){
+        MinecraftServer srv = src.getServer();
         ServerWorld world = src.getWorld();
         world.setTimeOfDay(1000L);
-        discussionTime = true;
+        discussionTime = true; //Initiate day time pass code
+        startTimer(srv,6); //Start 6min timer
+        src.sendFeedback(() -> Text.literal("Starting discussion timer"), false);
     }
 
     static void createTeam(@NotNull ServerScoreboard scoreboard) {

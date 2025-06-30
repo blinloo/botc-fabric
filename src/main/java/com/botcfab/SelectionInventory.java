@@ -31,16 +31,23 @@ public class SelectionInventory {
             inventory.setStack(3, setCustomName(new ItemStack(Items.SNOWBALL), Text.literal("Night falls")));
             inventory.setStack(4, setCustomName(new ItemStack(Items.WAXED_COPPER_BULB), Text.literal("Lock in votes")));
             inventory.setStack(5, setCustomName(new ItemStack(Items.DARK_OAK_HANGING_SIGN), Text.literal("Begin execution of marked player")));
-            //Slots that require player input
-            inventory.setStack(6, setCustomName(new ItemStack(Items.AIR), Text.literal("")));
-            inventory.setStack(7, setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")));
-            inventory.setStack(8, setCustomName(new ItemStack(Items.NETHER_STAR), Text.literal("Mark for revival")));
-            int slot = 9;
+            inventory.setStack(6, setCustomName(new ItemStack(Items.ANDESITE_SLAB), Text.literal("Teleport players to chairs")));
+            inventory.setStack(7, setCustomName(new ItemStack(Items.RED_BED), Text.literal("Teleport players to homes")));
+            inventory.setStack(8, setCustomName(new ItemStack(Items.BELL), Text.literal("Start discussion time (6min)")));
+            //Slots that require player input 21-26
+
+            inventory.setStack(25, setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")));
+            inventory.setStack(26, setCustomName(new ItemStack(Items.NETHER_STAR), Text.literal("Mark for revival")));
+            int slot = 9; //9-20 is colour selection
             for (String colour : POSSIBLE_COLOURS) {
                 ServerPlayerEntity p = getPlayerFromColour(colour, Objects.requireNonNull(player.getServer()));
-                if (p != null) {
-                    //if player exists add their colour to slot
-                    inventory.setStack(slot, setCustomName(getWoolFromColour(colour), p.getStyledDisplayName()));
+                if (p != null) {//if player exists add their colour to slot
+                    if (p == selectedPlayer){ //Mark selected player with glass
+                        inventory.setStack(slot, setCustomName(getGlassFromColour(colour), p.getStyledDisplayName()));
+                    }
+                    else {
+                        inventory.setStack(slot, setCustomName(getWoolFromColour(colour), p.getStyledDisplayName()));
+                    }
                 }
                 slot++;
             }
@@ -89,6 +96,18 @@ public class SelectionInventory {
                 player.sendMessage(Text.literal("Starting execution"), true);
                 BotcFab.beginExecution(player.getCommandSource());
                 break;
+            case 6: //Tp players to chair
+                player.sendMessage(Text.literal("Teleporting to chairs"), true);
+                PlayerUtils.teleportPlayers("home",player.getCommandSource().getServer());
+                break;
+            case 7: //Tp players to homes
+                player.sendMessage(Text.literal("Teleporting to homes"), true);
+                PlayerUtils.teleportPlayers("vote",player.getCommandSource().getServer());
+                break;
+            case 8: //Tp players to homes
+                player.sendMessage(Text.literal("Started discussion time (6min)"), true);
+                BotcFab.startDiscussionTime(player.getCommandSource());
+                break;
 
             //TODO Finish adding commands
             default:
@@ -99,12 +118,16 @@ public class SelectionInventory {
     public static void handleSelectionCommandPlayerInput(ServerPlayerEntity player, int index) {
         if (selectedPlayer != null) {
             switch (index) {
-                case 7: //Demon kill mark for night
-                    player.sendMessage(Text.literal("Marked " + selectedPlayer.getNameForScoreboard() + " for demon kill (" + selectedColour), true);
+                case 21: //Instant kill player
+                    player.sendMessage(Text.literal("Instant execution: " + selectedPlayer.getNameForScoreboard() + " (" + selectedColour), true);
+                    PlayerUtils.executePlayer(selectedPlayer);
+                    break;
+                case 25: //Demon kill mark for night
+                    player.sendMessage(Text.literal("Marked " + selectedPlayer.getNameForScoreboard() + " for demon kill (" + selectedColour+")"), true);
                     PlayerUtils.markPlayerDemonKill(selectedPlayer);
                     break;
-                case 8: //Revive player for night
-                    player.sendMessage(Text.literal("Added " + selectedPlayer.getNameForScoreboard() + " to revival list (" + selectedColour), true);
+                case 26: //Revive player for night
+                    player.sendMessage(Text.literal("Added " + selectedPlayer.getNameForScoreboard() + " to revival list (" + selectedColour+")"), true);
                     PlayerUtils.markPlayerRevived(selectedPlayer);
                     break;
             }

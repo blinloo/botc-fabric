@@ -33,10 +33,11 @@ public class SelectionInventorySH extends GenericContainerScreenHandler {
                     // -also reset old selection to wool
                     if (SelectionInventory.handleSelectionColour((ServerPlayerEntity) clicker, slotIndex-9)) { //-9 to index to match with colour indexes
                         String c = POSSIBLE_COLOURS.get(slotIndex-9);
+                        this.setPreviousTrackedSlot(slotIndex, clicked.copy());
                         this.inventory.setStack(slotIndex,getGlassFromColour(c));
                     }
                 } else {
-                    if (slotIndex >= 6) { //For commands that need player selection
+                    if (slotIndex >= 21) { //For commands that need player selection
                         handleSelectionCommandPlayerInput((ServerPlayerEntity) clicker, slotIndex);
                     } else {
                         SelectionInventory.handleSelectionCommand((ServerPlayerEntity) clicker, slotIndex);
