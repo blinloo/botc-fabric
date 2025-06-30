@@ -315,9 +315,14 @@ public class BotcFab implements ModInitializer {
     static int beginGame(ServerCommandSource src) {
         //TODO
         // - give roles to players on named paper
+        // - give players writeable book
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
 
+        for (ServerPlayerEntity p: playerMgr.getPlayerList()){ //Give players writable book
+            if (p.getCommandTags().contains(PLAYER))
+                p.getInventory().insertStack( new ItemStack(Items.WRITABLE_BOOK));
+        }
         teleportPlayers("home", srv); //teleports players to homes
         sendMessageToPlayers(getPlayerOrder(srv),playerMgr.getPlayerList()); //Sends player order to all players
         nightFalls(src);
@@ -333,7 +338,7 @@ public class BotcFab implements ModInitializer {
         world.setTimeOfDay(18000L);
         playersLockedToSeats = false;
         executionInProgress = false;
-        timerBarActive = false;
+        timerBarActive = false; //Clear timer for day end
         //Remove all temp tags from players
         removeTagAllPlayers(ACCUSED,srv);
         removeTagAllPlayers(DEATH_FLAG, srv);
