@@ -21,6 +21,7 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.scoreboard.*;
 import net.minecraft.scoreboard.number.NumberFormat;
@@ -208,7 +209,6 @@ public class BotcFab implements ModInitializer {
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
         List<ServerPlayerEntity> players = new ArrayList<>(playerMgr.getPlayerList());
-        //TODO Test this
         Collections.shuffle(players); //Randomises order of player list (default is server join order)
         indexBounds.clear();
         int startPoint = ThreadLocalRandom.current().nextInt(0, (11+1)); //Determines start point for colour selection
@@ -315,7 +315,6 @@ public class BotcFab implements ModInitializer {
     static int beginGame(ServerCommandSource src) {
         //TODO
         // - give roles to players on named paper
-        // - give players writeable book
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
 
@@ -416,7 +415,6 @@ public class BotcFab implements ModInitializer {
         int accusedIndex = POSSIBLE_COLOURS.indexOf(accusedColour);
         startColourIndex = accusedIndex+1; //+1 to start from player after accused
 
-        //TODO FIX THIS
         if (startColourIndex > 11){
             startColourIndex = 0; //sets start to 0 if > 11 then checks if this is within bounds
         }
@@ -710,6 +708,8 @@ public class BotcFab implements ModInitializer {
                     }
                     if (executionFinished) { //code that overlaps for all maps
                         killPlayer(executee);
+                        //spawn redstone blood particles
+                        world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.REDSTONE_BLOCK.getDefaultState()), EXECUTE_POS.getX(), EXECUTE_POS.getY(), EXECUTE_POS.getZ(), 15, 0.5, 0, 0.5, 0.5);
                         //sends message in chat for kill
                         world.getServer().sendMessage(getEventText(executee,CURRENT_EXECUTEE));
                         sendMessageToPlayers(getEventText(executee,CURRENT_EXECUTEE), playerList); //Sends execution message to all players
