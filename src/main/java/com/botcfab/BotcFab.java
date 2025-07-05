@@ -635,10 +635,10 @@ public class BotcFab implements ModInitializer {
                 if (discussionTime) {
                     world.setTimeOfDay(world.getTime() + (7000 / timerDurationTicks));
                 }
-                if (progress < 0.6f && progress > 0.4f){
+                if (progress < 0.5f && progress > 0.4f){
                     timerBar.setColor(BossBar.Color.YELLOW);
                 }
-                if (progress < 0.25f && progress > 0.1f){
+                if (progress < 0.1f && progress > 0f){
                     timerBar.setColor(BossBar.Color.RED);
                 }
             }
