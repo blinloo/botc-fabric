@@ -858,10 +858,10 @@ public class BotcFab implements ModInitializer {
                 .executes(PlayerUtils::leaveMinigames));
 
         dispatcher.register(literal("botc_startTimer").then( //Starts a timer boss bar for [argument] minutes
-                CommandManager.argument("stringTime", StringArgumentType.string())
+                CommandManager.argument("Time (minutes)", StringArgumentType.string())
                         .requires(source -> source.hasPermissionLevel(2))
                         .executes(context -> {
-                            String stringTime = StringArgumentType.getString(context, "stringTime");// Get the timer duration as string from argument
+                            String stringTime = StringArgumentType.getString(context, "Time (minutes)");// Get the timer duration as string from argument
                             ServerCommandSource src = context.getSource();
                             MinecraftServer srv = src.getServer();
                             float durationMins;
