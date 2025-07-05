@@ -589,6 +589,7 @@ public class BotcFab implements ModInitializer {
         }
         timerBar.setPercent(1.0f); //100%
         timerBar.setVisible(true);
+        timerBar.setColor(BossBar.Color.GREEN); //Reset colour for new timer
         for (ServerPlayerEntity player : srv.getPlayerManager().getPlayerList()) {
             timerBar.addPlayer(player);
         }
@@ -634,14 +635,13 @@ public class BotcFab implements ModInitializer {
                 if (discussionTime) {
                     world.setTimeOfDay(world.getTime() + (7000 / timerDurationTicks));
                 }
-                if (percent < 0.4f && percent > 0.3f){
+                if (progress < 0.6f && progress > 0.4f){
                     timerBar.setColor(BossBar.Color.YELLOW);
                 }
-                if (percent < 0.15f && percent > 0.1f){
+                if (progress < 0.25f && progress > 0.1f){
                     timerBar.setColor(BossBar.Color.RED);
                 }
             }
-            //TODO change colour on low percentage
 
             if (timerBarTicks >= timerDurationTicks) { //On timer finish
                 timerBarActive = false;
