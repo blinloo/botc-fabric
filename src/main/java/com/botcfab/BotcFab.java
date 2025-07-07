@@ -116,14 +116,12 @@ public class BotcFab implements ModInitializer {
     static boolean executionInProgress = false;
 
     //Text for displays
-    private static final MutableText MEETING_MESSAGE = Text.literal("Please head to the town square");
-    private static final MutableText RETURN_MESSAGE = Text.literal("Please return to your houses");
-    private static final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀️")
-            .setStyle(Style.EMPTY.withColor(Formatting.GOLD))
-            .append(Text.literal("\n"));
+    private static final MutableText MEETING_MESSAGE = Text.literal("\nPlease head to the town square");
+    private static final MutableText RETURN_MESSAGE = Text.literal("\nPlease return to your houses");
+    private static final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀")
+            .setStyle(Style.EMPTY.withColor(Formatting.GOLD));
     private static final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
-            .setStyle(Style.EMPTY.withColor(Formatting.BLUE))
-            .append(Text.literal("\n"));
+            .setStyle(Style.EMPTY.withColor(Formatting.BLUE));
     private static final MutableText KILL_TEXT = Text.literal(" has been ") //Make these not final for school map, change to expelled, suspended etc
             .append(Text.literal("killed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
     private static final MutableText REVIVE_TEXT = Text.literal(" has been ")
@@ -201,7 +199,7 @@ public class BotcFab implements ModInitializer {
                 MINIGAMES_POS = new BlockPos(-120, -27, -13);
                 break;
             case SCHOOL_MAP:
-                //TODO Change these
+                //TODO Change these one map is done
                 EXECUTE_POS = new BlockPos(1, -29, -2);
                 EVIL_ROOM_POS = new BlockPos(1, -28, 57);
                 MINIGAMES_POS = new BlockPos(1, -27, -13);
@@ -217,10 +215,6 @@ public class BotcFab implements ModInitializer {
         }
 
         src.sendFeedback(() -> Text.literal("Finished"), false);
-    }
-
-    private void updateMapCoordinates() {
-
     }
 
     static int setupGame(ServerCommandSource src) {
@@ -406,7 +400,8 @@ public class BotcFab implements ModInitializer {
         }
         for (ServerPlayerEntity p : playerList){
             showTitle(p,DAY_MESSAGE);
-            p.playSound(SoundEvents.BLOCK_BELL_USE);
+            //p.playSound(SoundEvents.BLOCK_BELL_USE);
+            p.playSoundToPlayer(SoundEvents.BLOCK_BELL_USE,SoundCategory.BLOCKS,1.0f,0.5f);
         }
         highestVote = 0; //reset highest vote
 
