@@ -144,9 +144,9 @@ public class BotcFab implements ModInitializer {
     static String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
 
     //BLOCK POS FOR CLOCKTOWER MAP
-    final static BlockPos EXECUTE_POS = new BlockPos(6,-29,-2);
-    final static BlockPos EVIL_ROOM_POS = new BlockPos(126,-28,57);
-    final static BlockPos MINIGAMES_POS = new BlockPos(0,0,0); //TODO Add code to teleport to minigames
+    static BlockPos EXECUTE_POS;
+    static BlockPos EVIL_ROOM_POS;
+    static BlockPos MINIGAMES_POS;
 
     public static File getConfigFilePath() {
         // Get the Minecraft config directory
@@ -168,7 +168,7 @@ public class BotcFab implements ModInitializer {
         };
     }
 
-    private void onGameInit(MinecraftServer srv) { //Run this on server startup, players do not need to be connected
+    private static void onGameInit(MinecraftServer srv) { //Run this on server startup, players do not need to be connected
         ServerCommandSource src = srv.getCommandSource();
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
@@ -193,6 +193,21 @@ public class BotcFab implements ModInitializer {
         // Create the one and only team we need
         createTeam(scoreboard);
 
+        //Sets the coordinates missing from sheet per map
+        switch (mapSelected) {
+            case DEFAULT_MAP:
+                EXECUTE_POS = new BlockPos(6, -29, -2);
+                EVIL_ROOM_POS = new BlockPos(126, -28, 57);
+                MINIGAMES_POS = new BlockPos(-120, -27, -13);
+                break;
+            case SCHOOL_MAP:
+                //TODO Change these
+                EXECUTE_POS = new BlockPos(1, -29, -2);
+                EVIL_ROOM_POS = new BlockPos(1, -28, 57);
+                MINIGAMES_POS = new BlockPos(1, -27, -13);
+                break;
+        }
+
         // Loop through all colours in map
         for (String i : mapCoords.keySet()) {
             // Set all lamps and status markers to netherite and levers to air
@@ -202,6 +217,10 @@ public class BotcFab implements ModInitializer {
         }
 
         src.sendFeedback(() -> Text.literal("Finished"), false);
+    }
+
+    private void updateMapCoordinates() {
+
     }
 
     static int setupGame(ServerCommandSource src) {
@@ -829,6 +848,8 @@ public class BotcFab implements ModInitializer {
                                 context.getSource().sendFeedback(() -> Text.literal("Invalid map specified, setting to default"), false);
                                 mapSelected = DEFAULT_MAP;
                             }
+                            //Runs initialise to change csv coordinates sheet and update other map coords
+                            onGameInit(context.getSource().getServer());
                             return 1;
                         })
         ));
@@ -1002,7 +1023,7 @@ public class BotcFab implements ModInitializer {
         ServerTickEvents.START_SERVER_TICK.register(this::onServerTick);
 
         //Code that runs on server start.
-        ServerLifecycleEvents.SERVER_STARTED.register(this::onGameInit);
+        ServerLifecycleEvents.SERVER_STARTED.register(BotcFab::onGameInit);
 
         //Register events
         UseEntityCallback.EVENT.register(this::onRightClickEntity);
