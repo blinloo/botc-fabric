@@ -118,7 +118,7 @@ public class BotcFab implements ModInitializer {
     //Text for displays
     private static final MutableText MEETING_MESSAGE = Text.literal("Please head to the town square");
     private static final MutableText RETURN_MESSAGE = Text.literal("Please return to your houses");
-    private static final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀")
+    private static final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀️")
             .setStyle(Style.EMPTY.withColor(Formatting.GOLD))
             .append(Text.literal("\n"));
     private static final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
@@ -146,6 +146,7 @@ public class BotcFab implements ModInitializer {
     //BLOCK POS FOR CLOCKTOWER MAP
     final static BlockPos EXECUTE_POS = new BlockPos(6,-29,-2);
     final static BlockPos EVIL_ROOM_POS = new BlockPos(126,-28,57);
+    final static BlockPos MINIGAMES_POS = new BlockPos(0,0,0); //TODO Add code to teleport to minigames
 
     public static File getConfigFilePath() {
         // Get the Minecraft config directory
@@ -780,10 +781,16 @@ public class BotcFab implements ModInitializer {
             player.sendMessage(getPlayerOrder(Objects.requireNonNull(world.getServer())), false);
             return ActionResult.SUCCESS;
         }
-        //Check for heart pottery shard named "Emergency Teleport"
+        //Check for heart pottery shard
         if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.HEART_POTTERY_SHERD) {
             String colour = getColourFromPlayer((ServerPlayerEntity) player);
             tp((ServerPlayerEntity) player, mapCoords.get(colour).homeInside);
+            return ActionResult.SUCCESS;
+        }
+
+        //Check for recovery compass
+        if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.RECOVERY_COMPASS) {
+            gotoMinigames((ServerPlayerEntity) player);
             return ActionResult.SUCCESS;
         }
         return ActionResult.PASS;
@@ -856,6 +863,10 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("leaveMinigames")
                 .executes(PlayerUtils::leaveMinigames));
+
+        dispatcher.register(literal("gotoMinigames")
+                .executes(context -> PlayerUtils.gotoMinigames(context.getSource().getPlayer()))
+        );
 
         dispatcher.register(literal("botc_startTimer").then( //Starts a timer boss bar for [argument] minutes
                 CommandManager.argument("Time (minutes)", StringArgumentType.string())

@@ -298,4 +298,13 @@ public class PlayerUtils {
             return 0;
         }
     }
+
+    static int gotoMinigames(ServerPlayerEntity player){ //Teleports player to minigames room
+        if (player != null) {
+            tp(player, MINIGAMES_POS);
+            return 1;
+        } else {
+            return 0;
+        }
+    }
 }
