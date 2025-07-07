@@ -526,7 +526,7 @@ public class BotcFab implements ModInitializer {
         ServerWorld world = src.getWorld();
         world.setTimeOfDay(1000L);
         discussionTime = true; //Initiate day time pass code
-        startTimer(srv,6); //Start 6min timer
+        startTimer(srv,6*60); //Start 6min timer
         src.sendFeedback(() -> Text.literal("Starting discussion timer"), false);
     }
 
@@ -595,7 +595,7 @@ public class BotcFab implements ModInitializer {
         }
 
         timerBarTicks = 0;
-        timerDurationTicks = duration*20; //*20 to get seconds value in ticks
+        timerDurationTicks = duration*20*3; //*20 to get seconds value in ticks *3
         timerBarActive = true;
 
         srv.sendMessage(Text.literal("Boss bar timer started."));
@@ -633,9 +633,9 @@ public class BotcFab implements ModInitializer {
                 timerBar.setPercent(Math.max(progress, 0f));
                 //day lasts ~7000 ticks, advances time to fill that during the day
                 if (discussionTime) {
-                    world.setTimeOfDay(world.getTime() + (7000 / timerDurationTicks));
+                    world.setTimeOfDay(world.getTimeOfDay() + (12000 / timerDurationTicks));
                 }
-                if (progress < 0.5f && progress > 0.4f){
+                if (progress < 0.5f && progress > 0.3f){
                     timerBar.setColor(BossBar.Color.YELLOW);
                 }
                 if (progress < 0.1f && progress > 0f){

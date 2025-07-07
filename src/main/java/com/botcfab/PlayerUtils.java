@@ -16,6 +16,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.GameMode;
@@ -216,11 +217,21 @@ public class PlayerUtils {
         for (String c:POSSIBLE_COLOURS){
             ServerPlayerEntity p = getPlayerFromColour(c, srv);
             if (p != null){
-                PlayerOrderMessage
-                        .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
-                        .append(p.getStyledDisplayName().copy()) //Player name
-                        .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
-                        .append(Text.literal("\n")); //New line
+                Set<String> tags = p.getCommandTags();
+                if (tags.contains(DEAD) || tags.contains(GHOST)) {
+                    PlayerOrderMessage
+                            .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
+                            .append(Text.literal("💀 "))
+                            .append(p.getStyledDisplayName().copy().setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.GRAY)))) //Player name grey for dead
+                            .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
+                            .append(Text.literal("\n")); //New line
+                } else {
+                    PlayerOrderMessage
+                            .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
+                            .append(p.getStyledDisplayName().copy()) //Player name
+                            .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
+                            .append(Text.literal("\n")); //New line
+                }
             }
         }
         return PlayerOrderMessage;
