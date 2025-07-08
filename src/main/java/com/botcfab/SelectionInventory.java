@@ -35,7 +35,8 @@ public class SelectionInventory {
         inventory.setStack(8, setCustomName(new ItemStack(Items.BELL), Text.literal("Start discussion time (6min)")));
         //Slots that require player input 21-26
 
-        inventory.setStack(24, setCustomName(new ItemStack(Items.SKELETON_SKULL), Text.literal("Instant execute")));
+        inventory.setStack(23, setCustomName(new ItemStack(Items.SKELETON_SKULL), Text.literal("Instant execute")));
+        inventory.setStack(24, setCustomName(new ItemStack(Items.LIGHT_WEIGHTED_PRESSURE_PLATE), Text.literal("Instant revive")));
         inventory.setStack(25, setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")));
         inventory.setStack(26, setCustomName(new ItemStack(Items.NETHER_STAR), Text.literal("Mark for revival")));
         int slot = 9; //9-20 is colour selection
@@ -113,9 +114,13 @@ public class SelectionInventory {
     public static void handleSelectionCommandPlayerInput(ServerPlayerEntity player, int index) {
         if (selectedPlayer != null) {
             switch (index) {
-                case 24: //Instant kill player
+                case 23: //Instant kill player
                     player.sendMessage(Text.literal("Instant execution: " + selectedPlayer.getNameForScoreboard() + " (" + selectedColour), true);
                     PlayerUtils.executePlayer(selectedPlayer);
+                    break;
+                case 24: //Instant revive player
+                    player.sendMessage(Text.literal("Instant revival: " + selectedPlayer.getNameForScoreboard() + " (" + selectedColour), true);
+                    PlayerUtils.revivePlayer(selectedPlayer);
                     break;
                 case 25: //Demon kill mark for night
                     player.sendMessage(Text.literal("Marked " + selectedPlayer.getNameForScoreboard() + " for demon kill (" + selectedColour+")"), true);
