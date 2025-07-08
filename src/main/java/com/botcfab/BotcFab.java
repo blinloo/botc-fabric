@@ -33,7 +33,6 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.*;
 import net.minecraft.util.*;
@@ -111,6 +110,7 @@ public class BotcFab implements ModInitializer {
     private static int timerBarTicks = 0;
     private static int timerDurationTicks = 10*20; // 10 seconds default
     private static boolean discussionTime = false;
+    private static boolean sendHalfwayMessage = false;
 
     //Variables for on tick checks
     static boolean playersLockedToSeats = false;
@@ -541,6 +541,7 @@ public class BotcFab implements ModInitializer {
         ServerWorld world = src.getWorld();
         world.setTimeOfDay(1000L);
         discussionTime = true; //Initiate day time pass code
+        sendHalfwayMessage = true; //allow halfway msg
         startTimer(srv,6*60); //Start 6min timer
         src.sendFeedback(() -> Text.literal("Starting discussion timer"), false);
     }
@@ -649,6 +650,10 @@ public class BotcFab implements ModInitializer {
                 //day lasts ~12000 ticks, advances time to fill that during the day
                 if (discussionTime) {
                     world.setTimeOfDay(Math.round(1000 + (11000*percent)));
+                    if (progress < 0.5f && sendHalfwayMessage){
+                        sendHalfwayMessage = false;
+                        sendMessageToPlayers(Text.literal("Your time is halfway through, 3 minutes remaining."),playerList);
+                    }
                 }
                 if (progress < 0.5f && progress > 0.3f){
                     timerBar.setColor(BossBar.Color.YELLOW);
