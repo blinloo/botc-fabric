@@ -35,6 +35,7 @@ public class SelectionInventory {
         inventory.setStack(8, setCustomName(new ItemStack(Items.BELL), Text.literal("Start discussion time (6min)")));
         //Slots that require player input 21-26
 
+        inventory.setStack(24, setCustomName(new ItemStack(Items.SKELETON_SKULL), Text.literal("Instant execute")));
         inventory.setStack(25, setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")));
         inventory.setStack(26, setCustomName(new ItemStack(Items.NETHER_STAR), Text.literal("Mark for revival")));
         int slot = 9; //9-20 is colour selection
@@ -92,11 +93,11 @@ public class SelectionInventory {
                 break;
             case 6: //Tp players to chair
                 player.sendMessage(Text.literal("Teleporting to chairs"), true);
-                PlayerUtils.teleportPlayers("home",player.getCommandSource().getServer());
+                PlayerUtils.teleportPlayers("vote",player.getCommandSource().getServer());
                 break;
             case 7: //Tp players to homes
-                player.sendMessage(Text.literal("Teleporting to homes"), true);
-                PlayerUtils.teleportPlayers("vote",player.getCommandSource().getServer());
+                player.sendMessage(Text.literal("Teleporting to home"), true);
+                PlayerUtils.teleportPlayers("home",player.getCommandSource().getServer());
                 break;
             case 8: //Tp players to homes
                 player.sendMessage(Text.literal("Started discussion time (6min)"), true);
@@ -112,7 +113,7 @@ public class SelectionInventory {
     public static void handleSelectionCommandPlayerInput(ServerPlayerEntity player, int index) {
         if (selectedPlayer != null) {
             switch (index) {
-                case 21: //Instant kill player
+                case 24: //Instant kill player
                     player.sendMessage(Text.literal("Instant execution: " + selectedPlayer.getNameForScoreboard() + " (" + selectedColour), true);
                     PlayerUtils.executePlayer(selectedPlayer);
                     break;

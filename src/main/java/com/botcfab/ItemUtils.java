@@ -22,6 +22,7 @@ import net.minecraft.util.math.Direction;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import static com.botcfab.BotcFab.POSSIBLE_COLOURS;
 
