@@ -33,6 +33,7 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.*;
 import net.minecraft.util.*;
@@ -228,8 +229,7 @@ public class BotcFab implements ModInitializer {
         int startPoint = ThreadLocalRandom.current().nextInt(0, (11+1)); //Determines start point for colour selection
         ServerPlayerEntity storyTeller = src.getPlayer(); // Gets the person that called the command. Whoever called it is Storyteller
 
-        // Set everyone else to be a player
-        // Remove the storyTeller from the list of players. Remaining list is all players
+        //TODO add list of barrel coordinates to csv and copt contents to each one
 
         if (storyTeller != null) {
             // Remove all tags before adding new ones
@@ -646,9 +646,9 @@ public class BotcFab implements ModInitializer {
             float progress = 1.0f - percent;
             if (timerBar != null) {
                 timerBar.setPercent(Math.max(progress, 0f));
-                //day lasts ~7000 ticks, advances time to fill that during the day
+                //day lasts ~12000 ticks, advances time to fill that during the day
                 if (discussionTime) {
-                    world.setTimeOfDay(world.getTimeOfDay() + (12000 / timerDurationTicks));
+                    world.setTimeOfDay(Math.round(1000 + (11000*percent)));
                 }
                 if (progress < 0.5f && progress > 0.3f){
                     timerBar.setColor(BossBar.Color.YELLOW);
@@ -666,7 +666,9 @@ public class BotcFab implements ModInitializer {
                     timerBar.setPercent(0f);
                     timerBar.setVisible(false); //Make timer invisible as finished
                     for (ServerPlayerEntity p : playerList) {
-                        showTitle(p,Text.literal("TIME UP"));
+                        showTitle(p,Text.literal("TIME IS UP"));
+                        p.sendMessage(Text.literal("Return to the town square!"));
+                        p.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_STEP,SoundCategory.PLAYERS,1f,0.5f);
                     }
                 }
             }
@@ -788,24 +790,33 @@ public class BotcFab implements ModInitializer {
         return ActionResult.PASS; // Pass if not right-clicking with the correct item or targeting a player
     }
 
-    private ActionResult onRightClickItem(PlayerEntity player, World world, Hand hand) { //Checks if player right-clicked with paper, then sends player order
-        ItemStack itemInHand = player.getStackInHand(hand);
-        // Check if the player is holding the specific item and Hand is not empty
-        if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.PAPER) {
-            player.sendMessage(getPlayerOrder(Objects.requireNonNull(world.getServer())), false);
-            return ActionResult.SUCCESS;
-        }
-        //Check for heart pottery shard
-        if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.HEART_POTTERY_SHERD) {
-            String colour = getColourFromPlayer((ServerPlayerEntity) player);
-            tp((ServerPlayerEntity) player, mapCoords.get(colour).homeInside);
-            return ActionResult.SUCCESS;
-        }
+    private ActionResult onRightClickItem(PlayerEntity playerE, World world, Hand hand) { //Checks if player right-clicked with paper, then sends player order
+        ItemStack itemInHand = playerE.getStackInHand(hand);
+        ServerPlayerEntity player = (ServerPlayerEntity) playerE;
+        if (!itemInHand.isEmpty()) {
+            // Check if the player is holding the specific item and Hand is not empty
+            if (itemInHand.getItem() == Items.PAPER) {
+                player.sendMessage(getPlayerOrder(Objects.requireNonNull(world.getServer())), false);
+                return ActionResult.SUCCESS;
+            }
+            //Check for heart pottery shard
+            if (itemInHand.getItem() == Items.HEART_POTTERY_SHERD) {
+                String colour = getColourFromPlayer(player);
+                tp(player, mapCoords.get(colour).homeInside);
+                return ActionResult.SUCCESS;
+            }
 
-        //Check for recovery compass
-        if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.RECOVERY_COMPASS) {
-            gotoMinigames((ServerPlayerEntity) player);
-            return ActionResult.SUCCESS;
+            //Check for recovery compass
+            if (itemInHand.getItem() == Items.RECOVERY_COMPASS) {
+                gotoMinigames(player);
+                return ActionResult.SUCCESS;
+            }
+
+            //Check for grimoire
+            if (itemInHand.getItem() == Items.RIB_ARMOR_TRIM_SMITHING_TEMPLATE) {
+                SelectionInventory.openMenu(player);
+                return ActionResult.SUCCESS;
+            }
         }
         return ActionResult.PASS;
     }
@@ -997,7 +1008,7 @@ public class BotcFab implements ModInitializer {
         dispatcher.register(literal("botc_openMenu").executes(context -> {
             ServerPlayerEntity player = context.getSource().getPlayer();
             if (player != null) {
-                SelectionInventory.openMenu(player,"commands");
+                SelectionInventory.openMenu(player);
             }
             return 1;
         }));

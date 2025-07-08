@@ -19,42 +19,36 @@ public class SelectionInventory {
     static String selectedColour = "";
     static ServerPlayerEntity selectedPlayer = null;
 
-    public static void openMenu(ServerPlayerEntity player, String menuType) {
+    public static void openMenu(ServerPlayerEntity player) {
         // Create inventory with 9 slots
         Inventory inventory = new SimpleInventory(27);
 
         // Add selectable items
-        if (menuType.equals("commands")) {
-            inventory.setStack(0, setCustomName(new ItemStack(Items.DIRT), Text.literal("Setup Game")));
-            inventory.setStack(1, setCustomName(new ItemStack(Items.GRASS_BLOCK), Text.literal("Begin game and teleport players")));
-            inventory.setStack(2, setCustomName(new ItemStack(Items.SUNFLOWER), Text.literal("Start day")));
-            inventory.setStack(3, setCustomName(new ItemStack(Items.SNOWBALL), Text.literal("Night falls")));
-            inventory.setStack(4, setCustomName(new ItemStack(Items.WAXED_COPPER_BULB), Text.literal("Lock in votes")));
-            inventory.setStack(5, setCustomName(new ItemStack(Items.DARK_OAK_HANGING_SIGN), Text.literal("Begin execution of marked player")));
-            inventory.setStack(6, setCustomName(new ItemStack(Items.ANDESITE_SLAB), Text.literal("Teleport players to chairs")));
-            inventory.setStack(7, setCustomName(new ItemStack(Items.RED_BED), Text.literal("Teleport players to homes")));
-            inventory.setStack(8, setCustomName(new ItemStack(Items.BELL), Text.literal("Start discussion time (6min)")));
-            //Slots that require player input 21-26
+        inventory.setStack(0, setCustomName(new ItemStack(Items.DIRT), Text.literal("Setup Game")));
+        inventory.setStack(1, setCustomName(new ItemStack(Items.GRASS_BLOCK), Text.literal("Begin game and teleport players")));
+        inventory.setStack(2, setCustomName(new ItemStack(Items.SUNFLOWER), Text.literal("Start day")));
+        inventory.setStack(3, setCustomName(new ItemStack(Items.SNOWBALL), Text.literal("Night falls")));
+        inventory.setStack(4, setCustomName(new ItemStack(Items.WAXED_COPPER_BULB), Text.literal("Lock in votes")));
+        inventory.setStack(5, setCustomName(new ItemStack(Items.DARK_OAK_HANGING_SIGN), Text.literal("Begin execution of marked player")));
+        inventory.setStack(6, setCustomName(new ItemStack(Items.ANDESITE_SLAB), Text.literal("Teleport players to chairs")));
+        inventory.setStack(7, setCustomName(new ItemStack(Items.RED_BED), Text.literal("Teleport players to homes")));
+        inventory.setStack(8, setCustomName(new ItemStack(Items.BELL), Text.literal("Start discussion time (6min)")));
+        //Slots that require player input 21-26
 
-            inventory.setStack(25, setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")));
-            inventory.setStack(26, setCustomName(new ItemStack(Items.NETHER_STAR), Text.literal("Mark for revival")));
-            int slot = 9; //9-20 is colour selection
-            for (String colour : POSSIBLE_COLOURS) {
-                ServerPlayerEntity p = getPlayerFromColour(colour, Objects.requireNonNull(player.getServer()));
-                if (p != null) {//if player exists add their colour to slot
-                    if (p == selectedPlayer){ //Mark selected player with glass
-                        inventory.setStack(slot, setCustomName(getGlassFromColour(colour), p.getStyledDisplayName()));
-                    }
-                    else {
-                        inventory.setStack(slot, setCustomName(getWoolFromColour(colour), p.getStyledDisplayName()));
-                    }
+        inventory.setStack(25, setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")));
+        inventory.setStack(26, setCustomName(new ItemStack(Items.NETHER_STAR), Text.literal("Mark for revival")));
+        int slot = 9; //9-20 is colour selection
+        for (String colour : POSSIBLE_COLOURS) {
+            ServerPlayerEntity p = getPlayerFromColour(colour, Objects.requireNonNull(player.getServer()));
+            if (p != null) {//if player exists add their colour to slot
+                if (p == selectedPlayer){ //Mark selected player with glass
+                    inventory.setStack(slot, setCustomName(getGlassFromColour(colour), p.getStyledDisplayName()));
                 }
-                slot++;
+                else {
+                    inventory.setStack(slot, setCustomName(getWoolFromColour(colour), p.getStyledDisplayName()));
+                }
             }
-        } else {
-            inventory.setStack(0, new ItemStack(Items.DIAMOND));
-            inventory.setStack(1, new ItemStack(Items.GOLD_INGOT));
-            inventory.setStack(2, new ItemStack(Items.EMERALD));
+            slot++;
         }
 
         NamedScreenHandlerFactory screenHandlerFactory = new SimpleNamedScreenHandlerFactory(
