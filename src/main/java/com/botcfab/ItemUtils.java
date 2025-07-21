@@ -6,20 +6,31 @@ import net.minecraft.block.LeverBlock;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.BlockFace;
+import net.minecraft.component.ComponentType;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.DyedColorComponent;
-import net.minecraft.component.type.ProfileComponent;
+import net.minecraft.component.type.*;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.Enchantments;
 import net.minecraft.item.DyeItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.item.tooltip.TooltipType;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.property.Properties;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.DyeColor;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Rarity;
+import net.minecraft.util.Unit;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import org.apache.logging.log4j.core.jmx.Server;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -107,6 +118,8 @@ public class ItemUtils {
     static void setColourBoots(ServerPlayerEntity p, String c){ //Give player boots with assigned colour
         //String colourRGB = Color.decode(Integer.toString(colourHex)).toString();
         ItemStack boots = new ItemStack(Items.LEATHER_BOOTS);
+        boots.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)); //Should set to unbreakable
+        boots.addEnchantment((RegistryEntry<Enchantment>) Enchantments.BINDING_CURSE,1); //Might work?
         List<DyeItem> dyes = List.of(DyeItem.byColor(DyeColor.byName(c,DyeColor.LIME))); //Defaults to lime if colour not got from String
         ItemStack dyedBoots = DyedColorComponent.setColor(boots, dyes);
         p.getInventory().setStack(36,dyedBoots); //36 is slot for boots, IDK why help
@@ -153,5 +166,29 @@ public class ItemUtils {
             case "gray" -> new ItemStack(Items.GRAY_STAINED_GLASS);
             default -> null;
         };
+    }
+
+    static void givePlayerStorytellerItems(ServerPlayerEntity player){
+        ArrayList<ItemStack> items = new ArrayList<>();
+        ItemStack grimoire = setCustomName(new ItemStack(Items.RIB_ARMOR_TRIM_SMITHING_TEMPLATE),Text.literal("Grimoire"));
+        grimoire.set(DataComponentTypes.RARITY, Rarity.EPIC);
+        grimoire.remove(DataComponentTypes.HIDE_TOOLTIP); //Might not do anything
+        items.add(grimoire);
+
+        ItemStack accuseStick = setCustomName(new ItemStack(Items.BREEZE_ROD),Text.literal("Accusation Stick"));
+        accuseStick.set(DataComponentTypes.RARITY, Rarity.RARE);
+        items.add(accuseStick);
+
+        ItemStack playerOrder = setCustomName(new ItemStack(Items.PAPER),Text.literal("Get Player Order"));
+        playerOrder.set(DataComponentTypes.RARITY, Rarity.UNCOMMON);
+        items.add(playerOrder);
+
+        for (ItemStack i:items){
+            if (!player.getInventory().insertStack(i))
+            {
+                player.sendMessage(Text.literal("Not enough space in inventory for items! Please make space and run the command again"));
+                return;
+            }
+        }
     }
 }

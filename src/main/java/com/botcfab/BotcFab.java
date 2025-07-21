@@ -1006,6 +1006,17 @@ public class BotcFab implements ModInitializer {
                     return 1;
                 }));
 
+        dispatcher.register(literal("botc_getItems")
+                .executes(context -> {
+                    ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
+                    if (player != null) {
+                        givePlayerStorytellerItems(player);
+                    } else {
+                        context.getSource().sendFeedback(() -> Text.literal("No player to give items, do not run in server console."), false);
+                    }
+                    return 1;
+                }));
+
         dispatcher.register(literal("botc_beginExecution")
                 .requires(source -> source.hasPermissionLevel(2))
                 .executes(context -> beginExecution(context.getSource())));
