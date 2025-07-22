@@ -177,8 +177,8 @@ public class PlayerUtils {
                             break;
                     }
                     break;
-                case SCHOOL_MAP: //
-                    placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR); //Make sure direction is correct later
+                case SCHOOL_MAP:
+                    placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
             }
         }
         if (tags.contains(GHOST)){

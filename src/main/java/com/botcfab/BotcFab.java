@@ -284,21 +284,21 @@ public class BotcFab implements ModInitializer {
                     case DEFAULT_MAP:
                         switch (assignedColour) {
                             case "black", "yellow", "orange":
-                                placeSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour);
+                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour);
                                 break;
                             case "pink", "red", "purple":
-                                placeSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, player.getName(), assignedColour);
+                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, player.getName(), assignedColour);
                                 break;
                             case "brown", "green", "white":
-                                placeSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour);
+                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour);
                                 break;
                             case "blue", "cyan", "gray":
-                                placeSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, player.getName(), assignedColour);
+                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, player.getName(), assignedColour);
                                 break;
                         }
                         break;
                     case SCHOOL_MAP:
-                        placeSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour);
+                        placeStandingSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour);
                         break;
                 }
                 updateVoteStatus(world,player); //player levers and update lamps

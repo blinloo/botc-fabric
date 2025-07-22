@@ -6,7 +6,6 @@ import net.minecraft.block.LeverBlock;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.BlockFace;
-import net.minecraft.component.ComponentType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.*;
 import net.minecraft.enchantment.Enchantment;
@@ -14,26 +13,19 @@ import net.minecraft.enchantment.Enchantments;
 import net.minecraft.item.DyeItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.property.Properties;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.DyeColor;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Rarity;
-import net.minecraft.util.Unit;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import org.apache.logging.log4j.core.jmx.Server;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 import static com.botcfab.BotcFab.POSSIBLE_COLOURS;
 
@@ -86,15 +78,7 @@ public class ItemUtils {
         world.setBlockState(pos, state, Block.NOTIFY_ALL);
     }
 
-    static void placeSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour) {
-        if (world == null || world.isClient) return;
-
-        //WallSignBlock sign = (WallSignBlock) Blocks.SPRUCE_WALL_SIGN;
-
-        // Place a spruce wall sign facing arg direction
-        world.setBlockState(pos, Blocks.SPRUCE_WALL_SIGN.getDefaultState()
-                .with(Properties.HORIZONTAL_FACING, facing));
-
+    static private void placeSign(ServerWorld world, BlockPos pos, Text text, String colour) {
         SignBlockEntity sign = (SignBlockEntity) world.getBlockEntity(pos);
         if (sign != null) {
             Text[] signPlayerName = new Text[]{
@@ -113,6 +97,26 @@ public class ItemUtils {
             sign.markDirty();
             world.updateListeners(pos, sign.getCachedState(), sign.getCachedState(), 3);
         }
+    }
+
+    static void placeWallSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour) {
+        if (world == null) return;
+
+        // Place a spruce wall sign facing arg direction
+        world.setBlockState(pos, Blocks.SPRUCE_WALL_SIGN.getDefaultState()
+                .with(Properties.HORIZONTAL_FACING, facing));
+
+        placeSign(world,pos,text,colour);
+    }
+
+    static void placeStandingSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour) {
+        if (world == null) return;
+
+        // Place a spruce wall sign facing arg direction
+        world.setBlockState(pos, Blocks.DARK_OAK_SIGN.getDefaultState()
+                .with(Properties.HORIZONTAL_FACING, facing));
+
+        placeSign(world,pos,text,colour);
     }
 
     static void setColourBoots(ServerPlayerEntity p, String c){ //Give player boots with assigned colour
