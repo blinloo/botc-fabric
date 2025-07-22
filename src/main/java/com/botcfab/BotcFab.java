@@ -252,6 +252,8 @@ public class BotcFab implements ModInitializer {
             if (tags.contains(SPEC)) {
                 p.changeGameMode(GameMode.SPECTATOR);
                 players.remove(p); //Remove spectators from player list
+                resetPlayer(p); //Remove all tags then re-add spectator to avoid overlaps
+                p.addCommandTag(SPEC);
                 scoreboard.addScoreHolderToTeam(p.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
             }
         }
