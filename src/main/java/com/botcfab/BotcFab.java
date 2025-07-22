@@ -201,7 +201,7 @@ public class BotcFab implements ModInitializer {
                 break;
             case SCHOOL_MAP:
                 //TODO Change these one map is done
-                EXECUTE_POS = new BlockPos(1, -29, -2);
+                EXECUTE_POS = new BlockPos(455, 4, 157);
                 EVIL_ROOM_POS = new BlockPos(1, -28, 57);
                 MINIGAMES_POS = new BlockPos(1, -27, -13);
                 break;
