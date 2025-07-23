@@ -123,7 +123,7 @@ public class ItemUtils {
         //String colourRGB = Color.decode(Integer.toString(colourHex)).toString();
         ItemStack boots = new ItemStack(Items.LEATHER_BOOTS);
         boots.set(DataComponentTypes.UNBREAKABLE, new UnbreakableComponent(true)); //Should set to unbreakable
-        boots.addEnchantment((RegistryEntry<Enchantment>) Enchantments.BINDING_CURSE,1); //Might work?
+        //boots.addEnchantment((RegistryEntry<Enchantment>) Enchantments.BINDING_CURSE,1); //Might work?
         List<DyeItem> dyes = List.of(DyeItem.byColor(DyeColor.byName(c,DyeColor.LIME))); //Defaults to lime if colour not got from String
         ItemStack dyedBoots = DyedColorComponent.setColor(boots, dyes);
         p.getInventory().setStack(36,dyedBoots); //36 is slot for boots, IDK why help

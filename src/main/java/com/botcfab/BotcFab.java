@@ -821,8 +821,10 @@ public class BotcFab implements ModInitializer {
 
             //Check for grimoire
             if (itemInHand.getItem() == Items.RIB_ARMOR_TRIM_SMITHING_TEMPLATE) {
-                SelectionInventory.openMenu(player);
-                return ActionResult.SUCCESS;
+                if (player.hasPermissionLevel(4)) {
+                    SelectionInventory.openMenu(player);
+                    return ActionResult.SUCCESS;
+                }
             }
         }
         return ActionResult.PASS;
@@ -830,15 +832,15 @@ public class BotcFab implements ModInitializer {
 
     private static void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
         dispatcher.register(literal("botc_setupGame")
-                .requires(source -> source.hasPermissionLevel(2))
+                .requires(source -> source.hasPermissionLevel(4))
                 .executes(context -> setupGame(context.getSource())));
 
         dispatcher.register(literal("botc_startGame")
-                .requires(source -> source.hasPermissionLevel(2))
+                .requires(source -> source.hasPermissionLevel(4))
                 .executes(context -> beginGame(context.getSource())));
 
         dispatcher.register(literal("botc_importCSV")
-                .requires(source -> source.hasPermissionLevel(2))
+                .requires(source -> source.hasPermissionLevel(4))
                 .executes((context) -> {
                     mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import coordinates for map from Excel sheet
                     return 1;
@@ -846,7 +848,7 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_changeMap").then(
                 CommandManager.argument("map", StringArgumentType.string())
-                        .requires(source -> source.hasPermissionLevel(2))
+                        .requires(source -> source.hasPermissionLevel(4))
                         .suggests((context, builder) -> {
                             for (String m:MAPS)
                                 builder.suggest(m); //Suggest maps
@@ -869,14 +871,14 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_addSpectator").then(
                 CommandManager.argument("player_name", StringArgumentType.string())
-                        .requires(source -> source.hasPermissionLevel(2))
+                        .requires(source -> source.hasPermissionLevel(4))
                         .suggests(new PlayerSuggestionProvider())
                         .executes(PlayerUtils::onAddSpectator)
         ));
 
         dispatcher.register(literal("botc_tpPlayers").then(
                 CommandManager.argument("tp_location", StringArgumentType.string())
-                        .requires(source -> source.hasPermissionLevel(2))
+                        .requires(source -> source.hasPermissionLevel(4))
                         .suggests((context, builder) -> {
                             for (String o:tpOptions)
                                 builder.suggest(o); //Suggest teleport locations
@@ -904,7 +906,7 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_startTimer").then( //Starts a timer boss bar for [argument] minutes
                 CommandManager.argument("Time (minutes)", StringArgumentType.string())
-                        .requires(source -> source.hasPermissionLevel(2))
+                        .requires(source -> source.hasPermissionLevel(4))
                         .executes(context -> {
                             String stringTime = StringArgumentType.getString(context, "Time (minutes)");// Get the timer duration as string from argument
                             ServerCommandSource src = context.getSource();
@@ -926,7 +928,7 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_executePlayer").then(
                 CommandManager.argument("player", EntityArgumentType.player())
-                        .requires(source -> source.hasPermissionLevel(2))
+                        .requires(source -> source.hasPermissionLevel(4))
                         .suggests(new PlayerSuggestionProvider())
                         .executes(context -> {
                             ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
@@ -937,7 +939,7 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_demonKillMark").then(
                 CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player as the demon kill tonight.
-                        .requires(source -> source.hasPermissionLevel(2))
+                        .requires(source -> source.hasPermissionLevel(4))
                         .suggests(new PlayerSuggestionProvider())
                         .executes(context -> {
                             ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
@@ -949,7 +951,7 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_reviveMark").then(
                 CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player to be revived in the day.
-                        .requires(source -> source.hasPermissionLevel(2))
+                        .requires(source -> source.hasPermissionLevel(4))
                         .suggests(new PlayerSuggestionProvider())
                         .executes(context -> {
                             ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
@@ -961,7 +963,7 @@ public class BotcFab implements ModInitializer {
 
         dispatcher.register(literal("botc_accuse").then(
                 CommandManager.argument("player", EntityArgumentType.player()) // accuse player for execution, in case right click selector doesn't work.
-                        .requires(source -> source.hasPermissionLevel(2))
+                        .requires(source -> source.hasPermissionLevel(4))
                         .suggests(new PlayerSuggestionProvider())
                         .executes(context -> {
                             ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
@@ -972,14 +974,14 @@ public class BotcFab implements ModInitializer {
         ));
 
         dispatcher.register(literal("botc_startDay")
-                .requires(source -> source.hasPermissionLevel(2))
+                .requires(source -> source.hasPermissionLevel(4))
                 .executes(context -> startDay(context.getSource())));
         dispatcher.register(literal("botc_nightFalls")
-                .requires(source -> source.hasPermissionLevel(2))
+                .requires(source -> source.hasPermissionLevel(4))
                 .executes(context -> nightFalls(context.getSource())));
 
         dispatcher.register(literal("botc_voteLockIn")
-                .requires(source -> source.hasPermissionLevel(2))
+                .requires(source -> source.hasPermissionLevel(4))
                 .executes(context -> {
                             LOGGER.info("Beginning vote lock in");
                             voteLockIn(context.getSource());
@@ -989,7 +991,7 @@ public class BotcFab implements ModInitializer {
                 ));
 
         dispatcher.register(literal("botc_toggleSeatLock")
-                .requires(source -> source.hasPermissionLevel(2))
+                .requires(source -> source.hasPermissionLevel(4))
                 .executes(context -> {
                             playersLockedToSeats = !playersLockedToSeats;
                             context.getSource().sendFeedback(() -> Text.literal("Toggled player seat lock to " + playersLockedToSeats), false);
@@ -1020,7 +1022,7 @@ public class BotcFab implements ModInitializer {
                 }));
 
         dispatcher.register(literal("botc_beginExecution")
-                .requires(source -> source.hasPermissionLevel(2))
+                .requires(source -> source.hasPermissionLevel(4))
                 .executes(context -> beginExecution(context.getSource())));
 
         dispatcher.register(literal("botc_openMenu").executes(context -> {
