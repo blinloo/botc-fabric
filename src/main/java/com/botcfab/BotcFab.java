@@ -624,13 +624,13 @@ public class BotcFab implements ModInitializer {
         for (String i : mapCoords.keySet()) {
             BlockPos leverPos = mapCoords.get(i).lever; // Get the block state at that position
             BlockState leverState = world.getBlockState(leverPos); // Get the block state at that position
-            // Check if lever powered (true = powered)
+            // Check if lever
             if (leverState.isOf(Blocks.LEVER)){
                 BlockPos voteLampPos = mapCoords.get(i).lampsVoteMarker;
                 BlockState voteLampState = world.getBlockState(mapCoords.get(i).lampsVoteMarker);
                 //Update lamp state based on lever state
                 if (voteLampState.contains(Properties.LIT)){
-                    BlockState updatedBulbState = voteLampState.with(Properties.LIT, leverState.get(Properties.POWERED));
+                    BlockState updatedBulbState = voteLampState.with(Properties.LIT, leverState.get(Properties.POWERED)); //This is where is checks lever power state
                     world.setBlockState(voteLampPos, updatedBulbState, 3);
                 }
                 if (voteLampState.isOf(Blocks.WAXED_OXIDIZED_COPPER) || voteLampState.isOf(Blocks.SEA_LANTERN)) {
@@ -1042,7 +1042,7 @@ public class BotcFab implements ModInitializer {
 
         LOGGER.info("Hello Fabric world!");
         //Run on each world end tick
-        ServerTickEvents.END_WORLD_TICK.register(this::onWorldTick); //(ServerWorld world) -> onWorldTick(world)
+        ServerTickEvents.END_WORLD_TICK.register(this::onWorldTick);
         TickScheduler.register();
 
         //Run on each server start tick
