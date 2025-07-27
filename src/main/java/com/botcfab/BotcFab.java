@@ -615,6 +615,7 @@ public class BotcFab implements ModInitializer {
         timerBarTicks = 0;
         timerDurationTicks = duration*20*3; //*20 to get seconds value in ticks *3
         timerBarActive = true;
+        sendHalfwayMessage = true;
 
         srv.sendMessage(Text.literal("Boss bar timer started."));
     }
@@ -649,18 +650,24 @@ public class BotcFab implements ModInitializer {
             float progress = 1.0f - percent;
             if (timerBar != null) {
                 timerBar.setPercent(Math.max(progress, 0f));
+                int timeLeftSec = (timerDurationTicks - timerBarTicks)/60;
+                int minutes = (timeLeftSec % 3600) / 60;
+                int seconds = timeLeftSec % 60;
+                String timeString = String.format("%01d:%02d", minutes, seconds);
+                timerBar.setName(Text.literal("Time remaining - " + timeString));
                 //day lasts ~12000 ticks, advances time to fill that during the day
                 if (discussionTime) {
                     world.setTimeOfDay(Math.round(1000 + (11000*percent)));
-                    if (progress < 0.5f && sendHalfwayMessage){
-                        sendHalfwayMessage = false;
-                        sendMessageToPlayers(Text.literal("Your time is halfway through, 3 minutes remaining."),playerList);
-                    }
+
                 }
-                if (progress < 0.5f && progress > 0.3f){
+                if (progress < 0.5f && sendHalfwayMessage){
+                    sendHalfwayMessage = false;
+                    sendMessageToPlayers(Text.literal("Your time is halfway through, " + minutes + " minutes remaining."),playerList);
+                }
+                if (timeLeftSec <= 60 && timeLeftSec > 56) {
                     timerBar.setColor(BossBar.Color.YELLOW);
                 }
-                if (progress < 0.1f && progress > 0f){
+                if (timeLeftSec <= 30 && timeLeftSec > 26) {
                     timerBar.setColor(BossBar.Color.RED);
                 }
             }
