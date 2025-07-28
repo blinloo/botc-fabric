@@ -187,6 +187,7 @@ public class BotcFab implements ModInitializer {
         world.getGameRules().get(GameRules.DO_TRADER_SPAWNING).set(false, world.getServer());
         world.getGameRules().get(GameRules.DO_WEATHER_CYCLE).set(false, world.getServer());
         world.getGameRules().get(GameRules.KEEP_INVENTORY).set(true, world.getServer());
+        world.getGameRules().get(GameRules.DO_VINES_SPREAD).set(false, world.getServer());
         world.getGameRules().get(GameRules.PLAYERS_SLEEPING_PERCENTAGE).set(200, world.getServer());
 
         // Create the one and only team we need
