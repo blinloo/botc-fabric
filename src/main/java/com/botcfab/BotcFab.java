@@ -283,25 +283,45 @@ public class BotcFab implements ModInitializer {
                 //TODO Test this to confirm, should work now tho
                 player.setSpawnPoint(World.OVERWORLD,mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
                 //Places signs, levers update in the updatePlayer function
+                BlockState signType;
                 switch (mapSelected) {
                     case DEFAULT_MAP:
+                        signType = Blocks.SPRUCE_WALL_SIGN.getDefaultState();
                         switch (assignedColour) {
                             case "black", "yellow", "orange":
-                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour);
+                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour,signType);
                                 break;
                             case "pink", "red", "purple":
-                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, player.getName(), assignedColour);
+                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, player.getName(), assignedColour,signType);
                                 break;
                             case "brown", "green", "white":
-                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour);
+                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour,signType);
                                 break;
                             case "blue", "cyan", "gray":
-                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, player.getName(), assignedColour);
+                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, player.getName(), assignedColour,signType);
                                 break;
                         }
                         break;
                     case SCHOOL_MAP:
+                        //Theatre signs
                         placeStandingSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour);
+                        //Room signs above door
+                        //TODO Change colours!
+                        signType = Blocks.PALE_OAK_WALL_SIGN.getDefaultState();
+                        switch (assignedColour) {
+                            case "black", "green", "orange":
+                                placeWallSign(world,mapCoords.get(assignedColour).homeOutside.up(2),Direction.SOUTH,player.getName(),assignedColour,signType);
+                                break;
+                            case "pink", "red", "purple":
+                                placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.WEST, player.getName(), assignedColour,signType);
+                                break;
+                            case "brown", "yellow", "white":
+                                placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.NORTH, player.getName(), assignedColour,signType);
+                                break;
+                            case "blue", "cyan", "gray":
+                                placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.EAST, player.getName(), assignedColour,signType);
+                                break;
+                        }
                         break;
                 }
                 updateVoteStatus(world,player); //player levers and update lamps
@@ -545,7 +565,7 @@ public class BotcFab implements ModInitializer {
         world.setTimeOfDay(1000L);
         discussionTime = true; //Initiate day time pass code
         sendHalfwayMessage = true; //allow halfway msg
-        startTimer(srv,6*60); //Start 6min timer
+        startTimer(srv,5*60); //Start 6min timer
         src.sendFeedback(() -> Text.literal("Starting discussion timer"), false);
     }
 
@@ -663,7 +683,7 @@ public class BotcFab implements ModInitializer {
                 }
                 if (progress < 0.5f && sendHalfwayMessage){
                     sendHalfwayMessage = false;
-                    sendMessageToPlayers(Text.literal("Your time is halfway through, " + minutes + " minutes remaining."),playerList);
+                    sendMessageToPlayers(Text.literal("Your time is halfway through, " + minutes + ":" + seconds + " remaining."),playerList);
                 }
                 if (timeLeftSec <= 60 && timeLeftSec > 56) {
                     timerBar.setColor(BossBar.Color.YELLOW);

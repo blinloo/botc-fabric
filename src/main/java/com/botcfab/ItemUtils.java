@@ -1,6 +1,7 @@
 package com.botcfab;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.LeverBlock;
 import net.minecraft.block.entity.SignBlockEntity;
@@ -99,11 +100,11 @@ public class ItemUtils {
         }
     }
 
-    static void placeWallSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour) {
+    static void placeWallSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour, BlockState type) {
         if (world == null) return;
 
         // Place a spruce wall sign facing arg direction
-        world.setBlockState(pos, Blocks.SPRUCE_WALL_SIGN.getDefaultState()
+        world.setBlockState(pos, type
                 .with(Properties.HORIZONTAL_FACING, facing));
 
         placeSign(world,pos,text,colour);
