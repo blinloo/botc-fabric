@@ -306,7 +306,6 @@ public class BotcFab implements ModInitializer {
                         //Theatre signs
                         placeStandingSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour);
                         //Room signs above door
-                        //TODO Change colours!
                         signType = Blocks.PALE_OAK_WALL_SIGN.getDefaultState();
                         switch (assignedColour) {
                             case "black", "green", "orange":
@@ -343,6 +342,9 @@ public class BotcFab implements ModInitializer {
                 world.setBlockState(mapCoords.get(c).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
                 world.setBlockState(mapCoords.get(c).lever, Blocks.AIR.getDefaultState()); //Remove lever
                 world.setBlockState(mapCoords.get(c).sign, Blocks.AIR.getDefaultState()); //Remove empty signs
+                if (mapSelected.equals(SCHOOL_MAP)) {
+                    world.setBlockState(mapCoords.get(c).homeOutside.up(2), Blocks.AIR.getDefaultState()); //Remove empty room signs
+                }
             }
         }
 
