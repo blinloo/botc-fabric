@@ -115,6 +115,7 @@ public class BotcFab implements ModInitializer {
     //Variables for on tick checks
     static boolean playersLockedToSeats = false;
     static boolean executionInProgress = false;
+    static boolean organGrinderActive = false;
 
     //Text for displays
     private static final MutableText MEETING_MESSAGE = Text.literal("\nPlease head to the town square");
@@ -129,11 +130,6 @@ public class BotcFab implements ModInitializer {
             .append(Text.literal("revived.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
     private static final MutableText EXECUTE_TEXT = Text.literal(" has been ")
             .append(Text.literal("executed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
-
-    private static final MutableText message = Text.literal("the ")
-            .append(Text.literal("cat").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFFFF55))))  // Yellow for "cat"
-            .append(Text.literal(" is on "))
-            .append(Text.literal("fire").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xFF0000)))); // Red for "fire"
 
     //variables for command inputs
     private static final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town","dorm","legion","evil");
@@ -241,7 +237,6 @@ public class BotcFab implements ModInitializer {
             srv.sendMessage(Text.literal("Storyteller is: " + storyTeller.getStyledDisplayName().toString()));
             storyTeller.changeGameMode(GameMode.CREATIVE);
             scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
-            src.sendFeedback(() -> message, false);
         } else {
             src.sendFeedback(() -> Text.literal("Failed to find storyteller. Do not execute this command from the server window"), false);
             return 0;
@@ -376,8 +371,13 @@ public class BotcFab implements ModInitializer {
         world.setTimeOfDay(18000L);
         playersLockedToSeats = false;
         executionInProgress = false;
+        organGrinderActive = false;
         timerBarActive = false; //Clear timer for day end
         //Remove all temp tags from players
+        for (ServerPlayerEntity p:playerMgr.getPlayerList()){
+            p.removeStatusEffect(StatusEffects.BLINDNESS);
+            p.removeStatusEffect(StatusEffects.DARKNESS);
+        }
         removeTagAllPlayers(ACCUSED,srv);
         removeTagAllPlayers(DEATH_FLAG, srv);
         removeTagAllPlayers(REVIVE_FLAG, srv);
@@ -459,7 +459,7 @@ public class BotcFab implements ModInitializer {
             startColourIndex = 0; //sets start to 0 if > 11 then checks if this is within bounds
         }
         if (!indexBounds.contains(startColourIndex)){
-            startColourIndex = indexBounds.get(0); //Sets index to start of colour index bounds
+            startColourIndex = indexBounds.getFirst(); //Sets index to start of colour index bounds
         }
 
         for (int i = startColourIndex; count <= playerTotal+1; i++) { //need to be <= or else the accused doesn't get a vote (+1 cus it starts at 1 to have initial delay
@@ -468,7 +468,7 @@ public class BotcFab implements ModInitializer {
                 i = 0;
             }
             if (!indexBounds.contains(i)){
-                i = indexBounds.get(0); //Sets index to start of colour index bounds
+                i = indexBounds.getFirst(); //Sets index to start of colour index bounds
             }
             BlockPos redstoneBlock = mapCoords.get(POSSIBLE_COLOURS.get(i)).triggersLampPiston;
             taskList.add(new DelayedBlockSetter(world, redstoneBlock, Blocks.AIR.getDefaultState(), delay)); //Set redstone block to air
@@ -487,7 +487,7 @@ public class BotcFab implements ModInitializer {
                     i = 0;
                 }
                 if (!indexBounds.contains(i)){
-                    i = indexBounds.get(0); //Sets index to start of colour index bounds
+                    i = indexBounds.getFirst(); //Sets index to start of colour index bounds
                 }
                 String colour = POSSIBLE_COLOURS.get(i);
                 BlockPos pos = mapCoords.get(colour).triggersLampPiston;
@@ -525,7 +525,10 @@ public class BotcFab implements ModInitializer {
             int displayGhostVotes = ghostVotesTotal; //ghost votes used
             ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED,srv);
 
-            sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes."),playerList);
+            if (!organGrinderActive) {
+                sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes."), playerList);
+            }
+            src.sendFeedback(() -> Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes."),true);
             if ((displayTotalVotes > highestVote) && (displayTotalVotes >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
                 highestVote = displayTotalVotes; //Change the highest vote to this vote
                 //Mark player for execution
@@ -538,7 +541,10 @@ public class BotcFab implements ModInitializer {
                 Text name = accusedPlayer.getStyledDisplayName();
                 MutableText message = name.copy();
                 message.append(" has now been marked for execution");
-                sendMessageToPlayers(message, playerList);
+                if (!organGrinderActive) {
+                    sendMessageToPlayers(message, playerList);
+                }
+                src.sendFeedback(() -> message,true);
             }
             if (displayTotalVotes == highestVote){ //On matching highest vote, remove all marked players
                 if (markedPlayer != null) {
@@ -552,8 +558,13 @@ public class BotcFab implements ModInitializer {
 
     static int beginExecution(ServerCommandSource src){
         MinecraftServer srv = src.getServer();
+        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         ServerPlayerEntity player = getPlayerFromColour(MARKED,srv);
         removeTagAllPlayers(ACCUSED,srv); //Removed all accused players
+        for (ServerPlayerEntity p:playerList){
+            p.removeStatusEffect(StatusEffects.BLINDNESS);
+            p.removeStatusEffect(StatusEffects.DARKNESS);
+        }
         if (player != null) {
             player.removeCommandTag(MARKED);
             executePlayer(player);
@@ -803,6 +814,10 @@ public class BotcFab implements ModInitializer {
                         tp(p,targetPos);
                         p.sendMessage(Text.literal("You were too far away. Teleporting to target..."), false);
                     }
+                    if (organGrinderActive){
+                        p.addStatusEffect(new StatusEffectInstance(StatusEffects.BLINDNESS, -1, 10, false, true));
+                        p.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, -1, 10, false, true));
+                    }
                 }
             }
         }
@@ -1025,6 +1040,15 @@ public class BotcFab implements ModInitializer {
                 .executes(context -> {
                             playersLockedToSeats = !playersLockedToSeats;
                             context.getSource().sendFeedback(() -> Text.literal("Toggled player seat lock to " + playersLockedToSeats), false);
+                            return 1;
+                        }
+                ));
+
+        dispatcher.register(literal("botc_toggleOrganGrinder")
+                .requires(source -> source.hasPermissionLevel(4))
+                .executes(context -> {
+                            organGrinderActive = !organGrinderActive;
+                            context.getSource().sendFeedback(() -> Text.literal("Organ grinder active set to " + organGrinderActive), false);
                             return 1;
                         }
                 ));
