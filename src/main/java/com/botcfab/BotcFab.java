@@ -118,18 +118,13 @@ public class BotcFab implements ModInitializer {
     static boolean organGrinderActive = false;
 
     //Text for displays
-    private static final MutableText MEETING_MESSAGE = Text.literal("\nPlease head to the town square");
-    private static final MutableText RETURN_MESSAGE = Text.literal("\nPlease return to your houses");
-    private static final MutableText DAY_MESSAGE = Text.literal("The sun rises ☀")
-            .setStyle(Style.EMPTY.withColor(Formatting.GOLD));
-    private static final MutableText NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
-            .setStyle(Style.EMPTY.withColor(Formatting.BLUE));
-    private static final MutableText KILL_TEXT = Text.literal(" has been ") //Make these not final for school map, change to expelled, suspended etc
-            .append(Text.literal("killed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
-    private static final MutableText REVIVE_TEXT = Text.literal(" has been ")
-            .append(Text.literal("revived.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
-    private static final MutableText EXECUTE_TEXT = Text.literal(" has been ")
-            .append(Text.literal("executed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
+    private static MutableText MEETING_MESSAGE;
+    private static MutableText RETURN_MESSAGE;
+    private static MutableText DAY_MESSAGE;
+    private static MutableText NIGHT_MESSAGE;
+    private static MutableText KILL_TEXT;
+    private static MutableText REVIVE_TEXT;
+    private static MutableText EXECUTE_TEXT;
 
     //variables for command inputs
     private static final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town","dorm","legion","evil");
@@ -189,6 +184,38 @@ public class BotcFab implements ModInitializer {
         // Create the one and only team we need
         createTeam(scoreboard);
 
+        //Setup text for maps
+        switch (mapSelected) {
+            case DEFAULT_MAP:
+                MEETING_MESSAGE = Text.literal("\nPlease head to the town square");
+                RETURN_MESSAGE = Text.literal("\nPlease return to your houses");
+                DAY_MESSAGE = Text.literal("The sun rises ☀")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GOLD));
+                NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
+                        .setStyle(Style.EMPTY.withColor(Formatting.BLUE));
+                KILL_TEXT = Text.literal(" has been ") //Make these not final for school map, change to expelled, suspended etc
+                        .append(Text.literal("killed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
+                REVIVE_TEXT = Text.literal(" has been ")
+                        .append(Text.literal("revived.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
+                EXECUTE_TEXT = Text.literal(" has been ")
+                        .append(Text.literal("executed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
+                break;
+            case SCHOOL_MAP:
+                MEETING_MESSAGE = Text.literal("\nPlease head to the main hall");
+                RETURN_MESSAGE = Text.literal("\nPlease return to your dorms");
+                DAY_MESSAGE = Text.literal("The morning bell rings ☀")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GOLD));
+                NIGHT_MESSAGE = Text.literal("The final bell rings 🌙")
+                        .setStyle(Style.EMPTY.withColor(Formatting.BLUE));
+                KILL_TEXT = Text.literal(" has gone ") //Make these not final for school map, change to expelled, suspended etc
+                        .append(Text.literal("missing.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
+                REVIVE_TEXT = Text.literal(" has ")
+                        .append(Text.literal("returned.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
+                EXECUTE_TEXT = Text.literal(" has been ")
+                        .append(Text.literal("suspended.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
+                break;
+        }
+
         //Sets the coordinates missing from sheet per map
         switch (mapSelected) {
             case DEFAULT_MAP:
@@ -200,7 +227,7 @@ public class BotcFab implements ModInitializer {
                 //TODO Change these once map is done
                 EXECUTE_POS = new BlockPos(455, 4, 157);
                 EVIL_ROOM_POS = new BlockPos(1, -28, 57);
-                MINIGAMES_POS = new BlockPos(1, -27, -13);
+                MINIGAMES_POS = new BlockPos(-120, -27, -13);
                 break;
         }
 
@@ -761,20 +788,31 @@ public class BotcFab implements ModInitializer {
                             BlockState anvilPosState = world.getBlockState(EXECUTE_POS);
                             if (anvilPosState.isOf(Blocks.ANVIL) || anvilPosState.isOf(Blocks.CHIPPED_ANVIL) || anvilPosState.isOf(Blocks.DAMAGED_ANVIL)) {
                                 world.setBlockState(EXECUTE_POS, Blocks.AIR.getDefaultState());
+                                //spawn redstone blood particles
+                                world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.REDSTONE_BLOCK.getDefaultState()), EXECUTE_POS.getX(), EXECUTE_POS.getY(), EXECUTE_POS.getZ(), 15, 0.5, 0, 0.5, 0.5);
                                 executionFinished = true; //used so
                             }
                             break;
                         case SCHOOL_MAP:
-                            if (executee.getBlockPos().getY() < -30) { //checks if played being executed is below certain y level.
+                            if (executee.getBlockPos().getY() < -20) { //checks if played being executed is below certain y level.
                                 executionFinished = true;
+                                tp(executee,mapCoords.get(getColourFromPlayer(executee)).homeInside);
+                                //Cover up hole
+                                world.setBlockState(new BlockPos(454,3,156), Blocks.RED_TERRACOTTA.getDefaultState());
+                                world.setBlockState(new BlockPos(455,3,156), Blocks.RED_TERRACOTTA.getDefaultState());
+                                world.setBlockState(new BlockPos(456,3,156), Blocks.RED_TERRACOTTA.getDefaultState());
+                                world.setBlockState(new BlockPos(454,3,157), Blocks.RED_TERRACOTTA.getDefaultState());
+                                world.setBlockState(new BlockPos(455,3,157), Blocks.RED_TERRACOTTA.getDefaultState());
+                                world.setBlockState(new BlockPos(456,3,157), Blocks.RED_TERRACOTTA.getDefaultState());
+                                world.setBlockState(new BlockPos(454,3,158), Blocks.RED_TERRACOTTA.getDefaultState());
+                                world.setBlockState(new BlockPos(454,3,158), Blocks.RED_TERRACOTTA.getDefaultState());
+                                world.setBlockState(new BlockPos(454,3,158), Blocks.RED_TERRACOTTA.getDefaultState());
                                 //also place all pit cover blocks back
                             }
                             break;
                     }
                     if (executionFinished) { //code that overlaps for all maps
                         killPlayer(executee);
-                        //spawn redstone blood particles
-                        world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.REDSTONE_BLOCK.getDefaultState()), EXECUTE_POS.getX(), EXECUTE_POS.getY(), EXECUTE_POS.getZ(), 15, 0.5, 0, 0.5, 0.5);
                         //sends message in chat for kill
                         world.getServer().sendMessage(getEventText(executee,CURRENT_EXECUTEE));
                         sendMessageToPlayers(getEventText(executee,CURRENT_EXECUTEE), playerList); //Sends execution message to all players
