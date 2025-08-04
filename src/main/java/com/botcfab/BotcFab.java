@@ -261,7 +261,7 @@ public class BotcFab implements ModInitializer {
             resetPlayer(storyTeller);
             storyTeller.getInventory().setStack(36,ItemStack.EMPTY); //Remove boots
             storyTeller.addCommandTag(STORYTELLER); //Add tag for storyteller
-            srv.sendMessage(Text.literal("Storyteller is: " + storyTeller.getStyledDisplayName().toString()));
+            src.sendFeedback(() -> (Text.literal("Storyteller is: " + storyTeller.getStyledDisplayName().toString())),true);
             storyTeller.changeGameMode(GameMode.CREATIVE);
             scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
         } else {
@@ -281,7 +281,7 @@ public class BotcFab implements ModInitializer {
             }
         }
 
-        storyTeller.setSpawnPoint(World.OVERWORLD, EXECUTE_POS,0,true,true); //Should work now?
+        storyTeller.setSpawnPoint(World.OVERWORLD, EXECUTE_POS,0,true,false); //Should work now?
 
         // Assign colours to players
         int currentColourIndex = startPoint;
@@ -303,7 +303,7 @@ public class BotcFab implements ModInitializer {
                 setColourBoots(player,assignedColour);
                 indexBounds.add(POSSIBLE_COLOURS.indexOf(assignedColour)); //Used for vote lock in to decide bounds.
                 //TODO Test this to confirm, should work now tho
-                player.setSpawnPoint(World.OVERWORLD,mapCoords.get(assignedColour).homeInside,0,true,true); //Set player spawn point
+                player.setSpawnPoint(World.OVERWORLD,mapCoords.get(assignedColour).homeInside,0,true,false); //Set player spawn point
                 //Places signs, levers update in the updatePlayer function
                 BlockState signType;
                 switch (mapSelected) {
@@ -354,7 +354,6 @@ public class BotcFab implements ModInitializer {
             }
         }
         createOrSetAliveDisplay(scoreboard, srv); //Update/create scoreboard for start of game.
-        srv.sendMessage(Text.literal(players.toString()));
         srv.sendMessage(Text.literal(indexBounds.toString()));
 
         //Remove votes and signs for missing players
@@ -794,7 +793,7 @@ public class BotcFab implements ModInitializer {
                             }
                             break;
                         case SCHOOL_MAP:
-                            if (executee.getBlockPos().getY() < -20) { //checks if played being executed is below certain y level.
+                            if (executee.getBlockPos().getY() < -30) { //checks if played being executed is below certain y level.
                                 executionFinished = true;
                                 tp(executee,mapCoords.get(getColourFromPlayer(executee)).homeInside);
                                 //Cover up hole
