@@ -44,6 +44,7 @@ public class Grimoire {
                 List.class
         );
         List<Role> roles = new ArrayList<Role>();
+        roles.get(0).getName("librarian");
         for (Object item : items) {
             if (item instanceof String) {
                 System.out.println("Role: " + item);
