@@ -604,7 +604,7 @@ public class BotcFab implements ModInitializer {
         world.setTimeOfDay(1000L);
         discussionTime = true; //Initiate day time pass code
         sendHalfwayMessage = true; //allow halfway msg
-        startTimer(srv,5*60); //Start 6min timer
+        startTimer(srv,6*60); //Start 6min timer
         src.sendFeedback(() -> Text.literal("Starting discussion timer"), false);
     }
 
@@ -720,7 +720,7 @@ public class BotcFab implements ModInitializer {
                     world.setTimeOfDay(Math.round(1000 + (11000*percent)));
 
                 }
-                if (progress < 0.5f && sendHalfwayMessage){
+                if (progress <= 0.5f && sendHalfwayMessage){
                     sendHalfwayMessage = false;
                     sendMessageToPlayers(Text.literal("Your time is halfway through, " + minutes + ":" + seconds + " remaining."),playerList);
                 }

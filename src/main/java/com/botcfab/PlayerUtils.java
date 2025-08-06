@@ -145,7 +145,7 @@ public class PlayerUtils {
                 break;
             case SCHOOL_MAP:
                 //TODO open pit here and teleport player
-                //tp(player,EXECUTE_POS);
+                tp(player,EXECUTE_POS.north(3));
                 //Open hole
                 world.setBlockState(new BlockPos(454,3,156), Blocks.AIR.getDefaultState());
                 world.setBlockState(new BlockPos(455,3,156), Blocks.AIR.getDefaultState());
