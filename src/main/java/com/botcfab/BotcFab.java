@@ -326,7 +326,7 @@ public class BotcFab implements ModInitializer {
                         break;
                     case SCHOOL_MAP:
                         //Theatre signs
-                        placeStandingSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour);
+                        placeStandingSign(world, mapCoords.get(assignedColour).sign, 8, player.getName(), assignedColour);
                         //Room signs above door
                         signType = Blocks.PALE_OAK_WALL_SIGN.getDefaultState();
                         switch (assignedColour) {
@@ -523,7 +523,7 @@ public class BotcFab implements ModInitializer {
                         lockedVote = pos.up(2); //Position of locked in vote lamp
                         break;
                     case SCHOOL_MAP:
-                        lockedVote = pos.east(2); //Position of locked in vote lamp Change direction based on orientation
+                        lockedVote = pos.south(2); //Position of locked in vote lamp Change direction based on orientation
                         src.sendFeedback(() -> Text.literal("FUCK YOU IDE"), false);
                         break;
                     default:
@@ -793,7 +793,7 @@ public class BotcFab implements ModInitializer {
                             }
                             break;
                         case SCHOOL_MAP:
-                            if (executee.getBlockPos().getY() < -30) { //checks if played being executed is below certain y level.
+                            if (executee.getBlockPos().getY() < -60) { //checks if played being executed is below certain y level.
                                 executionFinished = true;
                                 tp(executee,mapCoords.get(getColourFromPlayer(executee)).homeInside);
                                 //Cover up hole
@@ -804,8 +804,8 @@ public class BotcFab implements ModInitializer {
                                 world.setBlockState(new BlockPos(455,3,157), Blocks.RED_TERRACOTTA.getDefaultState());
                                 world.setBlockState(new BlockPos(456,3,157), Blocks.RED_TERRACOTTA.getDefaultState());
                                 world.setBlockState(new BlockPos(454,3,158), Blocks.RED_TERRACOTTA.getDefaultState());
-                                world.setBlockState(new BlockPos(454,3,158), Blocks.RED_TERRACOTTA.getDefaultState());
-                                world.setBlockState(new BlockPos(454,3,158), Blocks.RED_TERRACOTTA.getDefaultState());
+                                world.setBlockState(new BlockPos(455,3,158), Blocks.RED_TERRACOTTA.getDefaultState());
+                                world.setBlockState(new BlockPos(456,3,158), Blocks.RED_TERRACOTTA.getDefaultState());
                                 //also place all pit cover blocks back
                             }
                             break;

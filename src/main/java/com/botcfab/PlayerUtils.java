@@ -145,7 +145,7 @@ public class PlayerUtils {
                 break;
             case SCHOOL_MAP:
                 //TODO open pit here and teleport player
-                tp(player,EXECUTE_POS);
+                //tp(player,EXECUTE_POS);
                 //Open hole
                 world.setBlockState(new BlockPos(454,3,156), Blocks.AIR.getDefaultState());
                 world.setBlockState(new BlockPos(455,3,156), Blocks.AIR.getDefaultState());
@@ -154,8 +154,8 @@ public class PlayerUtils {
                 world.setBlockState(new BlockPos(455,3,157), Blocks.AIR.getDefaultState());
                 world.setBlockState(new BlockPos(456,3,157), Blocks.AIR.getDefaultState());
                 world.setBlockState(new BlockPos(454,3,158), Blocks.AIR.getDefaultState());
-                world.setBlockState(new BlockPos(454,3,158), Blocks.AIR.getDefaultState());
-                world.setBlockState(new BlockPos(454,3,158), Blocks.AIR.getDefaultState());
+                world.setBlockState(new BlockPos(455,3,158), Blocks.AIR.getDefaultState());
+                world.setBlockState(new BlockPos(456,3,158), Blocks.AIR.getDefaultState());
                 break;
         }
         createOrSetAliveDisplay(scoreboard, srv);

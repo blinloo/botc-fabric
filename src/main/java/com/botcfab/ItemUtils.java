@@ -110,12 +110,12 @@ public class ItemUtils {
         placeSign(world,pos,text,colour);
     }
 
-    static void placeStandingSign(ServerWorld world, BlockPos pos, Direction facing, Text text, String colour) {
+    static void placeStandingSign(ServerWorld world, BlockPos pos, int rotation, Text text, String colour) {
         if (world == null) return;
 
         // Place a spruce wall sign facing arg direction
         world.setBlockState(pos, Blocks.DARK_OAK_SIGN.getDefaultState()
-                .with(Properties.HORIZONTAL_FACING, facing));
+                .with(Properties.ROTATION, rotation));
 
         placeSign(world,pos,text,colour);
     }
