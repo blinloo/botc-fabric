@@ -325,8 +325,10 @@ public class BotcFab implements ModInitializer {
                         }
                         break;
                     case SCHOOL_MAP:
-                        //Theatre signs
+                        //sign behind chair
                         placeStandingSign(world, mapCoords.get(assignedColour).sign, 8, player.getName(), assignedColour);
+                        //sign on wall theatre
+                        placeWallSign(world,mapCoords.get(assignedColour).lampsVoteMarker.up(1).south(1),Direction.SOUTH,player.getName(),assignedColour,Blocks.DARK_OAK_WALL_SIGN.getDefaultState());
                         //Room signs above door
                         signType = Blocks.PALE_OAK_WALL_SIGN.getDefaultState();
                         switch (assignedColour) {
@@ -702,6 +704,14 @@ public class BotcFab implements ModInitializer {
                     }
                 }
             }
+            if (mapSelected.equals(SCHOOL_MAP)){
+                BlockState voteLampState = world.getBlockState(mapCoords.get(i).lampsVoteMarker);
+                //check lamp and copy to north 1, down 2 if not air
+                if (!voteLampState.isAir()) {
+                    BlockPos lampCopyPos = mapCoords.get(i).chair.north(1).down(2);
+                    world.setBlockState(lampCopyPos, voteLampState,3);
+                }
+            }
         }
 
         if (timerBarActive) { //Timer bar for talk time
@@ -722,7 +732,7 @@ public class BotcFab implements ModInitializer {
                 }
                 if (progress <= 0.5f && sendHalfwayMessage){
                     sendHalfwayMessage = false;
-                    sendMessageToPlayers(Text.literal("Your time is halfway through, " + minutes + ":" + seconds + " remaining."),playerList);
+                    sendMessageToPlayers(Text.literal("Your time is halfway through, " + String.format("%01d:%02d", minutes, seconds) + " remaining."),playerList);
                 }
                 if (timeLeftSec <= 60 && timeLeftSec > 56) {
                     timerBar.setColor(BossBar.Color.YELLOW);
