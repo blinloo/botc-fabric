@@ -6,6 +6,8 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.enums.BlockFace;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
+import net.minecraft.particle.BlockStateParticleEffect;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.scoreboard.ServerScoreboard;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerManager;
@@ -19,6 +21,7 @@ import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
 import org.jetbrains.annotations.NotNull;
 
@@ -145,7 +148,13 @@ public class PlayerUtils {
                 break;
             case SCHOOL_MAP:
                 //TODO open pit here and teleport player
-                tp(player,EXECUTE_POS.north(3));
+                //Teleport player next to pit so they can jump in for fun, if they not already in range
+                Vec3d murderZone = new Vec3d(EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY(), EXECUTE_POS.getZ()+0.5); //Get centre of block
+                double distance = player.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
+                if (distance > 6) {
+                    tp(player,EXECUTE_POS.north(3));
+                }
+
                 //Open hole
                 world.setBlockState(new BlockPos(454,3,156), Blocks.AIR.getDefaultState());
                 world.setBlockState(new BlockPos(455,3,156), Blocks.AIR.getDefaultState());
@@ -156,6 +165,9 @@ public class PlayerUtils {
                 world.setBlockState(new BlockPos(454,3,158), Blocks.AIR.getDefaultState());
                 world.setBlockState(new BlockPos(455,3,158), Blocks.AIR.getDefaultState());
                 world.setBlockState(new BlockPos(456,3,158), Blocks.AIR.getDefaultState());
+
+                //particles
+                world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.FALLING_DUST, Blocks.WHITE_WOOL.getDefaultState()), EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY()-0.2, EXECUTE_POS.getZ()+0.5, 15, 1.5, 0.8, 1.5, 0.1);
                 break;
         }
         createOrSetAliveDisplay(scoreboard, srv);

@@ -806,7 +806,7 @@ public class BotcFab implements ModInitializer {
                             if (anvilPosState.isOf(Blocks.ANVIL) || anvilPosState.isOf(Blocks.CHIPPED_ANVIL) || anvilPosState.isOf(Blocks.DAMAGED_ANVIL)) {
                                 world.setBlockState(EXECUTE_POS, Blocks.AIR.getDefaultState());
                                 //spawn redstone blood particles
-                                world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.REDSTONE_BLOCK.getDefaultState()), EXECUTE_POS.getX(), EXECUTE_POS.getY(), EXECUTE_POS.getZ(), 15, 0.5, 0, 0.5, 0.5);
+                                world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.REDSTONE_BLOCK.getDefaultState()), EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY()-0.2, EXECUTE_POS.getZ()+0.5, 25, 0.3, 0.5, 0.3, 0.1);
                                 executionFinished = true; //used so
                             }
                             break;
@@ -1151,6 +1151,16 @@ public class BotcFab implements ModInitializer {
             }
             return 1;
         }));
+
+        dispatcher.register(literal("botc_test")
+                .requires(source -> source.hasPermissionLevel(4))
+                .executes(context -> {
+                            ServerWorld world = context.getSource().getWorld();
+                            world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.REDSTONE_BLOCK.getDefaultState()), EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY()-0.2, EXECUTE_POS.getZ()+0.5, 25, 0.3, 0.5, 0.3, 0.1);
+                            return 1;
+                        }
+                ));
+
     }
 
     @Override
