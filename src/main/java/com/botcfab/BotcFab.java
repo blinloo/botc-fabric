@@ -78,7 +78,8 @@ public class BotcFab implements ModInitializer {
     static final String ACCUSED = "accused";
     static final String CURRENT_EXECUTEE = "current_executee";
     static final String LEGION = "legion";
-    static final List<String> ALL_TAGS = Arrays.asList(PLAYER,STORYTELLER,SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE, LEGION);
+    static final String SURVIVE_EXECUTION = "survive_exe";
+    static final List<String> ALL_TAGS = Arrays.asList(PLAYER,STORYTELLER,SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE,LEGION,SURVIVE_EXECUTION);
 
     static final String INFO_OBJECTIVE = "info";
     static final String ALIVE_SCORE_HOLDER = "Alive";
@@ -103,6 +104,7 @@ public class BotcFab implements ModInitializer {
     static final ArrayList<Integer> indexBounds = new ArrayList<>();
     //Highest vote count
     static int highestVote;
+    static int playerTotal = 0;
 
     //Timer bar variables
     private static ServerBossBar timerBar;
@@ -261,7 +263,7 @@ public class BotcFab implements ModInitializer {
             resetPlayer(storyTeller);
             storyTeller.getInventory().setStack(36,ItemStack.EMPTY); //Remove boots
             storyTeller.addCommandTag(STORYTELLER); //Add tag for storyteller
-            src.sendFeedback(() -> (Text.literal("Storyteller is: " + storyTeller.getStyledDisplayName().toString())),true);
+            src.sendFeedback(() -> (Text.literal("Storyteller is: " + storyTeller.getNameForScoreboard())),true);
             storyTeller.changeGameMode(GameMode.CREATIVE);
             scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
         } else {
@@ -356,6 +358,10 @@ public class BotcFab implements ModInitializer {
             }
         }
         createOrSetAliveDisplay(scoreboard, srv); //Update/create scoreboard for start of game.
+
+        //Get player total here to help account for players leaving
+        playerTotal = getTagCount(PLAYER, srv);
+
         srv.sendMessage(Text.literal(indexBounds.toString()));
 
         //Remove votes and signs for missing players
@@ -411,6 +417,7 @@ public class BotcFab implements ModInitializer {
         removeTagAllPlayers(REVIVE_FLAG, srv);
         removeTagAllPlayers(CURRENT_EXECUTEE, srv);
         removeTagAllPlayers(MARKED, srv);
+        removeTagAllPlayers(SURVIVE_EXECUTION, srv);
         Team team = scoreboard.getTeam(TEAM_ALL);
         if (team != null) { //Make nametags visible at morning.
             team.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.NEVER);
@@ -466,8 +473,9 @@ public class BotcFab implements ModInitializer {
         // remove redstone block
         MinecraftServer srv = src.getServer();
         ServerWorld world = src.getWorld();
-        int delayPerBlock = 40; // 1 second = 20 ticks
-        int voteThreshold, startColourIndex, count = 1, alivePlayers = getTagCount(ALIVE, srv), playerTotal = getTagCount(PLAYER, srv);
+        int delayPerBlock = 20; // 1 second = 20 ticks
+        int voteThreshold, startColourIndex, count = 1, alivePlayers = getTagCount(ALIVE, srv);
+        //playerTotal = getTagCount(PLAYER, srv)
 
         List<DelayedBlockSetter> taskList = new ArrayList<>();
         //Get vote threshold for alive players
@@ -805,7 +813,7 @@ public class BotcFab implements ModInitializer {
                         case SCHOOL_MAP:
                             if (executee.getBlockPos().getY() < -60) { //checks if played being executed is below certain y level.
                                 executionFinished = true;
-                                tp(executee,mapCoords.get(getColourFromPlayer(executee)).homeInside);
+                                tp(executee,mapCoords.get(getColourFromPlayer(executee)).chair);
                                 //Cover up hole
                                 world.setBlockState(new BlockPos(454,3,156), Blocks.RED_TERRACOTTA.getDefaultState());
                                 world.setBlockState(new BlockPos(455,3,156), Blocks.RED_TERRACOTTA.getDefaultState());
@@ -821,10 +829,20 @@ public class BotcFab implements ModInitializer {
                             break;
                     }
                     if (executionFinished) { //code that overlaps for all maps
-                        killPlayer(executee);
                         //sends message in chat for kill
-                        world.getServer().sendMessage(getEventText(executee,CURRENT_EXECUTEE));
                         sendMessageToPlayers(getEventText(executee,CURRENT_EXECUTEE), playerList); //Sends execution message to all players
+                        if (!executee.getCommandTags().contains(SURVIVE_EXECUTION)){
+                            //If player is not marked to survive execution
+                            killPlayer(executee);
+                        } else {
+                            executee.removeCommandTag(SURVIVE_EXECUTION);
+                            Text noDeathMsg = switch (mapSelected) {
+                                case DEFAULT_MAP -> Text.literal("but they survived!");
+                                case SCHOOL_MAP -> Text.literal("but it was revoked!");
+                                default -> Text.literal("bad code :(");
+                            };
+                            sendMessageToPlayers(noDeathMsg,playerList);
+                        }
                         executee.removeCommandTag(CURRENT_EXECUTEE);
                         executionInProgress = false;
                     }

@@ -12,6 +12,7 @@ import net.minecraft.text.Text;
 import java.util.Objects;
 
 import static com.botcfab.BotcFab.POSSIBLE_COLOURS;
+import static com.botcfab.BotcFab.SURVIVE_EXECUTION;
 import static com.botcfab.ItemUtils.*;
 import static com.botcfab.PlayerUtils.*;
 
@@ -35,6 +36,8 @@ public class SelectionInventory {
         inventory.setStack(8, setCustomName(new ItemStack(Items.BELL), Text.literal("Start discussion time (6min)")));
         //Slots that require player input 21-26
 
+        inventory.setStack(21, setCustomName(new ItemStack(Items.PLAYER_HEAD), Text.literal("Instant kill (no execution)")));
+        inventory.setStack(22, setCustomName(new ItemStack(Items.DARK_OAK_SIGN), Text.literal("Execute but don't kill")));
         inventory.setStack(23, setCustomName(new ItemStack(Items.SKELETON_SKULL), Text.literal("Instant execute")));
         inventory.setStack(24, setCustomName(new ItemStack(Items.LIGHT_WEIGHTED_PRESSURE_PLATE), Text.literal("Instant revive")));
         inventory.setStack(25, setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")));
@@ -114,7 +117,16 @@ public class SelectionInventory {
     public static void handleSelectionCommandPlayerInput(ServerPlayerEntity player, int index) {
         if (selectedPlayer != null) {
             switch (index) {
-                case 23: //Instant kill player
+                case 21: //Instant kill player
+                    player.sendMessage(Text.literal("Instant kill: " + selectedPlayer.getNameForScoreboard() + " (" + selectedColour), true);
+                    PlayerUtils.killPlayer(selectedPlayer);
+                    break;
+                case 22: //Instant execute but no kill player
+                    player.sendMessage(Text.literal("Instant execution (no kill): " + selectedPlayer.getNameForScoreboard() + " (" + selectedColour), true);
+                    selectedPlayer.addCommandTag(SURVIVE_EXECUTION);
+                    PlayerUtils.executePlayer(selectedPlayer);
+                    break;
+                case 23: //Instant execute player
                     player.sendMessage(Text.literal("Instant execution: " + selectedPlayer.getNameForScoreboard() + " (" + selectedColour), true);
                     PlayerUtils.executePlayer(selectedPlayer);
                     break;

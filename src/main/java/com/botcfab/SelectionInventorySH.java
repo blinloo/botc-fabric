@@ -29,8 +29,7 @@ public class SelectionInventorySH extends GenericContainerScreenHandler {
             if (!clicked.isEmpty()) {
                 //Handle selection
                 if (slotIndex >= 9 && slotIndex <= 20){ //If selection is within colour area
-                    //TODO set selected colour to glass
-                    // -also reset old selection to wool
+                    //TODO reset old selection to wool
                     if (SelectionInventory.handleSelectionColour((ServerPlayerEntity) clicker, slotIndex-9)) { //-9 to index to match with colour indexes
                         String c = POSSIBLE_COLOURS.get(slotIndex-9);
                         this.setPreviousTrackedSlot(slotIndex, clicked.copy());
