@@ -7,10 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Arrays;
-import java.util.Map;
 
-public class Role {
+public class BotcRole {
 
     private String id;
     private String name;
@@ -28,7 +26,7 @@ public class Role {
     private List<Jinx> jinxes;
 
     @JsonCreator
-    public Role(
+    public BotcRole(
             @JsonProperty("id") String id,
             @JsonProperty("name") String name,
             @JsonProperty("edition") String edition,
@@ -52,14 +50,14 @@ public class Role {
         this.flavor = flavor;
     }
     ///  Compendium: the file path to the JSON file with all roles in blood on the clocktower
-    public Role CreateRoleFromCompendium(String pathToCompendium, String chosenRole) {
+    public BotcRole CreateRoleFromCompendium(String pathToCompendium, String chosenRole) {
         ObjectMapper mapper = new ObjectMapper();
         try {
             // Read JSON file into a list of roles
-            List<Role> data = mapper.readValue(new File("compendium.json"), mapper.getTypeFactory().constructCollectionType(List.class, Role.class));
+            List<BotcRole> data = mapper.readValue(new File("compendium.json"), mapper.getTypeFactory().constructCollectionType(List.class, BotcRole.class));
 
             // Identify which object in the list is the role we are looking for
-            for (Role role: data) {
+            for (BotcRole role: data) {
                 if (role.getName().equalsIgnoreCase(chosenRole)) {
                     return role;
                 }
