@@ -147,6 +147,8 @@ public class BotcFab implements ModInitializer {
     static BlockPos EVIL_ROOM_POS;
     static BlockPos MINIGAMES_POS;
 
+
+
     public static File getConfigFilePath() {
         // Get the Minecraft config directory
         Path configDir = FabricLoader.getInstance().getConfigDir();
@@ -223,7 +225,7 @@ public class BotcFab implements ModInitializer {
         PlayerManager playerMgr = srv.getPlayerManager();
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
-        List<ServerPlayerEntity> players = new ArrayList<>(playerMgr.getPlayerList());
+        ArrayList<ServerPlayerEntity> players = new ArrayList<>(playerMgr.getPlayerList());
         Collections.shuffle(players); //Randomises order of player list (default is server join order)
         indexBounds.clear();
         int startPoint = ThreadLocalRandom.current().nextInt(0, (11+1)); //Determines start point for colour selection
@@ -323,6 +325,8 @@ public class BotcFab implements ModInitializer {
             }
         }
 
+        Grimoire grimoire = new Grimoire(players);
+        grimoire.randomRolesAssign();
         return 1;
     }
 
