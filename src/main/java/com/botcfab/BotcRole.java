@@ -2,10 +2,8 @@ package com.botcfab;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.File;
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class BotcRole {
@@ -16,14 +14,15 @@ public class BotcRole {
     private String team;
     private String firstNightReminder;
     private String otherNightReminder;
-    private List<String> reminders;
+    private ArrayList<String> reminders;
     private boolean setup;
     private String ability;
-    private List<Special> special;
+    private ArrayList<Special> special;
     private String flavor;
     private int firstNight;
     private int otherNight;
-    private List<Jinx> jinxes;
+    private ArrayList<Jinx> jinxes;
+    private ArrayList<String> remindersGlobal;
 
     @JsonCreator
     public BotcRole(
@@ -33,10 +32,15 @@ public class BotcRole {
             @JsonProperty("team") String team,
             @JsonProperty("firstNightReminder") String firstNightReminder,
             @JsonProperty("otherNightReminder") String otherNightReminder,
-            @JsonProperty("reminders") List<String> reminders,
+            @JsonProperty("reminders") ArrayList<String> reminders,
             @JsonProperty("setup") boolean setup,
             @JsonProperty("ability") String ability,
-            @JsonProperty("flavor") String flavor
+            @JsonProperty("flavor") String flavor,
+            @JsonProperty("firstNight") int firstNight,
+            @JsonProperty("otherNight") int otherNight,
+            @JsonProperty("jinxes") ArrayList<Jinx> jinxes,
+            @JsonProperty("special") ArrayList<Special> special,
+            @JsonProperty("remindersGlobal") ArrayList<String> remindersGlobal
     ) {
         this.id = id;
         this.name = name;
@@ -48,34 +52,30 @@ public class BotcRole {
         this.setup = setup;
         this.ability = ability;
         this.flavor = flavor;
-    }
-    ///  Compendium: the file path to the JSON file with all roles in blood on the clocktower
-    public BotcRole CreateRoleFromCompendium(String pathToCompendium, String chosenRole) {
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            // Read JSON file into a list of roles
-            List<BotcRole> data = mapper.readValue(new File("compendium.json"), mapper.getTypeFactory().constructCollectionType(List.class, BotcRole.class));
-
-            // Identify which object in the list is the role we are looking for
-            for (BotcRole role: data) {
-                if (role.getName().equalsIgnoreCase(chosenRole)) {
-                    return role;
-                }
-            }
-            return null;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+        this.firstNight = firstNight;
+        this.otherNight = otherNight;
+        this.jinxes = jinxes;
+        this.special = special;
+        this.remindersGlobal = remindersGlobal;
     }
 
     public static class Special {
         private String type;
         private String name;
+        private String time;
+        private String global;
+        private String value;
 
-        public Special(String type, String name) {
+        public Special(@JsonProperty("type") String type,
+                       @JsonProperty("name") String name,
+                       @JsonProperty("time") String time,
+                       @JsonProperty("global") String global,
+                       @JsonProperty("value") String value) {
             this.type = type;
             this.name = name;
+            this.time = time;
+            this.global = global;
+            this.value = value;
         }
     }
 
@@ -83,7 +83,8 @@ public class BotcRole {
         private String id;
         private String reason;
 
-        public Jinx(String id, String reason) {
+        public Jinx(@JsonProperty("id") String id,
+                    @JsonProperty("reason") String reason) {
             this.id = id;
             this.reason = reason;
         }
@@ -91,6 +92,10 @@ public class BotcRole {
 
     public String getId() {
         return id;
+    }
+
+    public boolean getSetup() {
+        return setup;
     }
 
     public void setId(String id) {
@@ -141,7 +146,7 @@ public class BotcRole {
         return reminders;
     }
 
-    public void setReminders(List<String> reminders) {
+    public void setReminders(ArrayList<String> reminders) {
         this.reminders = reminders;
     }
 
@@ -167,6 +172,22 @@ public class BotcRole {
 
     public void setFlavor(String flavor) {
         this.flavor = flavor;
+    }
+
+    public int getFirstNight() {
+        return firstNight;
+    }
+
+    public void setFirstNight(int firstNight) {
+        this.firstNight = firstNight;
+    }
+
+    public int getOtherNight() {
+        return otherNight;
+    }
+
+    public void setOtherNight(int otherNight) {
+        this.otherNight = otherNight;
     }
 }
 
