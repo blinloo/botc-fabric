@@ -147,7 +147,18 @@ public class BotcFab implements ModInitializer {
     static BlockPos EVIL_ROOM_POS;
     static BlockPos MINIGAMES_POS;
 
+    public static Path getFolderPath() {
+        Path configDir = FabricLoader.getInstance().getConfigDir();
 
+        // Make your mod's subfolder (recommended)
+        Path modFolder = configDir.resolve("botc-fab"); // "config/"string"
+        File folder = modFolder.toFile();
+        if (!folder.exists()) {
+            if (folder.mkdirs()) LOGGER.info("Created config"); // create folder if it doesn't exist
+        }
+
+        return modFolder;
+    }
 
     public static File getConfigFilePath() {
         // Get the Minecraft config directory
@@ -326,7 +337,7 @@ public class BotcFab implements ModInitializer {
         }
 
         Grimoire grimoire = new Grimoire(players);
-        grimoire.randomRolesAssign();
+        grimoire.randomRolesAssign(players, null);
         return 1;
     }
 
@@ -1030,6 +1041,12 @@ public class BotcFab implements ModInitializer {
             if (player != null) {
                 SelectionInventory.openMenu(player);
             }
+            return 1;
+        }));
+
+        dispatcher.register(literal("botc_grimoireTest").executes(context -> {
+            GrimoireTest grimoireTest = new GrimoireTest();
+            grimoireTest.randomRolesAssign("trouble brewing");
             return 1;
         }));
     }
