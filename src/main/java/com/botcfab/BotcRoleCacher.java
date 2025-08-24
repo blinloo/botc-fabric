@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,17 +14,20 @@ public class BotcRoleCacher {
     static {
         ObjectMapper mapper = new ObjectMapper();
         try {
+            Path configPath = BotcFab.getFolderPath();
+            BotcFab.LOGGER.info(configPath.toString());
+            File fullFile = configPath.resolve("all-possible-roles.json").toFile();
             // Read JSON file into a list of roles
-            ArrayList<BotcRole> data = mapper.readValue(new File("all-possible-roles.json"), mapper.getTypeFactory().constructCollectionType(List.class, BotcRole.class));
+            ArrayList<BotcRole> data = mapper.readValue(fullFile, mapper.getTypeFactory().constructCollectionType(List.class, BotcRole.class));
             BotcFab.LOGGER.info("all-possible-roles successfully cached (number of roles cached: {})", data.size());
 
-            // Populate the Hasmap for faster lookups
-            for (BotcRole role: data) {
+            // Populate the Hashmap for faster lookups
+            for (BotcRole role : data) {
                 cachedRoles.put(role.getId(), role);
             }
         } catch (IOException e) {
             BotcFab.LOGGER.info("Failed to cache all roles. Please check your configuration");
-            BotcFab.LOGGER.debug("Due to {}", e.toString());
+            BotcFab.LOGGER.info("Due to {}", e.toString());
         }
     }
 
