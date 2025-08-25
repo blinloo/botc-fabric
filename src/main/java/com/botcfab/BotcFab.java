@@ -147,6 +147,8 @@ public class BotcFab implements ModInitializer {
     static BlockPos EVIL_ROOM_POS;
     static BlockPos MINIGAMES_POS;
 
+    private static GrimoireTest grimoireTest = new GrimoireTest();
+
     public static Path getFolderPath() {
         Path configDir = FabricLoader.getInstance().getConfigDir();
 
@@ -1045,8 +1047,17 @@ public class BotcFab implements ModInitializer {
         }));
 
         dispatcher.register(literal("botc_grimoireTest").executes(context -> {
-            GrimoireTest grimoireTest = new GrimoireTest();
             grimoireTest.randomRolesAssign("trouble brewing");
+            return 1;
+        }));
+
+        dispatcher.register(literal("botc_grimoireTest_getPack").executes(context -> {
+            context.getSource().sendFeedback(() -> Text.literal(grimoireTest.getAllRoles().toString()), false);
+            return 1;
+        }));
+
+        dispatcher.register(literal("botc_grimoireTest_getAssignedRoles").executes(context -> {
+            context.getSource().sendFeedback(() -> Text.literal(grimoireTest.getAssignedRoles()), false);
             return 1;
         }));
     }
