@@ -14,6 +14,7 @@ import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.*;
 import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.boss.BossBar;
@@ -1049,6 +1050,7 @@ public class BotcFab implements ModInitializer {
         }));
 
         dispatcher.register(literal("botc_grimoireTest").executes(context -> {
+            grimoireTest = new GrimoireTest();
             grimoireTest.randomRolesAssign("trouble brewing");
             return 1;
         }));
@@ -1062,6 +1064,24 @@ public class BotcFab implements ModInitializer {
             context.getSource().sendFeedback(() -> Text.literal(grimoireTest.getAssignedRoles()), false);
             return 1;
         }));
+
+        dispatcher.register(literal("botc_grimoireTest_getRole").then(
+                CommandManager.argument("role", StringArgumentType.string()) // accuse player for execution, in case right click selector doesn't work.
+                        .requires(source -> source.hasPermissionLevel(2))
+                        .suggests((context, builder) -> {
+                            ArrayList<String> temp = new ArrayList<>();
+                            for (int i = 0; i < grimoireTest.getAllRoles().getAllRolesAsArray().size(); i++) {
+                                temp.add(grimoireTest.getAllRoles().getAllRolesAsArray().get(i).getId());
+                            }
+                            return CommandSource.suggestMatching(temp, builder);
+                        })
+                        .executes(context -> {
+                            String value = StringArgumentType.getString(context, "role");
+                            String description = grimoireTest.getAllRoles().getRoleDescription(value);
+                            context.getSource().sendFeedback(() -> Text.literal(value + ": " + description), false);
+                            return 1;
+                        })
+        ));
     }
 
     @Override
