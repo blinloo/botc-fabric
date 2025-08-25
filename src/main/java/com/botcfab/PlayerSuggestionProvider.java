@@ -20,7 +20,7 @@ public class PlayerSuggestionProvider implements SuggestionProvider<ServerComman
 
         // Add all player names to the builder.
         for (String playerName : playerNames) {
-            builder.suggest(playerName);
+            builder.suggest(playerName.toLowerCase());
         }
 
         // Lock the suggestions after we've modified them.
