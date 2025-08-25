@@ -82,29 +82,6 @@ public class GrimoireTest {
         BotcFab.LOGGER.info("Finished assigning numbers");
     }
 
-
-
-
-    private ArrayList<BotcRole> getListOfRoles() throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-
-        ArrayList<Object> items = mapper.readValue(
-                new File("roles.json"),
-                ArrayList.class
-        );
-        ArrayList<Map<String, Object>> allPossibleRoles = mapper.readValue(new File("roles.json"), ArrayList.class);
-        ArrayList<BotcRole> roles = new ArrayList<BotcRole>();
-        for (Object item : items) {
-            if (item instanceof String) {
-                System.out.println("Role: " + item);
-//                stringedRoles.add(item.toString());
-//                Role role = new Role();
-//                roles.add(role.CreateRoleFromCompendium(""));
-            }
-        }
-        return roles;
-    }
-
     private BotcPack selectPack(String pack) {
         switch (pack) {
             default -> {
@@ -113,58 +90,74 @@ public class GrimoireTest {
         }
     }
 
-//    private void randomlyAssignTheRoles(ArrayList<ServerPlayerEntity> players, String team, ArrayList<Integer> roleAssigners) {
-//        ArrayList<ServerPlayerEntity> copyOfPlayers = players;
-//        Random rand = new Random();
-//        int randomNumber = rand.nextInt(aCopyOfPlayers.size());
-//        int roleRandomNumber = -1;
-//        // townsfolk = 0
-//        // outsiders = 1
-//        // minions = 2
-//        // demons = 3
-//        int teamSelector = 0;
-//        switch (team) {
-//            case "minion":
-//                roleRandomNumber = rand.nextInt(selectedPack.getAllMinions().size());
-//                teamSelector = 2;
-//                break;
-//            case "outsider":
-//                roleRandomNumber = rand.nextInt(selectedPack.getAllOutsiders().size());
-//                teamSelector = 1;
-//                break;
-//            case "townsfolk":
-//                roleRandomNumber = rand.nextInt(selectedPack.getAllTownsfolk().size());
-//                teamSelector = 0;
-//                break;
-//            default:
-//                BotcFab.LOGGER.info("Check the randomlyAssignTheRoles function in Grimoire");
-//                teamSelector = -1;
-//                break;
-//        }
-//        if (roleRandomNumber < 0) return;
-//
-//        for (int i = 0; i < roleAssigners.get(teamSelector); i++) {
-//            ServerPlayerEntity player = aCopyOfPlayers.get(randomNumber);
-//
-//            playerRoles.put(player.getName().toString(), selectedPack.);
-//            aCopyOfPlayers.remove(player);
-//        }
-//    }
+    private void assignRandomRolesTeam(int numberOfTeams, ArrayList<BotcRole> potentialRoles) {
+        Random rand = new Random();
+        for (int i = 0; i < numberOfTeams; i++) {
+            int randomNumber = rand.nextInt(aCopyOfPlayers.size());
+            int minionRandom = rand.nextInt(potentialRoles.size());
+            String localSelectedPlayer = aCopyOfPlayers.get(randomNumber);
+            BotcRole localSelectedMinion = potentialRoles.get(minionRandom);
 
-    private enum RoleNumbersEnum {
-        TOWNSFOLK(0),
-        OUTSIDERS(1),
-        MINIONS(2),
-        DEMONS(3);
-        RoleNumbersEnum(int value) {
-            this.value = value;
-        }
-        private final int value;
+            playerRoles.put(localSelectedPlayer, localSelectedMinion);
 
-        public int getValue() {
-            return this.value;
+            // Remove the role and the player so it doesn't get duplicated
+            potentialRoles.remove(localSelectedMinion);
+            aCopyOfPlayers.remove(localSelectedPlayer);
         }
     }
+
+    private void logPlayerRoles() {
+        BotcFab.LOGGER.info("=======================");
+        for (String player: playerRoles.keySet()) {
+            String name = playerRoles.get(player).getName();
+            boolean special = playerRoles.get(player).getSetup();
+            BotcFab.LOGGER.info("{}: {} (Special: {})", player,  name, special);
+        }
+        BotcFab.LOGGER.info("=======================");
+    }
+
+    public BotcPack getAllRoles() {
+        return selectedPack;
+    }
+
+    public String getAssignedRoles() {
+        StringBuilder temp = new StringBuilder();
+        ArrayList<String> townsfolk = new ArrayList<>();
+        ArrayList<String> outsider = new ArrayList<>();
+        ArrayList<String> minion = new ArrayList<>();
+        ArrayList<String> demon = new ArrayList<>();
+        for (String player: playerRoles.keySet()) {
+            String role = playerRoles.get(player).getName();
+            String team = playerRoles.get(player).getTeam();
+            switch (team) {
+                case "townsfolk":
+                    townsfolk.add(player + " " + role + "\n");
+                    break;
+                case "outsider":
+                    outsider.add(player + " " + role  + "\n");
+                    break;
+                case "minion":
+                    minion.add(player + " " + role  + "\n");
+                    break;
+                case "demon":
+                    demon.add(player + " " + role  + "\n");
+                    break;
+                default:
+                    BotcFab.LOGGER.info("Team not one of the four possible cases. It is {}", team);
+                    break;
+            }
+        }
+        temp.append("=======Townsfolk=======\n");
+        temp.append(townsfolk);
+        temp.append("=======Outsider=======\n");
+        temp.append(outsider);
+        temp.append("=======Minions=======\n");
+        temp.append(minion);
+        temp.append("=======Demons=======\n");
+        temp.append(demon);
+        return temp.toString();
+    }
+
     public void randomRolesAssign(String pack) {
         Random rand = new Random();
         BotcFab.LOGGER.info("Random Roles Assign here");
@@ -186,6 +179,8 @@ public class GrimoireTest {
         playerRoles.put(selectedPlayer, selectedDemonRole);
         // Ensure that the selected player has not been selected before
         aCopyOfPlayers.remove(selectedPlayer);
+        logPlayerRoles();
+
 
         if (selectedDemonRole.getSetup()) {
             BotcFab.LOGGER.info("Demon selected has special setups");
@@ -194,61 +189,26 @@ public class GrimoireTest {
         // Assign the minions
         int numberOfMinions = roleAllocations.get(MINION_INDEX);
         ArrayList<BotcRole> potentialMinions = selectedPack.getAllMinions();
-
-        for (int i = 0; i < numberOfMinions; i++) {
-            int randomNumber = rand.nextInt(aCopyOfPlayers.size());
-            int minionRandom = rand.nextInt(potentialMinions.size());
-            String localSelectedPlayer = aCopyOfPlayers.get(randomNumber);
-            BotcRole localSelectedMinion = potentialMinions.get(minionRandom);
-
-            playerRoles.put(localSelectedPlayer, localSelectedMinion);
-
-            // Remove the role and the player so it doesn't get duplicated
-            potentialMinions.remove(localSelectedMinion);
-            aCopyOfPlayers.remove(localSelectedPlayer);
-        }
-        BotcFab.LOGGER.info("Minions and demons have been assigned");
-        BotcFab.LOGGER.info("Currently: {}", playerRoles);
+        assignRandomRolesTeam(numberOfMinions, potentialMinions);
+        BotcFab.LOGGER.info("Minions have been assigned");
+        logPlayerRoles();
 
         // Assign the outsiders
-        int numberOfOutsiders = roleAllocations.get(1);
+        int numberOfOutsiders = roleAllocations.get(OUTSIDER_INDEX);
         ArrayList<BotcRole> potentialOutsiders = selectedPack.getAllOutsiders();
-
-        for (int i = 0; i < numberOfOutsiders; i++) {
-            int randomNumber = rand.nextInt(aCopyOfPlayers.size());
-            int teamRandom = rand.nextInt(potentialOutsiders.size());
-            String  localPlayer = aCopyOfPlayers.get(randomNumber);
-            BotcRole localRole = potentialOutsiders.get(teamRandom);
-
-            playerRoles.put(localPlayer, localRole);
-
-            // Remove the role and the player so it doesn't get duplicated
-            selectedPack.removeRole(localRole);
-            aCopyOfPlayers.remove(localPlayer);
-        }
+        assignRandomRolesTeam(numberOfOutsiders, potentialOutsiders);
         BotcFab.LOGGER.info("Outsiders have been assigned");
-        BotcFab.LOGGER.info("Currently: {}", playerRoles);
+        logPlayerRoles();
 
         // Assign the townsfolk
-        int numberOfTownsfolk = roleAllocations.get(0);
+        int numberOfTownsfolk = roleAllocations.get(TOWNSFOLK_IDNEX);
         ArrayList<BotcRole> potentialTownsfolk = selectedPack.getAllTownsfolk();
 
-        for (int i = 0; i < numberOfTownsfolk; i++) {
-            int randomNumber = rand.nextInt(aCopyOfPlayers.size());
-            int teamRandom = rand.nextInt(potentialTownsfolk.size());
-            String localPlayer = aCopyOfPlayers.get(randomNumber);
-            BotcRole localRole = potentialTownsfolk.get(teamRandom);
-
-            playerRoles.put(localPlayer, localRole);
-
-            // Remove the role and the player so it doesn't get duplicated
-            selectedPack.removeRole(localRole);
-            aCopyOfPlayers.remove(localPlayer);
-        }
+        assignRandomRolesTeam(numberOfTownsfolk, potentialTownsfolk);
         BotcFab.LOGGER.info("Townsfolk have been assigned");
-        BotcFab.LOGGER.info("Currently: {}", playerRoles);
-        for (String key: playerRoles.keySet()) {
-            BotcFab.LOGGER.info("{}: {}", key, playerRoles.get(key).getName());
-        }
+        logPlayerRoles();
+
+        // time to fuck around and find out with the specials
+
     }
 }
