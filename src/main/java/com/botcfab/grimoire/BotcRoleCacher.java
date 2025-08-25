@@ -1,5 +1,6 @@
-package com.botcfab;
+package com.botcfab.grimoire;
 
+import com.botcfab.BotcFab;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;

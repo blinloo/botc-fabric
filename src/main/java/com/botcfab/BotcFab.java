@@ -1,5 +1,7 @@
 package com.botcfab;
 
+import com.botcfab.grimoire.Grimoire;
+import com.botcfab.grimoire.GrimoireTest;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ModInitializer;

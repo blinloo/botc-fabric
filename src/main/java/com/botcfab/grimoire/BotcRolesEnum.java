@@ -1,4 +1,4 @@
-package com.botcfab;
+package com.botcfab.grimoire;
 
 public enum BotcRolesEnum {
     WASHERWOMAN("washerwoman"),

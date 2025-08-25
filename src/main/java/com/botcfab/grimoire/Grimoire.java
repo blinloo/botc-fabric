@@ -1,4 +1,4 @@
-package com.botcfab;
+package com.botcfab.grimoire;
 
 // Role assignment stuff
 // 1. Keeper runs /botc_initGame

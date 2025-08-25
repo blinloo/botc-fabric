@@ -1,4 +1,4 @@
-package com.botcfab;
+package com.botcfab.grimoire;
 
 // Role assignment stuff
 // 1. Keeper runs /botc_initGame
@@ -7,10 +7,8 @@ package com.botcfab;
 // 3. Assign the players the roles from the thingy
 // 4. Query for each role if they have a special setup
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.botcfab.BotcFab;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 @SuppressWarnings("unchecked")

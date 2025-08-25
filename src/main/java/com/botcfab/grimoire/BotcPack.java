@@ -1,8 +1,7 @@
-package com.botcfab;
+package com.botcfab.grimoire;
 
-import net.minecraft.block.Block;
+import com.botcfab.BotcFab;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -73,7 +72,6 @@ public class BotcPack{
             }
             temp.append("\n");
         }
-        BotcFab.LOGGER.info("toString override test is {}", temp);
         return temp.toString();
     }
 }

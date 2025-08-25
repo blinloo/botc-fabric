@@ -1,4 +1,4 @@
-package com.botcfab;
+package com.botcfab.grimoire;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
