@@ -67,8 +67,13 @@ public class BotcPack{
     public String toString() {
         StringBuilder temp = new StringBuilder();
         for (String key: mappedRoles.keySet()) {
-            temp.append(key).append(mappedRoles.get(key).toString()).append("\n");
+            temp.append("====").append(key).append("====\n");
+            for (int i = 0; i < mappedRoles.get(key).size(); i++) {
+                temp.append(mappedRoles.get(key).get(i).getName()).append(", ");
+            }
+            temp.append("\n");
         }
+        BotcFab.LOGGER.info("toString override test is {}", temp);
         return temp.toString();
     }
 }
