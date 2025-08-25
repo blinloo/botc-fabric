@@ -11,54 +11,54 @@ import com.botcfab.BotcFab;
 
 import java.util.*;
 
-@SuppressWarnings("unchecked")
 public class GrimoireTest {
     // Players	5	6	7	8	9	10	11	12	13	14	15+
     // Townsf   3	3	5	5	5	7	7	7	9	9	9
     // Outsid   0	1	0	1	2	0	1	2	0	1	2
     // Minions	1	1	1	1	1	2	2	2	3	3	3
     // Demons	1	1	1	1	1	1	1	1	1	1	1
+    @SuppressWarnings("SpellCheckingInspection")
     private final HashMap<Integer, ArrayList<Integer>> roleNumbers = new HashMap<>();
-    private ArrayList<String> aCopyOfPlayers = new ArrayList<>(
+    private final ArrayList<String> aCopyOfPlayers = new ArrayList<>(
             Arrays.asList(
-                    "Peepee",
-                    "Poopoo",
-                    "50 shaders of grey",
-                    "penguins",
-                    "pengwing",
-                    "smell",
-                    "Yummers",
-                    "Player8"
+                    "Player 1",
+                    "Player 2",
+                    "Player 3",
+                    "Player 4",
+                    "Player 5",
+                    "Player 6",
+                    "Player 7",
+                    "Player 8"
             )
     );
     private BotcPack selectedPack;
     private HashMap<String, BotcRole> playerRoles = new HashMap<>();
-    private BotcPack troubleBrewing = new BotcPack(new ArrayList<BotcRolesEnum>(
+    private final BotcPack troubleBrewing = new BotcPack(new ArrayList<>(
             Arrays.asList(
-                BotcRolesEnum.WASHERWOMAN,
-                BotcRolesEnum.LIBRARIAN,
-                BotcRolesEnum.INVESTIGATOR,
-                BotcRolesEnum.CHEF,
-                BotcRolesEnum.EMPATH,
-                BotcRolesEnum.FORTUNETELLER,
-                BotcRolesEnum.UNDERTAKER,
-                BotcRolesEnum.MONK,
-                BotcRolesEnum.RAVENKEEPER,
-                BotcRolesEnum.VIRGIN,
-                BotcRolesEnum.SLAYER,
-                BotcRolesEnum.SOLDIER,
-                BotcRolesEnum.MAYOR,
-                BotcRolesEnum.BUTLER,
-                BotcRolesEnum.DRUNK,
-                BotcRolesEnum.RECLUSE,
-                BotcRolesEnum.SAINT,
-                BotcRolesEnum.POISONER,
-                BotcRolesEnum.SPY,
-                BotcRolesEnum.SCARLETWOMAN,
-                BotcRolesEnum.BARON,
-                BotcRolesEnum.IMP
+                    BotcRolesEnum.WASHERWOMAN,
+                    BotcRolesEnum.LIBRARIAN,
+                    BotcRolesEnum.INVESTIGATOR,
+                    BotcRolesEnum.CHEF,
+                    BotcRolesEnum.EMPATH,
+                    BotcRolesEnum.FORTUNETELLER,
+                    BotcRolesEnum.UNDERTAKER,
+                    BotcRolesEnum.MONK,
+                    BotcRolesEnum.RAVENKEEPER,
+                    BotcRolesEnum.VIRGIN,
+                    BotcRolesEnum.SLAYER,
+                    BotcRolesEnum.SOLDIER,
+                    BotcRolesEnum.MAYOR,
+                    BotcRolesEnum.BUTLER,
+                    BotcRolesEnum.DRUNK,
+                    BotcRolesEnum.RECLUSE,
+                    BotcRolesEnum.SAINT,
+                    BotcRolesEnum.POISONER,
+                    BotcRolesEnum.SPY,
+                    BotcRolesEnum.SCARLETWOMAN,
+                    BotcRolesEnum.BARON,
+                    BotcRolesEnum.IMP
             )));
-    private final int TOWNSFOLK_IDNEX = 0;
+    private final int TOWNSFOLK_INDEX = 0;
     private final int OUTSIDER_INDEX = 1;
     private final int MINION_INDEX = 2;
     private final int DEMON_INDEX = 3;
@@ -160,12 +160,14 @@ public class GrimoireTest {
         Random rand = new Random();
         BotcFab.LOGGER.info("Random Roles Assign here");
         int numberOfPlayers = aCopyOfPlayers.size();
+        BotcFab.LOGGER.info("Number of players {}", numberOfPlayers);
         if (numberOfPlayers < 5 || numberOfPlayers > 15) {
             BotcFab.LOGGER.info("Not enough users or too many users. Will not randomly assign roles");
             return;
         };
         ArrayList<Integer> roleAllocations = roleNumbers.get(numberOfPlayers);
         selectedPack = troubleBrewing;
+        BotcFab.LOGGER.info(selectedPack.toString());
 
         BotcFab.LOGGER.info("Selected pack was {} trouble brewing", selectedPack.getAllDemons().size());
         // Assign teams based on the following order: demon, minion, townsfolk, outsiders
@@ -199,7 +201,7 @@ public class GrimoireTest {
         logPlayerRoles();
 
         // Assign the townsfolk
-        int numberOfTownsfolk = roleAllocations.get(TOWNSFOLK_IDNEX);
+        int numberOfTownsfolk = roleAllocations.get(TOWNSFOLK_INDEX);
         ArrayList<BotcRole> potentialTownsfolk = selectedPack.getAllTownsfolk();
 
         assignRandomRolesTeam(numberOfTownsfolk, potentialTownsfolk);
