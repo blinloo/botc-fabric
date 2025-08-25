@@ -59,4 +59,16 @@ public class BotcPack{
         }
     }
 
+    public HashMap<String, ArrayList<BotcRole>> getAllPossibleRoles() {
+        return mappedRoles;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder temp = new StringBuilder();
+        for (String key: mappedRoles.keySet()) {
+            temp.append(key).append(mappedRoles.get(key).toString()).append("\n");
+        }
+        return temp.toString();
+    }
 }
