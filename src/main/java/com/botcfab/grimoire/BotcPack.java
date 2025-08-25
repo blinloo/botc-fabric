@@ -4,6 +4,8 @@ import com.botcfab.BotcFab;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
+import java.util.logging.Logger;
 
 public class BotcPack{
     private ArrayList<BotcRolesEnum> roles;
@@ -22,6 +24,49 @@ public class BotcPack{
             }
         }
     }
+
+    public BotcPack() {}
+    /// ArrayList<BotcRolesEnum> roles
+    /// @return the roles variables, which stores a list of roles in an enum
+    public ArrayList<BotcRolesEnum> getAllRolesAsArray() {
+        return roles;
+    }
+
+    // Submits the roleID
+    public String getRoleDescription(String role) {
+        for (String key: mappedRoles.keySet()) {
+            for (int i = 0; i < mappedRoles.get(key).size(); i++) {
+                if (mappedRoles.get(key).get(i).getId().equalsIgnoreCase(role))  {
+                    return mappedRoles.get(key).get(i).getAbility();
+                }
+            }
+        }
+        BotcFab.LOGGER.info("mappedRoles is the following when trying to getRoleDescription {}\n",role);
+        BotcFab.LOGGER.info(logPrettyMappedRoles());
+        return "";
+    }
+
+    public String logPrettyMappedRoles() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("====\ntownsfolk\n====\n");
+        for (int i = 0; i < mappedRoles.get("townsfolk").size(); i++) {
+            builder.append(mappedRoles.get("townsfolk").get(i).getName()).append("\n");
+        }
+        builder.append("====\noutsider\n====\n");
+        for (int i = 0; i < mappedRoles.get("outsider").size(); i++) {
+            builder.append(mappedRoles.get("outsider").get(i).getName()).append("\n");
+        }
+        builder.append("====\nminion\n====\n");
+        for (int i = 0; i < mappedRoles.get("minion").size(); i++) {
+            builder.append(mappedRoles.get("minion").get(i).getName()).append("\n");
+        }
+        builder.append("====\ndemon\n====\n");
+        for (int i = 0; i < mappedRoles.get("demon").size(); i++) {
+            builder.append(mappedRoles.get("demon").get(i).getName()).append("\n");
+        }
+        return builder.toString();
+    }
+
 
     public ArrayList<BotcRole> getAllEvilPlayers() {
         ArrayList<BotcRole> tempRole = new ArrayList<>();
@@ -61,6 +106,8 @@ public class BotcPack{
     public HashMap<String, ArrayList<BotcRole>> getAllPossibleRoles() {
         return mappedRoles;
     }
+
+
 
     @Override
     public String toString() {
