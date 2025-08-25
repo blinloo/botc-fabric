@@ -59,6 +59,15 @@ public class BotcRole {
         this.remindersGlobal = remindersGlobal;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder temp = new StringBuilder();
+        temp.append("id: ").append(id).append("\n");
+        temp.append("name: ").append(name).append("\n");
+        temp.append("ability: ").append(ability).append("\n");
+        return temp.toString();
+    }
+
     public static class Special {
         private String type;
         private String name;
