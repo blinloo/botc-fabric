@@ -81,7 +81,7 @@ public class PlayerUtils {
         if (playerList != null) {
             for (ServerPlayerEntity p : playerList) {
                 Set<String> tags = p.getCommandTags();
-                if (tags.contains(tag))
+                if (tags.contains(tag) && tags.contains(PLAYER))
                     count++;
             }
         }
