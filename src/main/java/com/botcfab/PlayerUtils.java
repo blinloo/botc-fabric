@@ -278,6 +278,7 @@ public class PlayerUtils {
         //location either "home" or "vote"
         List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         String colour;
+        ServerWorld world = srv.getOverworld();
         switch (location){
             case "home","house","dorm":
                 for (ServerPlayerEntity p : playerList) {
@@ -294,6 +295,8 @@ public class PlayerUtils {
                         tp(p, mapCoords.get(colour).chair.up(1)); //Needs to go up 1 so space isn't occupied
                     }
                 }
+                //Leave vc groups for town square
+                world.setBlockState(TOWN_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
                 break;
             case "legion","evil":
                 for (ServerPlayerEntity p : playerList) {

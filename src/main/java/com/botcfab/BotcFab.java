@@ -139,6 +139,8 @@ public class BotcFab implements ModInitializer {
     static BlockPos EXECUTE_POS;
     static BlockPos EVIL_ROOM_POS;
     static BlockPos MINIGAMES_POS;
+    static BlockPos LEAVE_VC_TRIGGER_POS;
+    static BlockPos TOWN_VC_TRIGGER_POS;
 
     public static File getConfigFilePath() {
         // Get the Minecraft config directory
@@ -224,12 +226,17 @@ public class BotcFab implements ModInitializer {
                 EXECUTE_POS = new BlockPos(6, -29, -2);
                 EVIL_ROOM_POS = new BlockPos(126, -28, 57);
                 MINIGAMES_POS = new BlockPos(-120, -27, -13);
+                LEAVE_VC_TRIGGER_POS = new BlockPos(18,-37,12);
+                TOWN_VC_TRIGGER_POS = new BlockPos(16,-37,12);
                 break;
             case SCHOOL_MAP:
                 //TODO Change these once map is done
+                // Might need to change vc trigger as well to ensure is loaded
                 EXECUTE_POS = new BlockPos(455, 4, 157);
                 EVIL_ROOM_POS = new BlockPos(1, -28, 57);
                 MINIGAMES_POS = new BlockPos(-120, -27, -13);
+                LEAVE_VC_TRIGGER_POS = new BlockPos(18,-37,12);
+                TOWN_VC_TRIGGER_POS = new BlockPos(16,-37,12);
                 break;
         }
 
@@ -407,6 +414,7 @@ public class BotcFab implements ModInitializer {
         executionInProgress = false;
         organGrinderActive = false;
         timerBarActive = false; //Clear timer for day end
+        world.setBlockState(TOWN_VC_TRIGGER_POS,Blocks.AIR.getDefaultState()); //Stop auto-joining town square
         //Remove all temp tags from players
         for (ServerPlayerEntity p:playerMgr.getPlayerList()){
             p.removeStatusEffect(StatusEffects.BLINDNESS);
@@ -459,7 +467,11 @@ public class BotcFab implements ModInitializer {
             }
         }
         for (ServerPlayerEntity p : playerList){
-            showTitle(p,DAY_MESSAGE);
+            if (p.getNameForScoreboard().equals("priesst")){
+                showTitle(p,Text.literal("I know what you did.").setStyle(Style.EMPTY.withColor(Formatting.RED)));
+            } else
+                showTitle(p,DAY_MESSAGE);
+
             //p.playSound(SoundEvents.BLOCK_BELL_USE);
             p.playSoundToPlayer(SoundEvents.BLOCK_BELL_USE,SoundCategory.BLOCKS,1.0f,0.5f);
         }
@@ -764,6 +776,11 @@ public class BotcFab implements ModInitializer {
                     }
                 }
             }
+        }
+
+        if (world.getBlockState(LEAVE_VC_TRIGGER_POS).isOf(Blocks.REDSTONE_BLOCK)){
+            //Set Leave vc trigger to air each tick to allow command to run
+            world.setBlockState(LEAVE_VC_TRIGGER_POS,Blocks.AIR.getDefaultState());
         }
 
         if (playerList != null) {
@@ -1156,7 +1173,8 @@ public class BotcFab implements ModInitializer {
                 .requires(source -> source.hasPermissionLevel(4))
                 .executes(context -> {
                             ServerWorld world = context.getSource().getWorld();
-                            world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.REDSTONE_BLOCK.getDefaultState()), EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY()-0.2, EXECUTE_POS.getZ()+0.5, 25, 0.3, 0.5, 0.3, 0.1);
+                            world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
+                            world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.AIR.getDefaultState());
                             return 1;
                         }
                 ));
