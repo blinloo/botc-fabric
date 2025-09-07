@@ -132,7 +132,8 @@ public class BotcFab implements ModInitializer {
     private static final List<String> tpOptions = Arrays.asList("home","house","vote","chair","town","dorm","legion","evil");
     final static String DEFAULT_MAP = "default";
     final static String SCHOOL_MAP = "school";
-    final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP);
+    final static String CIRCUS_MAP = "circus";
+    final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP,CIRCUS_MAP);
     static String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
 
     //BLOCK POS FOR CLOCKTOWER MAP
@@ -158,6 +159,7 @@ public class BotcFab implements ModInitializer {
         return switch (mapSelected) {
             case DEFAULT_MAP -> modFolder.resolve("BOTC-coords-sheet.csv").toFile();
             case SCHOOL_MAP -> modFolder.resolve("school-BOTC-coords-sheet.csv").toFile();
+            case CIRCUS_MAP -> modFolder.resolve("circus-BOTC-coords-sheet.csv").toFile();
             default -> null;
         };
     }
@@ -217,6 +219,20 @@ public class BotcFab implements ModInitializer {
                         .append(Text.literal("returned.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
                 EXECUTE_TEXT = Text.literal(" has been ")
                         .append(Text.literal("suspended.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
+                break;
+            case CIRCUS_MAP:
+                MEETING_MESSAGE = Text.literal("\nPlease head to the central tent");
+                RETURN_MESSAGE = Text.literal("\nPlease return to your tents");
+                DAY_MESSAGE = Text.literal("The cockerel caws ☀")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GOLD));
+                NIGHT_MESSAGE = Text.literal("The curtain falls 🌙")
+                        .setStyle(Style.EMPTY.withColor(Formatting.BLUE));
+                KILL_TEXT = Text.literal(" has been ") //Make these not final for school map, change to expelled, suspended etc
+                        .append(Text.literal("clowned. 🤡").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
+                REVIVE_TEXT = Text.literal(" has ")
+                        .append(Text.literal("landed safely.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
+                EXECUTE_TEXT = Text.literal(" has been ")
+                        .append(Text.literal("fired out of the cannon.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
                 break;
         }
 
@@ -311,7 +327,6 @@ public class BotcFab implements ModInitializer {
                 scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL)); //Add player to all player team
                 setColourBoots(player,assignedColour);
                 indexBounds.add(POSSIBLE_COLOURS.indexOf(assignedColour)); //Used for vote lock in to decide bounds.
-                //TODO Test this to confirm, should work now tho
                 player.setSpawnPoint(World.OVERWORLD,mapCoords.get(assignedColour).homeInside,0,true,false); //Set player spawn point
                 //Places signs, levers update in the updatePlayer function
                 BlockState signType;
@@ -467,12 +482,7 @@ public class BotcFab implements ModInitializer {
             }
         }
         for (ServerPlayerEntity p : playerList){
-            if (p.getNameForScoreboard().equals("priesst")){
-                showTitle(p,Text.literal("I know what you did.").setStyle(Style.EMPTY.withColor(Formatting.RED)));
-            } else
-                showTitle(p,DAY_MESSAGE);
-
-            //p.playSound(SoundEvents.BLOCK_BELL_USE);
+            showTitle(p,DAY_MESSAGE);
             p.playSoundToPlayer(SoundEvents.BLOCK_BELL_USE,SoundCategory.BLOCKS,1.0f,0.5f);
         }
         highestVote = 0; //reset highest vote
@@ -788,7 +798,6 @@ public class BotcFab implements ModInitializer {
             for (ServerPlayerEntity p : playerList) { //uses full server list to avoid calling null
                 Set<String> tags = p.getCommandTags();
                 p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 1, false, false));
-                //TODO Change this add to coloured particles? maybe a beacon highlight in vote phase.
                 if (tags.contains(DEAD) || tags.contains(GHOST) || (tags.contains(STORYTELLER))) {
                     p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
                     if (tags.contains(SPEC)) {
@@ -856,6 +865,7 @@ public class BotcFab implements ModInitializer {
                             Text noDeathMsg = switch (mapSelected) {
                                 case DEFAULT_MAP -> Text.literal("but they survived!");
                                 case SCHOOL_MAP -> Text.literal("but it was revoked!");
+                                case CIRCUS_MAP -> Text.literal("but they landed safely!");
                                 default -> Text.literal("bad code :(");
                             };
                             sendMessageToPlayers(noDeathMsg,playerList);

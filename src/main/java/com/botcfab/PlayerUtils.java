@@ -154,7 +154,6 @@ public class PlayerUtils {
                 if (distance > 6) {
                     tp(player,EXECUTE_POS.north(3));
                 }
-
                 //Open hole
                 world.setBlockState(new BlockPos(454,3,156), Blocks.AIR.getDefaultState());
                 world.setBlockState(new BlockPos(455,3,156), Blocks.AIR.getDefaultState());
@@ -165,9 +164,13 @@ public class PlayerUtils {
                 world.setBlockState(new BlockPos(454,3,158), Blocks.AIR.getDefaultState());
                 world.setBlockState(new BlockPos(455,3,158), Blocks.AIR.getDefaultState());
                 world.setBlockState(new BlockPos(456,3,158), Blocks.AIR.getDefaultState());
-
                 //particles
                 world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.FALLING_DUST, Blocks.WHITE_WOOL.getDefaultState()), EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY()-0.2, EXECUTE_POS.getZ()+0.5, 15, 1.5, 0.8, 1.5, 0.1);
+                break;
+            case CIRCUS_MAP:
+                tp(player, EXECUTE_POS); //tp executed player to the cannon
+                //TODO Start timer for levitation and open circus roof
+                world.setBlockState(EXECUTE_POS.up(250), Blocks.ANVIL.getDefaultState()); //create anvil 50 blocks up above execution
                 break;
         }
         createOrSetAliveDisplay(scoreboard, srv);
