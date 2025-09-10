@@ -79,7 +79,8 @@ public class BotcFab implements ModInitializer {
     static final String CURRENT_EXECUTEE = "current_executee";
     static final String LEGION = "legion";
     static final String SURVIVE_EXECUTION = "survive_exe";
-    static final List<String> ALL_TAGS = Arrays.asList(PLAYER,STORYTELLER,SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE,LEGION,SURVIVE_EXECUTION);
+    static final String INVIS_TAG = "invisible";
+    static final List<String> ALL_TAGS = Arrays.asList(PLAYER,STORYTELLER,SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE,LEGION,SURVIVE_EXECUTION,INVIS_TAG);
 
     static final String INFO_OBJECTIVE = "info";
     static final String ALIVE_SCORE_HOLDER = "Alive";
@@ -383,6 +384,7 @@ public class BotcFab implements ModInitializer {
 
         //Get player total here to help account for players leaving
         playerTotal = getTagCount(PLAYER, srv);
+        srv.sendMessage(Text.literal("Total players: "+ playerTotal));
 
         srv.sendMessage(Text.literal(indexBounds.toString()));
 
@@ -798,13 +800,13 @@ public class BotcFab implements ModInitializer {
             for (ServerPlayerEntity p : playerList) { //uses full server list to avoid calling null
                 Set<String> tags = p.getCommandTags();
                 p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 1, false, false));
-                if (tags.contains(DEAD) || tags.contains(GHOST) || (tags.contains(STORYTELLER))) {
+                if (tags.contains(INVIS_TAG)) {
                     p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
-                    if (tags.contains(SPEC)) {
-                        world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.001);
-                    }
+                    //if (tags.contains(SPEC)) {
+                    //    world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.001);
+                    //}
                 }
-                if (tags.contains(ALIVE)) {
+                if (!tags.contains(INVIS_TAG)) {
                     p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for alive players
                 }
 
