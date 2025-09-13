@@ -1,5 +1,6 @@
 package com.botcfab;
 
+import com.botcfab.classes.BotcPlayer;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ModInitializer;
@@ -106,6 +107,11 @@ public class BotcFab implements ModInitializer {
     //Highest vote count
     static int highestVote;
     static int playerTotal = 0;
+
+    //Player class list
+    static ArrayList<BotcPlayer> gamePlayers = new ArrayList<>();
+    static int numberPlayers;
+
 
     //Timer bar variables
     private static ServerBossBar timerBar;
@@ -274,7 +280,6 @@ public class BotcFab implements ModInitializer {
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
         List<ServerPlayerEntity> players = new ArrayList<>(playerMgr.getPlayerList());
-        Collections.shuffle(players); //Randomises order of player list (default is server join order)
         indexBounds.clear();
         int startPoint = ThreadLocalRandom.current().nextInt(0, (11+1)); //Determines start point for colour selection
         ServerPlayerEntity storyTeller = src.getPlayer(); // Gets the person that called the command. Whoever called it is Storyteller
@@ -307,6 +312,7 @@ public class BotcFab implements ModInitializer {
             }
         }
 
+        Collections.shuffle(players); //Randomises order of player list (default is server join order)
         storyTeller.setSpawnPoint(World.OVERWORLD, EXECUTE_POS,0,true,false); //Should work now?
 
         // Assign colours to players

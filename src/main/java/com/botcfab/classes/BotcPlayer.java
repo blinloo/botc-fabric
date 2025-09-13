@@ -8,8 +8,9 @@ public class BotcPlayer {
     boolean hasGhostVote;
     boolean registerAsDead;
     boolean isInvisible;
-    String colour;
-    String status;
+    boolean isStoryteller;
+    String colour; //Colour assigned to player
+    String status; //Player status, dead, alive, ghost
 
 
     //TODO
@@ -21,18 +22,25 @@ public class BotcPlayer {
     // Add method to set assigned player
     // method to return whether has ghost vote
     // method to return whether alive/dead
-    public BotcPlayer(String c, ServerPlayerEntity p, BotcRole r, String s){
-        this.hasGhostVote = true;
-        this.registerAsDead = false;
+    public BotcPlayer(boolean isStoryteller, String c, ServerPlayerEntity p, BotcRole r, String s){
+        this.isStoryteller = isStoryteller;
+        if (!isStoryteller){
+            if (r != null) {
+                this.role = r;
+            }
+            this.hasGhostVote = true;
+            this.registerAsDead = false;
+            this.colour = c;
+            this.status = s;
+        }
         this.isInvisible = false;
-        this.colour = c;
-        this.status = s;
         if (p != null) {
             this.player = p;
         }
-        if (r != null) {
-            this.role = r;
-        }
+    }
+
+    public boolean getStoryteller(){
+        return isStoryteller;
     }
 
     public boolean getInvisStatus(){

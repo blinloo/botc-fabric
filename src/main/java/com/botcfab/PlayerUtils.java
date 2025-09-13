@@ -1,5 +1,6 @@
 package com.botcfab;
 
+import com.botcfab.classes.BotcPlayer;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.block.Blocks;
@@ -50,6 +51,16 @@ public class PlayerUtils {
                 p.removeCommandTag(tag);
             }
         }
+    }
+
+    static BotcPlayer getBotcPlayerFromPlayer(ServerPlayerEntity player){
+        Set<String> tags = player.getCommandTags();
+        for (String i : POSSIBLE_COLOURS){
+            if (tags.contains(i)){
+                return i;
+            }
+        }
+        return null;
     }
 
     static String getColourFromPlayer(ServerPlayerEntity player){
