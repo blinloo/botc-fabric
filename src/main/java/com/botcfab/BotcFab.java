@@ -87,7 +87,7 @@ public class BotcFab implements ModInitializer {
     static final String ALIVE_SCORE_HOLDER = "Alive";
     static final String DEAD_SCORE_HOLDER = "Dead";
     static final String VOTE_SCORE_HOLDER = "Vote Threshold";
-    static final List<String> POSSIBLE_COLOURS = Arrays.asList(
+    public static final List<String> POSSIBLE_COLOURS = Arrays.asList(
             "black",
             "yellow",
             "orange",

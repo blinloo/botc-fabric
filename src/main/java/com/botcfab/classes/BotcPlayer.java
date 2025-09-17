@@ -46,4 +46,30 @@ public class BotcPlayer {
     public boolean getInvisStatus(){
         return isInvisible;
     }
+
+    public void setPlayer(ServerPlayerEntity p){
+        if (p != null){
+            this.player = p;
+        }
+    }
+
+    public ServerPlayerEntity getPlayer(ServerPlayerEntity p){
+        return player;
+    }
+
+    public void setColour(String c){
+        this.colour = c;
+    }
+
+    public String getColour(){
+        return colour;
+    }
+
+    public void setRole(BotcRole r){
+        this.role = r;
+    }
+
+    public BotcRole getRole(){
+        return role;
+    }
 }

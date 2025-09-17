@@ -53,16 +53,6 @@ public class PlayerUtils {
         }
     }
 
-    static BotcPlayer getBotcPlayerFromPlayer(ServerPlayerEntity player){
-        Set<String> tags = player.getCommandTags();
-        for (String i : POSSIBLE_COLOURS){
-            if (tags.contains(i)){
-                return i;
-            }
-        }
-        return null;
-    }
-
     static String getColourFromPlayer(ServerPlayerEntity player){
         Set<String> tags = player.getCommandTags();
         for (String i : POSSIBLE_COLOURS){
