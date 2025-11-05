@@ -3,6 +3,7 @@ package com.botcfab.classes;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class BotcGame {
@@ -21,32 +22,48 @@ public class BotcGame {
 
         for (int i = 0; i < totalPlayers; i++) {
             //Add players classes for number of players
-            players.add(new BotcPlayer(false, "", null, null, ""));
+            players.add(new BotcPlayer(false, i, null, null, ""));
         }
     }
 
-    private boolean assignPlayers(ArrayList<ServerPlayerEntity> playerList){
+    private boolean assignPlayer(ServerPlayerEntity player, String colour){
         int index = 0;
-        for (ServerPlayerEntity p:playerList){
-            players.get(index);
+        if (!possibleColours.contains(colour)){
+            return false;
         }
 
         return true;
     }
 
+    private boolean assignRandomPlayers(ArrayList<ServerPlayerEntity> playerList){
+        Collections.shuffle(playerList);
+
+        if (playerList.size() == totalPlayers) { //if number of players in list matches total players.
+            for (int index = 0; index < totalPlayers; index++) {
+                players.get(index).setPlayer(playerList.get(index));
+                index++;
+            }
+            return true;
+        }
+        return false;
+    }
+
     private boolean assignColours(){
-        int startPoint = ThreadLocalRandom.current().nextInt(0, (11+1)); //Determines start point for colour selection
-        int index = startPoint;
+        boolean reverseOrder = ThreadLocalRandom.current().nextBoolean(); //Decides if colours are in order or not.
+        int index = 0;
         String currentColour;
+
+        if (reverseOrder) Collections.reverse(possibleColours);
 
         for (BotcPlayer p:players){
             currentColour = possibleColours.get(index);
             coloursInUse.add(currentColour);
+            p.setColour(currentColour);
 
             index++;
             if (!(index < possibleColours.size())){
                 //if index out of bounds
-                index = 0;
+                return false;
             }
         }
 
