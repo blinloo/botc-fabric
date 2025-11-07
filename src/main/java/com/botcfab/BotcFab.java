@@ -976,71 +976,227 @@ public class BotcFab implements ModInitializer {
     }
 
     private static void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher, CommandRegistryAccess registryAccess, CommandManager.RegistrationEnvironment environment) {
-        dispatcher.register(literal("botc_setupGame")
-                .requires(source -> source.hasPermissionLevel(4))
-                .executes(context -> setupGame(context.getSource())));
+        dispatcher.register(literal("botc")
+                .then(literal("setupGame")
+                    .requires(source -> source.hasPermissionLevel(4))
+                    .executes(context -> setupGame(context.getSource())))
+                .then(literal("startGame")
+                        .requires(source -> source.hasPermissionLevel(4))
+                        .executes(context -> beginGame(context.getSource())))
+                .then(literal("importCSV")
+                        .requires(source -> source.hasPermissionLevel(4))
+                        .executes((context) -> {
+                            mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import coordinates for map from Excel sheet
+                            return 1;
+                        }))
+                .then(literal("changeMap").then(
+                        CommandManager.argument("map", StringArgumentType.string())
+                                .requires(source -> source.hasPermissionLevel(4))
+                                .suggests((context, builder) -> {
+                                    for (String m:MAPS)
+                                        builder.suggest(m); //Suggest maps
+                                    return builder.buildFuture();
+                                })
+                                .executes(context -> {
+                                    String map = StringArgumentType.getString(context, "map");
 
-        dispatcher.register(literal("botc_startGame")
-                .requires(source -> source.hasPermissionLevel(4))
-                .executes(context -> beginGame(context.getSource())));
+                                    if (MAPS.contains(map)) {
+                                        mapSelected = map;
+                                    } else {
+                                        context.getSource().sendFeedback(() -> Text.literal("Invalid map specified, setting to default"), false);
+                                        mapSelected = DEFAULT_MAP;
+                                    }
+                                    //Runs initialise to change csv coordinates sheet and update other map coords
+                                    onGameInit(context.getSource().getServer());
+                                    return 1;
+                                })))
+                .then(literal("add")
+                        .then(CommandManager.argument("type", StringArgumentType.string())
+                                .requires(source -> source.hasPermissionLevel(4))
+                                .suggests((context, builder) -> {
+                                    //for (String o:tpOptions)
+                                    builder.suggest(SPEC); //Suggest types to add
+                                    builder.suggest(PLAYER);
+                                    return builder.buildFuture();
+                                })
+                                .then(CommandManager.argument("player_name", StringArgumentType.string())
+                                        .requires(source -> source.hasPermissionLevel(4))
+                                        .suggests(new PlayerSuggestionProvider())
+                                        .executes(context -> {
+                                            String type = StringArgumentType.getString(context, "type");
+                                            type = type.toLowerCase(); //lowercase to account for typos
 
-        dispatcher.register(literal("botc_importCSV")
-                .requires(source -> source.hasPermissionLevel(4))
-                .executes((context) -> {
-                    mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import coordinates for map from Excel sheet
+                                            switch (type) {
+                                                case SPEC:
+                                                    PlayerUtils.onAddSpectator(context);
+                                                    break;
+                                                case PLAYER:
+                                                    PlayerUtils.onAddPlayer(context);
+                                                    break;
+                                                default:
+                                                    context.getSource().sendFeedback(() -> Text.literal("Invalid team"), false);
+                                            }
+                                            return 1;
+                                        }))))
+                .then(literal("tpPlayers").then(
+                        CommandManager.argument("tp_location", StringArgumentType.string())
+                                .requires(source -> source.hasPermissionLevel(4))
+                                .suggests((context, builder) -> {
+                                    for (String o:tpOptions)
+                                        builder.suggest(o); //Suggest teleport locations
+                                    return builder.buildFuture();
+                                })
+                                .executes(context -> {
+                                    String option = StringArgumentType.getString(context, "tp_location");
+                                    option = option.toLowerCase(); //lowercase to account for typos
+
+                                    if (tpOptions.contains(option)) {
+                                        teleportPlayers(option, context.getSource().getServer());
+                                    } else {
+                                        context.getSource().sendFeedback(() -> Text.literal("Invalid teleport location"), false);
+                                    }
+                                    return 1;
+                                })))
+                .then(literal("timer").then( //Starts a timer boss bar for [argument] minutes
+                        CommandManager.argument("Time (minutes)", StringArgumentType.string())
+                                .requires(source -> source.hasPermissionLevel(4))
+                                .executes(context -> {
+                                    String stringTime = StringArgumentType.getString(context, "Time (minutes)");// Get the timer duration as string from argument
+                                    ServerCommandSource src = context.getSource();
+                                    MinecraftServer srv = src.getServer();
+                                    float durationMins;
+                                    int durationSecs;
+                                    try {
+                                        durationMins = Float.parseFloat(stringTime); //parse string value into float
+                                    } catch (Exception e){
+                                        durationMins = 0.1f; //default to 10seconds without arg
+                                        src.sendFeedback(() -> Text.literal("Invalid or no duration supplied, defaulting to 10 second timer"), false);
+                                    }
+                                    durationSecs = Math.round(durationMins*60); //round to 2dp and convert to seconds
+                                    src.sendFeedback(() -> Text.literal("Starting timer"), false);
+                                    startTimer(srv,durationSecs);
+                                    return 1;
+                                })))
+                .then(literal("execute").then(
+                        CommandManager.argument("player", EntityArgumentType.player())
+                                .requires(source -> source.hasPermissionLevel(4))
+                                .suggests(new PlayerSuggestionProvider())
+                                .executes(context -> {
+                                    ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                                    executePlayer(player);
+                                    return 1;
+                                })
+                ))
+                .then(literal("demonKillMark").then(
+                        CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player as the demon kill tonight.
+                                .requires(source -> source.hasPermissionLevel(4))
+                                .suggests(new PlayerSuggestionProvider())
+                                .executes(context -> {
+                                    ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                                    markPlayerDemonKill(player);
+                                    context.getSource().sendFeedback(() -> Text.literal("Marked player for demon kill: ").append(player.getStyledDisplayName()), false);
+                                    return 1;
+                                })
+                ))
+                .then(literal("reviveMark").then(
+                        CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player to be revived in the day.
+                                .requires(source -> source.hasPermissionLevel(4))
+                                .suggests(new PlayerSuggestionProvider())
+                                .executes(context -> {
+                                    ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                                    markPlayerRevived(player);
+                                    context.getSource().sendFeedback(() -> Text.literal("Marked player for revival upon morning: ").append(player.getStyledDisplayName()), false);
+                                    return 1;
+                                })
+                ))
+                .then(literal("accuse").then(
+                        CommandManager.argument("player", EntityArgumentType.player()) // accuse player for execution, in case right click selector doesn't work.
+                                .requires(source -> source.hasPermissionLevel(4))
+                                .suggests(new PlayerSuggestionProvider())
+                                .executes(context -> {
+                                    ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
+                                    accusePlayer(player);
+                                    context.getSource().sendFeedback(() -> Text.literal("Accused: ").append(player.getStyledDisplayName()), false);
+                                    return 1;
+                                })
+                ))
+                .then(literal("startDay")
+                        .requires(source -> source.hasPermissionLevel(4))
+                        .executes(context -> startDay(context.getSource())))
+                .then(literal("nightFalls")
+                    .requires(source -> source.hasPermissionLevel(4))
+                    .executes(context -> nightFalls(context.getSource())))
+                .then(literal("voteLockIn")
+                        .requires(source -> source.hasPermissionLevel(4))
+                        .executes(context -> {
+                                    LOGGER.info("Beginning vote lock in");
+                                    voteLockIn(context.getSource());
+                                    LOGGER.info("Completed /voteLockIn.");
+                                    return 1;
+                                }
+                        ))
+                .then(literal("toggleSeatLock")
+                        .requires(source -> source.hasPermissionLevel(4))
+                        .executes(context -> {
+                                    playersLockedToSeats = !playersLockedToSeats;
+                                    context.getSource().sendFeedback(() -> Text.literal("Toggled player seat lock to " + playersLockedToSeats), false);
+                                    return 1;
+                                }
+                        ))
+                .then(literal("toggleOrganGrinder")
+                        .requires(source -> source.hasPermissionLevel(4))
+                        .executes(context -> {
+                                    organGrinderActive = !organGrinderActive;
+                                    context.getSource().sendFeedback(() -> Text.literal("Organ grinder active set to " + organGrinderActive), false);
+                                    return 1;
+                                }
+                        ))
+                .then(literal("showPlayerOrder")
+                        .executes(context -> {
+                            ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
+                            if (player != null) {
+                                player.sendMessage(getPlayerOrder(context.getSource().getServer()));
+                            } else {
+                                context.getSource().sendFeedback(() -> Text.literal("No player to send text to, do not run in server console."), false);
+                            }
+                            return 1;
+                        }))
+                .then(literal("getItems")
+                        .executes(context -> {
+                            ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
+                            if (player != null) {
+                                givePlayerStorytellerItems(player);
+                            } else {
+                                context.getSource().sendFeedback(() -> Text.literal("No player to give items, do not run in server console."), false);
+                            }
+                            return 1;
+                        }))
+                .then(literal("beginExecution")
+                        .requires(source -> source.hasPermissionLevel(4))
+                        .executes(context -> beginExecution(context.getSource())))
+                .then(literal("openMenu").executes(context -> {
+                    ServerPlayerEntity player = context.getSource().getPlayer();
+                    if (player != null) {
+                        SelectionInventory.openMenu(player);
+                    }
                     return 1;
-                }));
-
-        dispatcher.register(literal("botc_changeMap").then(
-                CommandManager.argument("map", StringArgumentType.string())
+                }))
+                .then(literal("getGameInfo")
                         .requires(source -> source.hasPermissionLevel(4))
-                        .suggests((context, builder) -> {
-                            for (String m:MAPS)
-                                builder.suggest(m); //Suggest maps
-                            return builder.buildFuture();
-                        })
                         .executes(context -> {
-                            String map = StringArgumentType.getString(context, "map");
-
-                            if (MAPS.contains(map)) {
-                                mapSelected = map;
-                            } else {
-                                context.getSource().sendFeedback(() -> Text.literal("Invalid map specified, setting to default"), false);
-                                mapSelected = DEFAULT_MAP;
-                            }
-                            //Runs initialise to change csv coordinates sheet and update other map coords
-                            onGameInit(context.getSource().getServer());
+                            context.getSource().sendFeedback(() -> Text.literal("Put Game info here"), false);
                             return 1;
-                        })
-        ));
-
-        dispatcher.register(literal("botc_addSpectator").then(
-                CommandManager.argument("player_name", StringArgumentType.string())
+                        }))
+                .then(literal("test")
                         .requires(source -> source.hasPermissionLevel(4))
-                        .suggests(new PlayerSuggestionProvider())
-                        .executes(PlayerUtils::onAddSpectator)
-        ));
-
-        dispatcher.register(literal("botc_tpPlayers").then(
-                CommandManager.argument("tp_location", StringArgumentType.string())
-                        .requires(source -> source.hasPermissionLevel(4))
-                        .suggests((context, builder) -> {
-                            for (String o:tpOptions)
-                                builder.suggest(o); //Suggest teleport locations
-                            return builder.buildFuture();
-                        })
                         .executes(context -> {
-                            String option = StringArgumentType.getString(context, "tp_location");
-                            option = option.toLowerCase(); //lowercase to account for typos
-
-                            if (tpOptions.contains(option)) {
-                                teleportPlayers(option, context.getSource().getServer());
-                            } else {
-                                context.getSource().sendFeedback(() -> Text.literal("Invalid teleport location"), false);
-                            }
-                            return 1;
-                        })
-        ));
+                                    ServerWorld world = context.getSource().getWorld();
+                                    world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
+                                    world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.AIR.getDefaultState());
+                                    return 1;
+                                }
+                        ))
+        );
 
         dispatcher.register(literal("leaveMinigames")
                 .executes(PlayerUtils::leaveMinigames));
@@ -1048,155 +1204,6 @@ public class BotcFab implements ModInitializer {
         dispatcher.register(literal("gotoMinigames")
                 .executes(context -> PlayerUtils.gotoMinigames(context.getSource().getPlayer()))
         );
-
-        dispatcher.register(literal("botc_startTimer").then( //Starts a timer boss bar for [argument] minutes
-                CommandManager.argument("Time (minutes)", StringArgumentType.string())
-                        .requires(source -> source.hasPermissionLevel(4))
-                        .executes(context -> {
-                            String stringTime = StringArgumentType.getString(context, "Time (minutes)");// Get the timer duration as string from argument
-                            ServerCommandSource src = context.getSource();
-                            MinecraftServer srv = src.getServer();
-                            float durationMins;
-                            int durationSecs;
-                            try {
-                                durationMins = Float.parseFloat(stringTime); //parse string value into float
-                            } catch (Exception e){
-                                durationMins = 0.1f; //default to 10seconds without arg
-                                src.sendFeedback(() -> Text.literal("Invalid or no duration supplied, defaulting to 10 second timer"), false);
-                            }
-                            durationSecs = Math.round(durationMins*60); //round to 2dp and convert to seconds
-                            src.sendFeedback(() -> Text.literal("Starting timer"), false);
-                            startTimer(srv,durationSecs);
-                            return 1;
-                        })
-        ));
-
-        dispatcher.register(literal("botc_executePlayer").then(
-                CommandManager.argument("player", EntityArgumentType.player())
-                        .requires(source -> source.hasPermissionLevel(4))
-                        .suggests(new PlayerSuggestionProvider())
-                        .executes(context -> {
-                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                            executePlayer(player);
-                            return 1;
-                        })
-        ));
-
-        dispatcher.register(literal("botc_demonKillMark").then(
-                CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player as the demon kill tonight.
-                        .requires(source -> source.hasPermissionLevel(4))
-                        .suggests(new PlayerSuggestionProvider())
-                        .executes(context -> {
-                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                            markPlayerDemonKill(player);
-                            context.getSource().sendFeedback(() -> Text.literal("Marked player for demon kill: ").append(player.getStyledDisplayName()), false);
-                            return 1;
-                        })
-        ));
-
-        dispatcher.register(literal("botc_reviveMark").then(
-                CommandManager.argument("player", EntityArgumentType.player()) //Command to mark player to be revived in the day.
-                        .requires(source -> source.hasPermissionLevel(4))
-                        .suggests(new PlayerSuggestionProvider())
-                        .executes(context -> {
-                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                            markPlayerRevived(player);
-                            context.getSource().sendFeedback(() -> Text.literal("Marked player for revival upon morning: ").append(player.getStyledDisplayName()), false);
-                            return 1;
-                        })
-        ));
-
-        dispatcher.register(literal("botc_accuse").then(
-                CommandManager.argument("player", EntityArgumentType.player()) // accuse player for execution, in case right click selector doesn't work.
-                        .requires(source -> source.hasPermissionLevel(4))
-                        .suggests(new PlayerSuggestionProvider())
-                        .executes(context -> {
-                            ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                            accusePlayer(player);
-                            context.getSource().sendFeedback(() -> Text.literal("Accused: ").append(player.getStyledDisplayName()), false);
-                            return 1;
-                        })
-        ));
-
-        dispatcher.register(literal("botc_startDay")
-                .requires(source -> source.hasPermissionLevel(4))
-                .executes(context -> startDay(context.getSource())));
-        dispatcher.register(literal("botc_nightFalls")
-                .requires(source -> source.hasPermissionLevel(4))
-                .executes(context -> nightFalls(context.getSource())));
-
-        dispatcher.register(literal("botc_voteLockIn")
-                .requires(source -> source.hasPermissionLevel(4))
-                .executes(context -> {
-                            LOGGER.info("Beginning vote lock in");
-                            voteLockIn(context.getSource());
-                            LOGGER.info("Completed /voteLockIn.");
-                            return 1;
-                        }
-                ));
-
-        dispatcher.register(literal("botc_toggleSeatLock")
-                .requires(source -> source.hasPermissionLevel(4))
-                .executes(context -> {
-                            playersLockedToSeats = !playersLockedToSeats;
-                            context.getSource().sendFeedback(() -> Text.literal("Toggled player seat lock to " + playersLockedToSeats), false);
-                            return 1;
-                        }
-                ));
-
-        dispatcher.register(literal("botc_toggleOrganGrinder")
-                .requires(source -> source.hasPermissionLevel(4))
-                .executes(context -> {
-                            organGrinderActive = !organGrinderActive;
-                            context.getSource().sendFeedback(() -> Text.literal("Organ grinder active set to " + organGrinderActive), false);
-                            return 1;
-                        }
-                ));
-
-        dispatcher.register(literal("botc_showPlayerOrder")
-                .executes(context -> {
-                    ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
-                    if (player != null) {
-                        player.sendMessage(getPlayerOrder(context.getSource().getServer()));
-                    } else {
-                        context.getSource().sendFeedback(() -> Text.literal("No player to send text to, do not run in server console."), false);
-                    }
-                    return 1;
-                }));
-
-        dispatcher.register(literal("botc_getItems")
-                .executes(context -> {
-                    ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
-                    if (player != null) {
-                        givePlayerStorytellerItems(player);
-                    } else {
-                        context.getSource().sendFeedback(() -> Text.literal("No player to give items, do not run in server console."), false);
-                    }
-                    return 1;
-                }));
-
-        dispatcher.register(literal("botc_beginExecution")
-                .requires(source -> source.hasPermissionLevel(4))
-                .executes(context -> beginExecution(context.getSource())));
-
-        dispatcher.register(literal("botc_openMenu").executes(context -> {
-            ServerPlayerEntity player = context.getSource().getPlayer();
-            if (player != null) {
-                SelectionInventory.openMenu(player);
-            }
-            return 1;
-        }));
-
-        dispatcher.register(literal("botc_test")
-                .requires(source -> source.hasPermissionLevel(4))
-                .executes(context -> {
-                            ServerWorld world = context.getSource().getWorld();
-                            world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
-                            world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.AIR.getDefaultState());
-                            return 1;
-                        }
-                ));
-
     }
 
     @Override

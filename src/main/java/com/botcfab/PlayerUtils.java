@@ -24,6 +24,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
+import org.apache.logging.log4j.core.jmx.Server;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -218,23 +219,41 @@ public class PlayerUtils {
         }
     }
 
-    static int onAddSpectator(CommandContext<ServerCommandSource> context) {
+    static ServerPlayerEntity getPlayerFromSource(CommandContext<ServerCommandSource> context){
         ServerCommandSource src = context.getSource();
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
-        String specName = StringArgumentType.getString(context, "player_name"); //Gets spectator player name from command
-        ServerPlayerEntity specTarget = playerMgr.getPlayer(specName);
-        if (specTarget == null) {
-
+        String name = StringArgumentType.getString(context, "player_name"); //Gets player name from command
+        ServerPlayerEntity target = playerMgr.getPlayer(name);
+        if (target == null) {
             System.out.println("Couldn't find player");
+            return null;
+        } else return target;
+    }
+
+    static int onAddSpectator(CommandContext<ServerCommandSource> context) {
+        ServerPlayerEntity specTarget = getPlayerFromSource(context);
+        if (specTarget == null) {
             return 0;
         }
 
         resetPlayer(specTarget);
         specTarget.addCommandTag(SPEC);
         specTarget.changeGameMode(GameMode.SPECTATOR);
+        System.out.println("Added player " + specTarget.getNameForScoreboard() +" to spectators");
+        return 1;
+    }
 
-        src.sendFeedback(() -> Text.literal("Called /addSpectator with value 1 = %s ".formatted(specName)), false);
+    static int onAddPlayer(CommandContext<ServerCommandSource> context) {
+        ServerPlayerEntity playerTarget = getPlayerFromSource(context);
+        if (playerTarget == null) {
+            return 0;
+        }
+
+        resetPlayer(playerTarget);
+        playerTarget.addCommandTag(PLAYER);
+        playerTarget.changeGameMode(GameMode.ADVENTURE);
+        System.out.println("Added player " + playerTarget.getNameForScoreboard() +" to spectators");
         return 1;
     }
 

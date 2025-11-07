@@ -26,11 +26,11 @@ public class BotcGame {
         }
     }
 
-    private boolean assignPlayer(ServerPlayerEntity player, String colour){
-        int index = 0;
-        if (!possibleColours.contains(colour)){
+    private boolean assignPlayer(ServerPlayerEntity player, int pos){
+        if (pos > totalPlayers){
             return false;
         }
+        players.get(pos).setPlayer(player);
 
         return true;
     }
@@ -49,7 +49,7 @@ public class BotcGame {
     }
 
     private boolean assignColours(){
-        boolean reverseOrder = ThreadLocalRandom.current().nextBoolean(); //Decides if colours are in order or not.
+        boolean reverseOrder = ThreadLocalRandom.current().nextBoolean(); //Decides if colours are in order or reversed.
         int index = 0;
         String currentColour;
 
