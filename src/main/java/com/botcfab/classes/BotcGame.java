@@ -26,7 +26,7 @@ public class BotcGame {
         }
     }
 
-    private boolean assignPlayer(ServerPlayerEntity player, int pos){
+    private boolean assignPlayer(int pos, ServerPlayerEntity player){
         if (pos > totalPlayers){
             return false;
         }

@@ -58,6 +58,14 @@ public class BotcPlayer {
         return player;
     }
 
+    public void setPosition(int pos){
+        this.position = pos;
+    }
+
+    public int getPosition(){
+        return position;
+    }
+
     public void setColour(String c){
         this.colour = c;
     }
