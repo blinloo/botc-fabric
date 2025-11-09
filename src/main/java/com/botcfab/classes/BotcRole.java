@@ -61,11 +61,17 @@ public class BotcRole {
 
     @Override
     public String toString() {
-        StringBuilder temp = new StringBuilder();
-        temp.append("id: ").append(id).append("\n");
-        temp.append("name: ").append(name).append("\n");
-        temp.append("ability: ").append(ability).append("\n");
-        return temp.toString();
+        return "id: " + id + "\n" +
+                "name: " + name + "\n" +
+                "ability: " + ability + "\n";
+    }
+
+    public ArrayList<String> getRoleInfo(){
+        //Returns role as list[name,ability]
+        ArrayList<String> output = new ArrayList<String>();
+        output.add(this.name);
+        output.add(this.ability);
+        return output;
     }
 
     public static class Special {

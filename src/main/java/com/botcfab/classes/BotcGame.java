@@ -13,6 +13,7 @@ public class BotcGame {
     ArrayList<String> coloursInUse;
     int totalPlayers;
     int colourStartIndex;
+    boolean rolesVisible = false;
 
     //Only need a new one when storyteller changes?
     public BotcGame(BotcPlayer storyteller, int total, ArrayList<String> colours) {
@@ -67,6 +68,22 @@ public class BotcGame {
             }
         }
 
+        return true;
+    }
+
+    private boolean getRoleVisible(){
+        return this.rolesVisible;
+    }
+    private boolean hideRoles(){
+        this.rolesVisible = false;
+        return true;
+    }
+    private boolean showRoles(){
+        this.rolesVisible = true;
+        return true;
+    }
+    private boolean toggleRoleVisible(){
+        this.rolesVisible = !this.rolesVisible;
         return true;
     }
 }
