@@ -74,8 +74,7 @@ public class BotcGame {
         return true;
     }
 
-    public boolean setupRandomGame(BotcPlayer storyteller, ArrayList<ServerPlayerEntity> playerList){
-        this.storyteller = storyteller;
+    public boolean setupRandomGame(ArrayList<ServerPlayerEntity> playerList){
         assignColours();
         assignRandomPlayers(playerList);
         return true;
@@ -136,6 +135,18 @@ public class BotcGame {
             }
         }
         if (storyteller.isMarked){
+            return storyteller;
+        }
+        return null;
+    }
+
+    public BotcPlayer findPlayer(ServerPlayerEntity playerEntity){
+        for (BotcPlayer p:players){
+            if (p.player == playerEntity) {
+                return p;
+            }
+        }
+        if (storyteller.player == playerEntity){
             return storyteller;
         }
         return null;

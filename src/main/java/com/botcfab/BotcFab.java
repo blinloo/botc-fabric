@@ -2,6 +2,7 @@ package com.botcfab;
 
 import com.botcfab.classes.BotcGame;
 import com.botcfab.classes.BotcPlayer;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ModInitializer;
 
@@ -12,7 +13,9 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.*;
+import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -35,6 +38,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.*;
 import net.minecraft.util.*;
+import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
@@ -315,8 +319,9 @@ public class BotcFab implements ModInitializer {
         if (onlinePlayers.isEmpty()) {
             src.sendFeedback(() -> Text.literal("No pony online :("), false);
         } else {
-            currentGame = new BotcGame(new BotcPlayer(-1,storyTeller,null), players.size(), POSSIBLE_COLOURS);
-            currentGame.setupRandomGame(storyTeller, players);
+            BotcPlayer ST = new BotcPlayer(-1,storyTeller,null);
+            currentGame = new BotcGame(ST, players.size(), POSSIBLE_COLOURS);
+            currentGame.setupRandomGame(players);
         }
 
         for (BotcPlayer player :currentGame.getPlayers()) {
@@ -802,7 +807,7 @@ public class BotcFab implements ModInitializer {
             //Code for execution checks
             if (executionInProgress) {
                 boolean executionFinished = false;
-                ServerPlayerEntity executee = getPlayerFromColour(CURRENT_EXECUTEE,world.getServer());
+                ServerPlayerEntity executee = getPlayerFromColour(CURRENT_EXECUTEE,currentGame);
                 if (executee != null){
                     switch (mapSelected) {
                         case DEFAULT_MAP:
@@ -909,7 +914,8 @@ public class BotcFab implements ModInitializer {
             if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.BREEZE_ROD) {
                 if (target instanceof ServerPlayerEntity serverTarget) {
                     // Added selector tag to player
-                    accusePlayer(serverTarget); //TODO seems to trigger twice? need to fix, non-urgent
+                    BotcPlayer playerClass = currentGame.findPlayer(serverTarget);
+                    accusePlayer(playerClass, currentGame); //TODO seems to trigger twice? need to fix, non-urgent
                     player.sendMessage(Text.literal("You tagged ").append(target.getName()), false);
                     world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 0.6F, 0.7F);
                 }
@@ -1028,7 +1034,7 @@ public class BotcFab implements ModInitializer {
                                     option = option.toLowerCase(); //lowercase to account for typos
 
                                     if (tpOptions.contains(option)) {
-                                        teleportPlayers(option, context.getSource().getServer());
+                                        teleportPlayers(option, context.getSource().getServer(),currentGame);
                                     } else {
                                         context.getSource().sendFeedback(() -> Text.literal("Invalid teleport location"), false);
                                     }
