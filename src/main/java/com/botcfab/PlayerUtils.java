@@ -1,5 +1,6 @@
 package com.botcfab;
 
+import com.botcfab.classes.BotcGame;
 import com.botcfab.classes.BotcPlayer;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -37,6 +38,15 @@ import static com.botcfab.ItemUtils.*;
 public class PlayerUtils {
 
     static void resetPlayer(@NotNull PlayerEntity player) { //Removes all game based tags from a player
+        for (String tag : ALL_GAME_TAGS) {
+            player.removeCommandTag(tag);
+        }
+        for (String tag : POSSIBLE_COLOURS) {
+            player.removeCommandTag(tag);
+        }
+    }
+
+    static void hardResetPlayer(@NotNull PlayerEntity player) { //Removes all game based tags from a player
         for (String tag : ALL_TAGS) {
             player.removeCommandTag(tag);
         }
@@ -64,10 +74,11 @@ public class PlayerUtils {
         return "";
     }
 
-    static ServerPlayerEntity getPlayerFromColour(String colour, MinecraftServer srv){
-        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
+    static ServerPlayerEntity getPlayerFromColour(String colour, BotcGame game){
+        //TODO remove once replaced with getPlayerAtColour(String colour)
+        List<BotcPlayer> playerList = game.getPlayers();
         if (playerList != null){
-            for (ServerPlayerEntity p : playerList) {
+            for (BotcPlayer p : playerList) {
                 Set<String> tags = p.getCommandTags();
                 if (tags.contains(colour)) {
                     return p;
@@ -78,6 +89,7 @@ public class PlayerUtils {
     }
 
     static int getTagCount(String tag, MinecraftServer srv){
+        //TODO Replace this with game call
         List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         int count = 0;
         if (playerList != null) {
@@ -90,31 +102,30 @@ public class PlayerUtils {
         return count;
     }
 
-    static void accusePlayer(ServerPlayerEntity player){
-        removeTagAllPlayers(ACCUSED, Objects.requireNonNull(player.getServer()));
-        player.addCommandTag(ACCUSED);
+    static void accusePlayer(BotcPlayer accusedPlayer, BotcGame game){
+        for (BotcPlayer p:game.getPlayers()) {
+            p.removedAccused();
+        }
+        accusedPlayer.markAccused();
     }
 
-    static void markPlayerDemonKill(ServerPlayerEntity player){
-        Set<String> tags = player.getCommandTags();
-        if (!tags.contains(GHOST) && !tags.contains(DEAD)) { //If player already dead, do not tag for announce.
-            player.addCommandTag(DEATH_FLAG);
+    static void markPlayerDemonKill(BotcPlayer player){
+        if (!player.isDead()) { //If player already dead, do not tag for announce.
+            player.addKillFlag();
         }
     }
 
-    static void markPlayerRevived(ServerPlayerEntity player){
-        Set<String> tags = player.getCommandTags();
-        if (!tags.contains(ALIVE)) { //If player still alive do not mark for revival
-            player.addCommandTag(REVIVE_FLAG);
+    static void markPlayerRevived(BotcPlayer player){
+        if (player.isDead()) { //If player still alive do not mark for revival
+            player.addReviveFlag();
         }
     }
 
-    static void killPlayer(ServerPlayerEntity player){
-        ServerWorld world = player.getServerWorld();
-        Set<String> tags = player.getCommandTags();
-        if (!tags.contains(GHOST) && !tags.contains(DEAD)) {
-            player.addCommandTag(GHOST);
-            player.removeCommandTag(ALIVE);
+    static void killPlayer(BotcPlayer player){
+        ServerPlayerEntity p = player.getPlayer();
+        ServerWorld world = p.getServerWorld();
+        if (!player.isDead()) {
+            player.killPlayer();
             updateVoteStatus(world,player);
         }
         else {
@@ -122,13 +133,11 @@ public class PlayerUtils {
         }
     }
 
-    static void revivePlayer(ServerPlayerEntity player){
-        ServerWorld world = player.getServerWorld();
-        Set<String> tags = player.getCommandTags();
-        if (tags.contains(GHOST) || tags.contains(DEAD)) {
-            player.removeCommandTag(GHOST);
-            player.removeCommandTag(DEAD);
-            player.addCommandTag(ALIVE);
+    static void revivePlayer(BotcPlayer player){
+        ServerPlayerEntity p = player.getPlayer();
+        ServerWorld world = p.getServerWorld();
+        if (player.isDead()) {
+            player.revivePlayer();
             updateVoteStatus(world,player);
         }
         else {
@@ -178,12 +187,11 @@ public class PlayerUtils {
         createOrSetAliveDisplay(scoreboard, srv);
     }
 
-    static void updateVoteStatus(ServerWorld world, ServerPlayerEntity player){
+    static void updateVoteStatus(ServerWorld world, BotcPlayer player){
         //Update vote marker and lamp for all players by checking tags
-        Set<String> tags = player.getCommandTags();
-        String playerColour = getColourFromPlayer(player);
+        String playerColour = player.getColour();
         //Replace lamps
-        if (tags.contains(ALIVE)){
+        if (!player.isDead()){ //If player not dead
             world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
             world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_COPPER_BULB.getDefaultState());
             //Add back lever in case of revivals
@@ -207,15 +215,16 @@ public class PlayerUtils {
                 case SCHOOL_MAP:
                     placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
             }
-        }
-        if (tags.contains(GHOST)){
-            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.IRON_BLOCK.getDefaultState());
-            world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState());
-        }
-        if (tags.contains(DEAD)){
-            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
-            world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
-            world.setBlockState(mapCoords.get(playerColour).lever, Blocks.AIR.getDefaultState()); //Remove lever
+        } else {
+            if (player.hasGhostVote()) { //Player has ghost vote, iron block and oxidised copper
+                world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.IRON_BLOCK.getDefaultState());
+                world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState());
+            }
+            else { //If player doesn't have ghost vote and dead, disable vote
+                world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
+                world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
+                world.setBlockState(mapCoords.get(playerColour).lever, Blocks.AIR.getDefaultState()); //Remove lever
+            }
         }
     }
 
@@ -237,7 +246,7 @@ public class PlayerUtils {
             return 0;
         }
 
-        resetPlayer(specTarget);
+        hardResetPlayer(specTarget);
         specTarget.addCommandTag(SPEC);
         specTarget.changeGameMode(GameMode.SPECTATOR);
         System.out.println("Added player " + specTarget.getNameForScoreboard() +" to spectators");
@@ -250,33 +259,31 @@ public class PlayerUtils {
             return 0;
         }
 
-        resetPlayer(playerTarget);
+        hardResetPlayer(playerTarget);
         playerTarget.addCommandTag(PLAYER);
         playerTarget.changeGameMode(GameMode.ADVENTURE);
         System.out.println("Added player " + playerTarget.getNameForScoreboard() +" to spectators");
         return 1;
     }
 
-    static MutableText getPlayerOrder(MinecraftServer srv){
+    static MutableText getPlayerOrder(BotcGame game){
         MutableText PlayerOrderMessage = Text.literal("Player Order: \n");
-        for (String c:POSSIBLE_COLOURS){
-            ServerPlayerEntity p = getPlayerFromColour(c, srv);
-            if (p != null){
-                Set<String> tags = p.getCommandTags();
-                if (tags.contains(DEAD) || tags.contains(GHOST)) {
-                    PlayerOrderMessage
-                            .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
-                            .append(Text.literal("💀 "))
-                            .append(p.getStyledDisplayName().copy().setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.GRAY)))) //Player name grey for dead
-                            .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
-                            .append(Text.literal("\n")); //New line
-                } else {
-                    PlayerOrderMessage
-                            .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
-                            .append(p.getStyledDisplayName().copy()) //Player name
-                            .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
-                            .append(Text.literal("\n")); //New line
-                }
+        for (BotcPlayer p:game.getPlayers()){
+            String c = p.getColour();
+            Text name = p.getName();
+            if (p.isDead()) {
+                PlayerOrderMessage
+                        .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
+                        .append(Text.literal("💀 "))
+                        .append(name.copy().setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.GRAY)))) //Player name grey for dead
+                        .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
+                        .append(Text.literal("\n")); //New line
+            } else {
+                PlayerOrderMessage
+                        .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
+                        .append(name.copy()) //Player name
+                        .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
+                        .append(Text.literal("\n")); //New line
             }
         }
         return PlayerOrderMessage;
@@ -297,23 +304,25 @@ public class PlayerUtils {
         player.teleport(destination.getX()+0.5,destination.getY(),destination.getZ()+0.5,false); //0.5 for centre of block
     }
 
-    static void teleportPlayers(String location, MinecraftServer srv){
+    static void teleportPlayers(String location, MinecraftServer srv, BotcGame game){
         //location either "home" or "vote"
         List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         String colour;
         ServerWorld world = srv.getOverworld();
         switch (location){
             case "home","house","dorm":
-                for (ServerPlayerEntity p : playerList) {
-                    colour = getColourFromPlayer(p);
+                for (BotcPlayer player : game.getPlayers()) {
+                    ServerPlayerEntity p = player.getPlayer();
+                    colour = player.getColour();
                     if (!Objects.equals(colour, "")) {
                         tp(p, mapCoords.get(colour).homeInside); //teleport player to coords
                     }
                 }
                 break;
             case "vote","chair","town":
-                for (ServerPlayerEntity p : playerList) {
-                    colour = getColourFromPlayer(p);
+                for (BotcPlayer player : game.getPlayers()) {
+                    ServerPlayerEntity p = player.getPlayer();
+                    colour = player.getColour();
                     if (!Objects.equals(colour, "")) {
                         tp(p, mapCoords.get(colour).chair.up(1)); //Needs to go up 1 so space isn't occupied
                     }
@@ -322,7 +331,8 @@ public class PlayerUtils {
                 world.setBlockState(TOWN_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
                 break;
             case "legion","evil":
-                for (ServerPlayerEntity p : playerList) {
+                for (BotcPlayer player : game.getPlayers()) {
+                    ServerPlayerEntity p = player.getPlayer();
                     Set<String> tags = p.getCommandTags();
                     if (tags.contains(LEGION)) {
                         tp(p, EVIL_ROOM_POS); //Needs to go up 1 so space isn't occupied

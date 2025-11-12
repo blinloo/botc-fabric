@@ -1,17 +1,22 @@
 package com.botcfab.classes;
 
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 
 public class BotcPlayer {
+    boolean isStoryteller;
     BotcRole role;
     ServerPlayerEntity player;
     boolean hasGhostVote;
     boolean registerAsDead;
     boolean isInvisible;
-    boolean isStoryteller;
+    boolean isAccused;
+    boolean isMarked;
+    boolean killFlag;
+    boolean reviveFlag;
     int position;
     String colour; //Colour assigned to player
-    String status; //Player status, dead, alive, ghost
+    Text playerName;
 
 
     //TODO
@@ -23,25 +28,70 @@ public class BotcPlayer {
     // Add method to set assigned player
     // method to return whether has ghost vote
     // method to return whether alive/dead
-    public BotcPlayer(boolean isStoryteller, int pos, ServerPlayerEntity p, BotcRole r, String s){
-        this.isStoryteller = isStoryteller;
-        if (!isStoryteller){
-            if (r != null) {
-                this.role = r;
-            }
-            this.hasGhostVote = true;
-            this.registerAsDead = false;
-            this.position = pos;
-            this.status = s;
+    public BotcPlayer(int pos, ServerPlayerEntity p, BotcRole r){
+
+        if (r != null) {
+            this.role = r;
         }
+        this.isStoryteller = false;
+        this.hasGhostVote = true;
+        this.registerAsDead = false;
+        this.position = pos;
         this.isInvisible = false;
+        this.isAccused = false;
+        this.isMarked = false;
+        this.killFlag = false;
+        this.reviveFlag = false;
         if (p != null) {
             this.player = p;
+            this.playerName = p.getStyledDisplayName();
         }
     }
 
-    public boolean getStoryteller(){
-        return isStoryteller;
+    public void killPlayer(){
+        if (!registerAsDead){
+            this.isInvisible = true;
+            addGhostVote();
+            this.registerAsDead = true;
+        }
+
+    }
+
+    public void revivePlayer(){
+        if (registerAsDead){
+            this.isInvisible = false;
+            addGhostVote();
+            this.registerAsDead = false;
+        }
+    }
+
+    public void removeGhostVote(){
+        this.hasGhostVote = false;
+    }
+
+    public void addGhostVote(){
+        this.hasGhostVote = true;
+    }
+
+    public void addKillFlag(){
+        this.killFlag = true;
+    }
+
+    public void addReviveFlag(){
+        this.reviveFlag = true;
+    }
+
+    public void removeFlags(){
+        this.killFlag = false;
+        this.reviveFlag = false;
+    }
+
+    public boolean getKillFlag(){
+        return killFlag;
+    }
+
+    public boolean getReviveFlag(){
+        return reviveFlag;
     }
 
     public boolean getInvisStatus(){
@@ -51,10 +101,11 @@ public class BotcPlayer {
     public void setPlayer(ServerPlayerEntity p){
         if (p != null){
             this.player = p;
+            this.playerName = p.getStyledDisplayName();
         }
     }
 
-    public ServerPlayerEntity getPlayer(ServerPlayerEntity p){
+    public ServerPlayerEntity getPlayer(){
         return player;
     }
 
@@ -74,11 +125,56 @@ public class BotcPlayer {
         return colour;
     }
 
+    public Text getName(){
+        return playerName;
+    }
+
     public void setRole(BotcRole r){
         this.role = r;
     }
 
     public BotcRole getRole(){
         return role;
+    }
+
+    public boolean isDead(){
+        return registerAsDead;
+    }
+    public boolean hasGhostVote(){
+        return hasGhostVote;
+    }
+
+    public void markAccused(){
+        this.isAccused = true;
+    }
+
+    public void removedAccused(){
+        this.isAccused = false;
+    }
+
+    public boolean isAccused(){
+        return isAccused;
+    }
+
+    public void markMarked(){
+        this.isMarked = true;
+    }
+
+    public void removedMarked(){
+        this.isMarked = false;
+    }
+
+    public boolean isMarked(){
+        return isMArked;
+    }
+
+    public void setStoryteller(){
+        this.isStoryteller = true;
+    }
+    public void removeStoryteller(){
+        this.isStoryteller = false;
+    }
+    public boolean isStoryteller(){
+        return  isStoryteller;
     }
 }

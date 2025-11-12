@@ -1,7 +1,7 @@
 package com.botcfab;
 
+import com.botcfab.classes.BotcGame;
 import com.botcfab.classes.BotcPlayer;
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ModInitializer;
 
@@ -12,9 +12,7 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.*;
-import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -37,7 +35,6 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.*;
 import net.minecraft.util.*;
-import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
@@ -54,7 +51,6 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 import static com.botcfab.PlayerUtils.*;
 import static  com.botcfab.ItemUtils.*;
@@ -82,6 +78,7 @@ public class BotcFab implements ModInitializer {
     static final String SURVIVE_EXECUTION = "survive_exe";
     static final String INVIS_TAG = "invisible";
     static final List<String> ALL_TAGS = Arrays.asList(PLAYER,STORYTELLER,SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE,LEGION,SURVIVE_EXECUTION,INVIS_TAG);
+    static final List<String> ALL_GAME_TAGS = Arrays.asList(ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE,LEGION,SURVIVE_EXECUTION,INVIS_TAG);
 
     static final String INFO_OBJECTIVE = "info";
     static final String ALIVE_SCORE_HOLDER = "Alive";
@@ -111,7 +108,7 @@ public class BotcFab implements ModInitializer {
     //Player class list
     static ArrayList<BotcPlayer> gamePlayers = new ArrayList<>();
     static int numberPlayers;
-
+    static BotcGame currentGame;
 
     //Timer bar variables
     private static ServerBossBar timerBar;
@@ -171,7 +168,7 @@ public class BotcFab implements ModInitializer {
         };
     }
 
-    private static void onGameInit(MinecraftServer srv) { //Run this on server startup, players do not need to be connected
+    private static void onGameInit(MinecraftServer srv) { //Run this on server startup, onlinePlayers do not need to be connected
         ServerCommandSource src = srv.getCommandSource();
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
@@ -279,130 +276,117 @@ public class BotcFab implements ModInitializer {
         PlayerManager playerMgr = srv.getPlayerManager();
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
-        List<ServerPlayerEntity> players = new ArrayList<>(playerMgr.getPlayerList());
-        indexBounds.clear();
-        int startPoint = ThreadLocalRandom.current().nextInt(0, (11+1)); //Determines start point for colour selection
+        ArrayList<ServerPlayerEntity> onlinePlayers = new ArrayList<>(playerMgr.getPlayerList());
+        ArrayList<ServerPlayerEntity> players = new ArrayList<>();
         ServerPlayerEntity storyTeller = src.getPlayer(); // Gets the person that called the command. Whoever called it is Storyteller
 
         //TODO add list of barrel coordinates to csv and copt contents to each one
 
         if (storyTeller != null) {
             // Remove all tags before adding new ones
-            players.remove(storyTeller);
-            resetPlayer(storyTeller);
             storyTeller.getInventory().setStack(36,ItemStack.EMPTY); //Remove boots
             storyTeller.addCommandTag(STORYTELLER); //Add tag for storyteller
+            storyTeller.removeCommandTag(PLAYER);
             src.sendFeedback(() -> (Text.literal("Storyteller is: " + storyTeller.getNameForScoreboard())),true);
             storyTeller.changeGameMode(GameMode.CREATIVE);
-            scoreboard.addScoreHolderToTeam(storyTeller.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
         } else {
             src.sendFeedback(() -> Text.literal("Failed to find storyteller. Do not execute this command from the server window"), false);
             return 0;
         }
+        storyTeller.setSpawnPoint(World.OVERWORLD, EXECUTE_POS,0,true,false); //Should work now?
 
-        //List<ServerPlayerEntity> spectators = new LinkedList<>();
-        for (ServerPlayerEntity p : players){
+        for (ServerPlayerEntity p : onlinePlayers){
+            resetPlayer(p); //Remove all game related tags to avoid overlaps
+            scoreboard.addScoreHolderToTeam(p.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
             Set<String> tags = p.getCommandTags();
             if (tags.contains(SPEC)) {
+                p.removeCommandTag(PLAYER);
                 p.changeGameMode(GameMode.SPECTATOR);
-                players.remove(p); //Remove spectators from player list
-                resetPlayer(p); //Remove all tags then re-add spectator to avoid overlaps
-                p.addCommandTag(SPEC);
-                scoreboard.addScoreHolderToTeam(p.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL));
+            }
+            if (tags.contains(PLAYER)) {
+                p.removeCommandTag(STORYTELLER);
+                playerMgr.removeFromOperators(p.getGameProfile()); //remove from ops
+                players.add(p);
+                p.changeGameMode(GameMode.ADVENTURE);
+                p.getInventory().setStack(36,ItemStack.EMPTY); //Remove boots
             }
         }
 
-        Collections.shuffle(players); //Randomises order of player list (default is server join order)
-        storyTeller.setSpawnPoint(World.OVERWORLD, EXECUTE_POS,0,true,false); //Should work now?
-
-        // Assign colours to players
-        int currentColourIndex = startPoint;
-        if (players.isEmpty()) {
+        if (onlinePlayers.isEmpty()) {
             src.sendFeedback(() -> Text.literal("No pony online :("), false);
         } else {
-            for (ServerPlayerEntity player : players) {
-                resetPlayer(player);
-                player.getInventory().setStack(36,ItemStack.EMPTY); //Remove boots
-                player.addCommandTag(PLAYER);
-                player.addCommandTag(ALIVE);
-                player.changeGameMode(GameMode.ADVENTURE);
-                //playerMgr.removeFromOperators(player.getGameProfile()); //Don't auto remove from ops yet for testing
+            currentGame = new BotcGame(new BotcPlayer(-1,storyTeller,null), players.size(), POSSIBLE_COLOURS);
+            currentGame.setupRandomGame(storyTeller, players);
+        }
 
-                //Assign Colours HERE
-                String assignedColour = POSSIBLE_COLOURS.get(currentColourIndex);
-                player.addCommandTag(assignedColour); //Add colour tag to player
-                scoreboard.addScoreHolderToTeam(player.getNameForScoreboard(), scoreboard.getTeam(TEAM_ALL)); //Add player to all player team
-                setColourBoots(player,assignedColour);
-                indexBounds.add(POSSIBLE_COLOURS.indexOf(assignedColour)); //Used for vote lock in to decide bounds.
-                player.setSpawnPoint(World.OVERWORLD,mapCoords.get(assignedColour).homeInside,0,true,false); //Set player spawn point
-                //Places signs, levers update in the updatePlayer function
-                BlockState signType;
-                switch (mapSelected) {
-                    case DEFAULT_MAP:
-                        signType = Blocks.SPRUCE_WALL_SIGN.getDefaultState();
-                        switch (assignedColour) {
-                            case "black", "yellow", "orange":
-                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour,signType);
-                                break;
-                            case "pink", "red", "purple":
-                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, player.getName(), assignedColour,signType);
-                                break;
-                            case "brown", "green", "white":
-                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour,signType);
-                                break;
-                            case "blue", "cyan", "gray":
-                                placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, player.getName(), assignedColour,signType);
-                                break;
-                        }
-                        break;
-                    case SCHOOL_MAP:
-                        //sign behind chair
-                        placeStandingSign(world, mapCoords.get(assignedColour).sign, 8, player.getName(), assignedColour);
-                        //sign on wall theatre
-                        placeWallSign(world,mapCoords.get(assignedColour).lampsVoteMarker.up(1).south(1),Direction.SOUTH,player.getName(),assignedColour,Blocks.DARK_OAK_WALL_SIGN.getDefaultState());
-                        //Room signs above door
-                        signType = Blocks.PALE_OAK_WALL_SIGN.getDefaultState();
-                        switch (assignedColour) {
-                            case "black", "green", "orange":
-                                placeWallSign(world,mapCoords.get(assignedColour).homeOutside.up(2),Direction.SOUTH,player.getName(),assignedColour,signType);
-                                break;
-                            case "pink", "red", "purple":
-                                placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.WEST, player.getName(), assignedColour,signType);
-                                break;
-                            case "brown", "yellow", "white":
-                                placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.NORTH, player.getName(), assignedColour,signType);
-                                break;
-                            case "blue", "cyan", "gray":
-                                placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.EAST, player.getName(), assignedColour,signType);
-                                break;
-                        }
-                        break;
-                }
-                updateVoteStatus(world,player); //player levers and update lamps
-
-                if (currentColourIndex == 11)
-                    currentColourIndex = 0;
-                else
-                    currentColourIndex++;
+        for (BotcPlayer player :currentGame.getPlayers()) {
+            String assignedColour = player.getColour();
+            ServerPlayerEntity p = player.getPlayer();
+            setColourBoots(p, assignedColour);
+            p.setSpawnPoint(World.OVERWORLD, mapCoords.get(assignedColour).homeInside, 0, true, false); //Set player spawn point
+            //Places signs, levers update in the updatePlayer function
+            BlockState signType;
+            switch (mapSelected) {
+                case DEFAULT_MAP:
+                    signType = Blocks.SPRUCE_WALL_SIGN.getDefaultState();
+                    switch (assignedColour) {
+                        case "black", "yellow", "orange":
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour, signType);
+                            break;
+                        case "pink", "red", "purple":
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, player.getName(), assignedColour, signType);
+                            break;
+                        case "brown", "green", "white":
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour, signType);
+                            break;
+                        case "blue", "cyan", "gray":
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, player.getName(), assignedColour, signType);
+                            break;
+                    }
+                    break;
+                case SCHOOL_MAP:
+                    //sign behind chair
+                    placeStandingSign(world, mapCoords.get(assignedColour).sign, 8, player.getName(), assignedColour);
+                    //sign on wall theatre
+                    placeWallSign(world, mapCoords.get(assignedColour).lampsVoteMarker.up(1).south(1), Direction.SOUTH, player.getName(), assignedColour, Blocks.DARK_OAK_WALL_SIGN.getDefaultState());
+                    //Room signs above door
+                    signType = Blocks.PALE_OAK_WALL_SIGN.getDefaultState();
+                    switch (assignedColour) {
+                        case "black", "green", "orange":
+                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.SOUTH, player.getName(), assignedColour, signType);
+                            break;
+                        case "pink", "red", "purple":
+                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.WEST, player.getName(), assignedColour, signType);
+                            break;
+                        case "brown", "yellow", "white":
+                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.NORTH, player.getName(), assignedColour, signType);
+                            break;
+                        case "blue", "cyan", "gray":
+                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.EAST, player.getName(), assignedColour, signType);
+                            break;
+                    }
+                    break;
             }
+            updateVoteStatus(world, player); //player levers and update lamps
         }
         createOrSetAliveDisplay(scoreboard, srv); //Update/create scoreboard for start of game.
 
         //Get player total here to help account for players leaving
-        playerTotal = getTagCount(PLAYER, srv);
+        playerTotal = currentGame.getTotalPlayers();
         srv.sendMessage(Text.literal("Total players: "+ playerTotal));
 
         srv.sendMessage(Text.literal(indexBounds.toString()));
 
         //Remove votes and signs for missing players
         for (String c:POSSIBLE_COLOURS){
-            if (getPlayerFromColour(c,srv) == null){
+            if (currentGame.getPlayerAtColour(c) == null){
                 world.setBlockState(mapCoords.get(c).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
                 world.setBlockState(mapCoords.get(c).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
                 world.setBlockState(mapCoords.get(c).lever, Blocks.AIR.getDefaultState()); //Remove lever
                 world.setBlockState(mapCoords.get(c).sign, Blocks.AIR.getDefaultState()); //Remove empty signs
                 if (mapSelected.equals(SCHOOL_MAP)) {
                     world.setBlockState(mapCoords.get(c).homeOutside.up(2), Blocks.AIR.getDefaultState()); //Remove empty room signs
+                    world.setBlockState(mapCoords.get(c).sign, Blocks.AIR.getDefaultState()); //Remove empty signs
                 }
             }
         }
@@ -412,16 +396,15 @@ public class BotcFab implements ModInitializer {
 
     static int beginGame(ServerCommandSource src) {
         //TODO
-        // - give roles to players on named paper
+        // - give roles to onlinePlayers on named paper
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
 
-        for (ServerPlayerEntity p: playerMgr.getPlayerList()){ //Give players writable book
-            if (p.getCommandTags().contains(PLAYER))
-                p.getInventory().insertStack( new ItemStack(Items.WRITABLE_BOOK));
+        for (BotcPlayer p: currentGame.getPlayers()){ //Give onlinePlayers writable book
+            p.getPlayer().getInventory().insertStack( new ItemStack(Items.WRITABLE_BOOK));
         }
-        teleportPlayers("home", srv); //teleports players to homes
-        sendMessageToPlayers(getPlayerOrder(srv),playerMgr.getPlayerList()); //Sends player order to all players
+        teleportPlayers("home", srv, currentGame); //teleports onlinePlayers to homes
+        sendMessageToPlayers(getPlayerOrder(currentGame),playerMgr.getPlayerList()); //Sends player order to all onlinePlayers
         nightFalls(src);
 
         return 1;
@@ -438,7 +421,7 @@ public class BotcFab implements ModInitializer {
         organGrinderActive = false;
         timerBarActive = false; //Clear timer for day end
         world.setBlockState(TOWN_VC_TRIGGER_POS,Blocks.AIR.getDefaultState()); //Stop auto-joining town square
-        //Remove all temp tags from players
+        //Remove all temp tags from onlinePlayers
         for (ServerPlayerEntity p:playerMgr.getPlayerList()){
             p.removeStatusEffect(StatusEffects.BLINDNESS);
             p.removeStatusEffect(StatusEffects.DARKNESS);
@@ -453,7 +436,7 @@ public class BotcFab implements ModInitializer {
         if (team != null) { //Make nametags visible at morning.
             team.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.NEVER);
         }
-        sendMessageToPlayers(NIGHT_MESSAGE.copy().append(RETURN_MESSAGE),playerMgr.getPlayerList()); //Send msg to all players
+        sendMessageToPlayers(NIGHT_MESSAGE.copy().append(RETURN_MESSAGE),playerMgr.getPlayerList()); //Send msg to all onlinePlayers
         return 1;
     }
 
@@ -472,22 +455,16 @@ public class BotcFab implements ModInitializer {
         sendMessageToPlayers((DAY_MESSAGE.copy().append(MEETING_MESSAGE)),playerList);
         //Send player death message and update status
         int deaths = getTagCount(DEATH_FLAG, srv);
-        for (int i = 0;i < deaths;i++){
-            ServerPlayerEntity deadPlayer = getPlayerFromColour(DEATH_FLAG,srv);
-            if (deadPlayer != null) {
-                sendMessageToPlayers(getEventText(deadPlayer,DEATH_FLAG) ,playerList);
-                killPlayer(deadPlayer);
-                deadPlayer.removeCommandTag(DEATH_FLAG);
-            }
+        for (BotcPlayer deadPlayer:currentGame.getKillFlaggedPlayers()){
+            sendMessageToPlayers(getEventText(deadPlayer.getPlayer(),DEATH_FLAG) ,playerList);
+            killPlayer(deadPlayer);
+            deadPlayer.removeFlags();
         }
         int revives = getTagCount(REVIVE_FLAG, srv);
-        for (int i = 0;i < revives;i++){
-            ServerPlayerEntity alivePlayer = getPlayerFromColour(REVIVE_FLAG,srv);
-            if (alivePlayer != null) {
-                sendMessageToPlayers(getEventText(alivePlayer,REVIVE_FLAG) ,playerList);
-                revivePlayer(alivePlayer);
-                alivePlayer.removeCommandTag(REVIVE_FLAG);
-            }
+        for (BotcPlayer revivedPlayer:currentGame.getReviveFlaggedPlayers()){
+            sendMessageToPlayers(getEventText(revivedPlayer.getPlayer(),REVIVE_FLAG) ,playerList);
+            revivePlayer(revivedPlayer);
+            revivedPlayer.removeFlags();
         }
         for (ServerPlayerEntity p : playerList){
             showTitle(p,DAY_MESSAGE);
@@ -508,15 +485,15 @@ public class BotcFab implements ModInitializer {
         //playerTotal = getTagCount(PLAYER, srv)
 
         List<DelayedBlockSetter> taskList = new ArrayList<>();
-        //Get vote threshold for alive players
+        //Get vote threshold for alive onlinePlayers
         voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
 
-        final ServerPlayerEntity accusedPlayer = getPlayerFromColour(ACCUSED, srv);
+        final BotcPlayer accusedPlayer = currentGame.getAccusedPlayer();
         if (accusedPlayer == null){
             src.sendFeedback(() -> Text.literal("No player accused, please accuse someone!"), false);
             return;
         }
-        String accusedColour = getColourFromPlayer(accusedPlayer);
+        String accusedColour = accusedPlayer.getColour();
 
         int accusedIndex = POSSIBLE_COLOURS.indexOf(accusedColour);
         startColourIndex = accusedIndex+1; //+1 to start from player after accused
@@ -577,7 +554,7 @@ public class BotcFab implements ModInitializer {
                     ghostVotesTotal++;
                     // remove ghost vote and tag from player
                     world.setBlockState(lockedVote,Blocks.COAL_BLOCK.getDefaultState());
-                    ServerPlayerEntity playerVote = getPlayerFromColour(colour,srv);
+                    ServerPlayerEntity playerVote = getPlayerFromColour(colour,currentGame);
                     if (playerVote != null) {
                         playerVote.addCommandTag(DEAD);
                         playerVote.removeCommandTag(GHOST);
@@ -589,7 +566,7 @@ public class BotcFab implements ModInitializer {
             }
             int displayTotalVotes = aliveVotesTotal + ghostVotesTotal; //total votes
             int displayGhostVotes = ghostVotesTotal; //ghost votes used
-            ServerPlayerEntity markedPlayer = getPlayerFromColour(MARKED,srv);
+            BotcPlayer markedPlayer = currentGame.getMarkedPlayer();
 
             if (!organGrinderActive) {
                 sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes."), playerList);
@@ -598,13 +575,13 @@ public class BotcFab implements ModInitializer {
             if ((displayTotalVotes > highestVote) && (displayTotalVotes >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
                 highestVote = displayTotalVotes; //Change the highest vote to this vote
                 //Mark player for execution
-                accusedPlayer.addCommandTag(MARKED);
-                if (markedPlayer != null) { //Remove any previous marked players
-                    markedPlayer.removeCommandTag(MARKED);
+                accusedPlayer.markAccused();
+                if (markedPlayer != null) { //Remove any previous marked onlinePlayers
+                    markedPlayer.removedMarked();
                 }
-                src.sendFeedback(accusedPlayer::getStyledDisplayName, false);
+                src.sendFeedback(accusedPlayer::getName, false);
 
-                Text name = accusedPlayer.getStyledDisplayName();
+                Text name = accusedPlayer.getName();
                 MutableText message = name.copy();
                 message.append(" has now been marked for execution");
                 if (!organGrinderActive) {
@@ -612,12 +589,12 @@ public class BotcFab implements ModInitializer {
                 }
                 src.sendFeedback(() -> message,true);
             }
-            if (displayTotalVotes == highestVote){ //On matching highest vote, remove all marked players
+            if (displayTotalVotes == highestVote){ //On matching highest vote, remove all marked onlinePlayers
                 if (markedPlayer != null) {
-                    markedPlayer.removeCommandTag(MARKED);
+                    markedPlayer.removedMarked();
                 }
             }
-            accusedPlayer.removeCommandTag(ACCUSED);
+            accusedPlayer.removedAccused();
         };
         TickScheduler.scheduleGroup(taskList, onAllDone);
     }
@@ -625,15 +602,15 @@ public class BotcFab implements ModInitializer {
     static int beginExecution(ServerCommandSource src){
         MinecraftServer srv = src.getServer();
         List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
-        ServerPlayerEntity player = getPlayerFromColour(MARKED,srv);
-        removeTagAllPlayers(ACCUSED,srv); //Removed all accused players
+        BotcPlayer player = currentGame.getMarkedPlayer();
+        currentGame.getAccusedPlayer().removedAccused(); //Removed any leftover accused players
         for (ServerPlayerEntity p:playerList){
             p.removeStatusEffect(StatusEffects.BLINDNESS);
             p.removeStatusEffect(StatusEffects.DARKNESS);
         }
         if (player != null) {
-            player.removeCommandTag(MARKED);
-            executePlayer(player);
+            player.removedMarked();
+            executePlayer(player.getPlayer());
         } else src.sendFeedback(() -> Text.literal("No pony is marked for execution so no pony was killed"),false);
         return 1;
     }
@@ -658,7 +635,7 @@ public class BotcFab implements ModInitializer {
         } else {
             System.out.println("Team already exists: " + BotcFab.TEAM_ALL);
         }
-        team.setShowFriendlyInvisibles(true); //makes invisible players visible
+        team.setShowFriendlyInvisibles(true); //makes invisible onlinePlayers visible
     }
 
     static void createOrSetAliveDisplay(ServerScoreboard scoreboard, MinecraftServer srv){
@@ -721,7 +698,7 @@ public class BotcFab implements ModInitializer {
     }
 
     private void onWorldTick(ServerWorld world) {
-        List<ServerPlayerEntity> playerList = world.getServer().getPlayerManager().getPlayerList(); //gets all players every tick
+        List<ServerPlayerEntity> playerList = world.getServer().getPlayerManager().getPlayerList(); //gets all onlinePlayers every tick
         for (String i : mapCoords.keySet()) {
             BlockPos leverPos = mapCoords.get(i).lever; // Get the block state at that position
             BlockState leverState = world.getBlockState(leverPos); // Get the block state at that position
@@ -813,7 +790,7 @@ public class BotcFab implements ModInitializer {
                     //}
                 }
                 if (!tags.contains(INVIS_TAG)) {
-                    p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for alive players
+                    p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for alive onlinePlayers
                 }
 
                 if (tags.contains(ACCUSED) || tags.contains(MARKED)) {
@@ -864,7 +841,7 @@ public class BotcFab implements ModInitializer {
                     }
                     if (executionFinished) { //code that overlaps for all maps
                         //sends message in chat for kill
-                        sendMessageToPlayers(getEventText(executee,CURRENT_EXECUTEE), playerList); //Sends execution message to all players
+                        sendMessageToPlayers(getEventText(executee,CURRENT_EXECUTEE), playerList); //Sends execution message to all onlinePlayers
                         if (!executee.getCommandTags().contains(SURVIVE_EXECUTION)){
                             //If player is not marked to survive execution
                             killPlayer(executee);
@@ -893,7 +870,7 @@ public class BotcFab implements ModInitializer {
 
     private void onServerTick(MinecraftServer srv){
 
-        if (playersLockedToSeats && srv.getPlayerManager().getPlayerList() != null) { //checks if players locked is true and players list is not null
+        if (playersLockedToSeats && srv.getPlayerManager().getPlayerList() != null) { //checks if onlinePlayers locked is true and onlinePlayers list is not null
             for (ServerPlayerEntity p:srv.getPlayerManager().getPlayerList()) {
                 Set<String> tags = p.getCommandTags();
                 if (!tags.contains(STORYTELLER) || !tags.contains(SPEC)){
@@ -948,7 +925,7 @@ public class BotcFab implements ModInitializer {
         if (!itemInHand.isEmpty()) {
             // Check if the player is holding the specific item and Hand is not empty
             if (itemInHand.getItem() == Items.PAPER) {
-                player.sendMessage(getPlayerOrder(Objects.requireNonNull(world.getServer())), false);
+                player.sendMessage(getPlayerOrder(currentGame), false);
                 return ActionResult.SUCCESS;
             }
             //Check for heart pottery shard
