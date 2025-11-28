@@ -527,8 +527,9 @@ public class BotcFab implements ModInitializer {
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
             List<ServerPlayerEntity> playerList = src.getWorld().getPlayers();
+            ArrayList<Text> playersVoted = new ArrayList<Text>();
             int playerCount = 0, aliveVotesTotal = 0, ghostVotesTotal = 0;
-            int playerSize = getTagCount(PLAYER, srv);
+            int playerSize = currentGame.getTotalPlayers();
 
             for (int i = finalStartColourIndex; playerCount < playerSize; i++) {
                 if (i > 11){
@@ -542,27 +543,31 @@ public class BotcFab implements ModInitializer {
                 BlockPos lockedVote;
                 switch (mapSelected) {
                     case DEFAULT_MAP:
-                        lockedVote = pos.up(2); //Position of locked in vote lamp
+                        lockedVote = pos.up(2); //Position of locked in vote lamp, 2 blocks above piston
                         break;
                     case SCHOOL_MAP:
-                        lockedVote = pos.south(2); //Position of locked in vote lamp Change direction based on orientation
-                        src.sendFeedback(() -> Text.literal("FUCK YOU IDE"), false);
+                        lockedVote = pos.south(2); //Position of locked in vote lamp, school map has horizontal vote lock-in
                         break;
                     default:
                         lockedVote = pos.up(2);
                 }
 
                 BlockState lockedVoteState = world.getBlockState(lockedVote);
+                BotcPlayer playerVoting = currentGame.getPlayerAtColour(colour);
                 if (lockedVoteState.getBlock() == Blocks.WAXED_COPPER_BULB && lockedVoteState.get(Properties.LIT)) {
                     aliveVotesTotal++;
+                    if (playerVoting != null) {
+                        playersVoted.add(playerVoting.getName());
+                    }
                 } else if (lockedVoteState.getBlock() == Blocks.SEA_LANTERN) {
                     ghostVotesTotal++;
                     // remove ghost vote and tag from player
                     world.setBlockState(lockedVote,Blocks.COAL_BLOCK.getDefaultState());
-                    ServerPlayerEntity playerVote = getPlayerFromColour(colour,currentGame);
-                    if (playerVote != null) {
-                        playerVote.addCommandTag(DEAD);
-                        playerVote.removeCommandTag(GHOST);
+                    if (playerVoting != null) {
+                        playersVoted.add(playerVoting.getName());
+                        if (playerVoting.canLoseGhostVote()){
+                            playerVoting.removeGhostVote();
+                        }
                     }
                 }
                 world.setBlockState(pos, Blocks.REDSTONE_BLOCK.getDefaultState()); //Set back redstone blocks
@@ -589,10 +594,12 @@ public class BotcFab implements ModInitializer {
                 Text name = accusedPlayer.getName();
                 MutableText message = name.copy();
                 message.append(" has now been marked for execution");
-                if (!organGrinderActive) {
+                if (currentGame.showVoteResult()) { //if show result to players is active
                     sendMessageToPlayers(message, playerList);
+                } else { //send result to ops if not
+                    src.sendFeedback(() -> message,true);
                 }
-                src.sendFeedback(() -> message,true);
+
             }
             if (displayTotalVotes == highestVote){ //On matching highest vote, remove all marked onlinePlayers
                 if (markedPlayer != null) {
@@ -849,7 +856,7 @@ public class BotcFab implements ModInitializer {
                         sendMessageToPlayers(getEventText(executee,CURRENT_EXECUTEE), playerList); //Sends execution message to all onlinePlayers
                         if (!executee.getCommandTags().contains(SURVIVE_EXECUTION)){
                             //If player is not marked to survive execution
-                            killPlayer(executee);
+                            killPlayer(currentGame.findPlayer(executee));
                         } else {
                             executee.removeCommandTag(SURVIVE_EXECUTION);
                             Text noDeathMsg = switch (mapSelected) {
@@ -1076,7 +1083,7 @@ public class BotcFab implements ModInitializer {
                                 .suggests(new PlayerSuggestionProvider())
                                 .executes(context -> {
                                     ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                                    markPlayerDemonKill(player);
+                                    markPlayerDemonKill(currentGame.findPlayer(player));
                                     context.getSource().sendFeedback(() -> Text.literal("Marked player for demon kill: ").append(player.getStyledDisplayName()), false);
                                     return 1;
                                 })
@@ -1087,7 +1094,7 @@ public class BotcFab implements ModInitializer {
                                 .suggests(new PlayerSuggestionProvider())
                                 .executes(context -> {
                                     ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                                    markPlayerRevived(player);
+                                    markPlayerRevived(currentGame.findPlayer(player));
                                     context.getSource().sendFeedback(() -> Text.literal("Marked player for revival upon morning: ").append(player.getStyledDisplayName()), false);
                                     return 1;
                                 })
@@ -1098,7 +1105,7 @@ public class BotcFab implements ModInitializer {
                                 .suggests(new PlayerSuggestionProvider())
                                 .executes(context -> {
                                     ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                                    accusePlayer(player);
+                                    accusePlayer(currentGame.findPlayer(player),currentGame);
                                     context.getSource().sendFeedback(() -> Text.literal("Accused: ").append(player.getStyledDisplayName()), false);
                                     return 1;
                                 })
@@ -1138,7 +1145,7 @@ public class BotcFab implements ModInitializer {
                         .executes(context -> {
                             ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
                             if (player != null) {
-                                player.sendMessage(getPlayerOrder(context.getSource().getServer()));
+                                player.sendMessage(getPlayerOrder(currentGame));
                             } else {
                                 context.getSource().sendFeedback(() -> Text.literal("No player to send text to, do not run in server console."), false);
                             }

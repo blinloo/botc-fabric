@@ -14,6 +14,7 @@ public class BotcGame {
     List<String> coloursInUse;
     int totalPlayers;
     int colourStartIndex;
+    boolean showVoteResult;
     boolean rolesVisible = false;
 
     //Only need a new one when storyteller changes?
@@ -21,6 +22,7 @@ public class BotcGame {
         this.storyteller = storyteller;
         this.totalPlayers = total;
         this.possibleColours = colours;
+        this.showVoteResult = true;
 
         for (int i = 0; i < totalPlayers; i++) {
             //Add players classes for number of players
@@ -166,5 +168,12 @@ public class BotcGame {
     public boolean toggleRoleVisible(){
         this.rolesVisible = !this.rolesVisible;
         return true;
+    }
+    public boolean showVoteResult(){
+        return showVoteResult;
+    }
+
+    public void changeShowVoteResult(boolean newValue){
+        this.showVoteResult = newValue;
     }
 }

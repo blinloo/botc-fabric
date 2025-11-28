@@ -75,17 +75,7 @@ public class PlayerUtils {
     }
 
     static ServerPlayerEntity getPlayerFromColour(String colour, BotcGame game){
-        //TODO remove once replaced with getPlayerAtColour(String colour)
-        List<BotcPlayer> playerList = game.getPlayers();
-        if (playerList != null){
-            for (BotcPlayer p : playerList) {
-                Set<String> tags = p.getCommandTags();
-                if (tags.contains(colour)) {
-                    return p;
-                }
-            }
-        }
-        return null;
+        return game.getPlayerAtColour(colour).getPlayer();
     }
 
     static int getTagCount(String tag, MinecraftServer srv){

@@ -14,6 +14,7 @@ public class BotcPlayer {
     boolean isMarked;
     boolean killFlag;
     boolean reviveFlag;
+    boolean loseGhostVote;
     int position;
     String colour; //Colour assigned to player
     Text playerName;
@@ -42,6 +43,7 @@ public class BotcPlayer {
         this.isMarked = false;
         this.killFlag = false;
         this.reviveFlag = false;
+        this.loseGhostVote = true; //Change to false for banshee on ability activation
         if (p != null) {
             this.player = p;
             this.playerName = p.getStyledDisplayName();
@@ -144,6 +146,10 @@ public class BotcPlayer {
         return hasGhostVote;
     }
 
+    public boolean canLoseGhostVote(){
+        return loseGhostVote;
+    }
+
     public void markAccused(){
         this.isAccused = true;
     }
@@ -165,7 +171,11 @@ public class BotcPlayer {
     }
 
     public boolean isMarked(){
-        return isMArked;
+        return isMarked;
+    }
+
+    public void changeLoseGhostVote(boolean newValue){
+        this.loseGhostVote = newValue;
     }
 
     public void setStoryteller(){
