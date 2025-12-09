@@ -46,7 +46,7 @@ public class PlayerUtils {
         }
     }
 
-    static void hardResetPlayer(@NotNull PlayerEntity player) { //Removes all game based tags from a player
+    static void hardResetPlayer(@NotNull PlayerEntity player) { //Removes all game based and player based tags from a player
         for (String tag : ALL_TAGS) {
             player.removeCommandTag(tag);
         }
@@ -135,7 +135,8 @@ public class PlayerUtils {
         }
     }
 
-    static void executePlayer(ServerPlayerEntity player){
+    static void executePlayer(BotcPlayer gamePlayer){
+        ServerPlayerEntity player = gamePlayer.getPlayer();
         player.addCommandTag(CURRENT_EXECUTEE);
         ServerWorld world = player.getServerWorld();
         MinecraftServer srv = world.getServer();

@@ -1,5 +1,6 @@
 package com.botcfab;
 
+import com.botcfab.classes.BotcPlayer;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.Items;
@@ -11,14 +12,13 @@ import net.minecraft.text.Text;
 
 import java.util.Objects;
 
-import static com.botcfab.BotcFab.POSSIBLE_COLOURS;
-import static com.botcfab.BotcFab.SURVIVE_EXECUTION;
+import static com.botcfab.BotcFab.*;
 import static com.botcfab.ItemUtils.*;
 import static com.botcfab.PlayerUtils.*;
 
 public class SelectionInventory {
     static String selectedColour = "";
-    static ServerPlayerEntity selectedPlayer = null;
+    static BotcPlayer selectedPlayer = null;
 
     public static void openMenu(ServerPlayerEntity player) {
         // Create inventory with 9 slots
@@ -43,17 +43,20 @@ public class SelectionInventory {
         inventory.setStack(25, setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")));
         inventory.setStack(26, setCustomName(new ItemStack(Items.NETHER_STAR), Text.literal("Mark for revival")));
         int slot = 9; //9-20 is colour selection
-        for (String colour : POSSIBLE_COLOURS) {
-            ServerPlayerEntity p = getPlayerFromColour(colour, Objects.requireNonNull(player.getServer()));
-            if (p != null) {//if player exists add their colour to slot
-                if (p == selectedPlayer){ //Mark selected player with glass
-                    inventory.setStack(slot, setCustomName(getGlassFromColour(colour), p.getStyledDisplayName()));
+        for (String colour : POSSIBLE_COLOURS) { //TODO UPDATE TO USE BotcGame
+            if (currentGame != null) {
+                BotcPlayer p = currentGame.getPlayerAtColour(colour);
+                if (p != null) {//if player exists add their colour to slot
+                    if (p == selectedPlayer) { //Mark selected player with glass
+                        inventory.setStack(slot, setCustomName(getGlassFromColour(colour), p.getName()));
+                    } else {
+                        inventory.setStack(slot, setCustomName(getWoolFromColour(colour), p.getName()));
+                    }
+                } else {
+                    inventory.setStack(slot, new ItemStack(Items.BARRIER));
                 }
-                else {
-                    inventory.setStack(slot, setCustomName(getWoolFromColour(colour), p.getStyledDisplayName()));
-                }
+                slot++;
             }
-            slot++;
         }
 
         NamedScreenHandlerFactory screenHandlerFactory = new SimpleNamedScreenHandlerFactory(
@@ -97,11 +100,11 @@ public class SelectionInventory {
                 break;
             case 6: //Tp players to chair
                 player.sendMessage(Text.literal("Teleporting to chairs"), true);
-                PlayerUtils.teleportPlayers("vote",player.getCommandSource().getServer());
+                PlayerUtils.teleportPlayers("vote",player.getCommandSource().getServer(),currentGame);
                 break;
             case 7: //Tp players to homes
                 player.sendMessage(Text.literal("Teleporting to home"), true);
-                PlayerUtils.teleportPlayers("home",player.getCommandSource().getServer());
+                PlayerUtils.teleportPlayers("home",player.getCommandSource().getServer(),currentGame);
                 break;
             case 8: //Tp players to homes
                 player.sendMessage(Text.literal("Started discussion time (6min)"), true);
@@ -116,30 +119,31 @@ public class SelectionInventory {
 
     public static void handleSelectionCommandPlayerInput(ServerPlayerEntity player, int index) {
         if (selectedPlayer != null) {
+            String selectedName = selectedPlayer.getNameString();
             switch (index) {
                 case 21: //Instant kill player
-                    player.sendMessage(Text.literal("Instant kill: " + selectedPlayer.getNameForScoreboard() + " (" + selectedColour), true);
+                    player.sendMessage(Text.literal("Instant kill: " + selectedName + " (" + selectedColour), true);
                     PlayerUtils.killPlayer(selectedPlayer);
                     break;
                 case 22: //Instant execute but no kill player
-                    player.sendMessage(Text.literal("Instant execution (no kill): " + selectedPlayer.getNameForScoreboard() + " (" + selectedColour), true);
-                    selectedPlayer.addCommandTag(SURVIVE_EXECUTION);
+                    player.sendMessage(Text.literal("Instant execution (no kill): " + selectedName + " (" + selectedColour), true);
+                    selectedPlayer.changeSurviveExecution(true);
                     PlayerUtils.executePlayer(selectedPlayer);
                     break;
                 case 23: //Instant execute player
-                    player.sendMessage(Text.literal("Instant execution: " + selectedPlayer.getNameForScoreboard() + " (" + selectedColour), true);
+                    player.sendMessage(Text.literal("Instant execution: " + selectedName + " (" + selectedColour), true);
                     PlayerUtils.executePlayer(selectedPlayer);
                     break;
                 case 24: //Instant revive player
-                    player.sendMessage(Text.literal("Instant revival: " + selectedPlayer.getNameForScoreboard() + " (" + selectedColour), true);
+                    player.sendMessage(Text.literal("Instant revival: " + selectedName + " (" + selectedColour), true);
                     PlayerUtils.revivePlayer(selectedPlayer);
                     break;
                 case 25: //Demon kill mark for night
-                    player.sendMessage(Text.literal("Marked " + selectedPlayer.getNameForScoreboard() + " for demon kill (" + selectedColour+")"), true);
+                    player.sendMessage(Text.literal("Marked " + selectedName + " for demon kill (" + selectedColour+")"), true);
                     PlayerUtils.markPlayerDemonKill(selectedPlayer);
                     break;
                 case 26: //Revive player for night
-                    player.sendMessage(Text.literal("Added " + selectedPlayer.getNameForScoreboard() + " to revival list (" + selectedColour+")"), true);
+                    player.sendMessage(Text.literal("Added " + selectedName + " to revival list (" + selectedColour+")"), true);
                     PlayerUtils.markPlayerRevived(selectedPlayer);
                     break;
             }
@@ -152,7 +156,7 @@ public class SelectionInventory {
     public static boolean handleSelectionColour(ServerPlayerEntity player, int index) {
         //TODO check colour select
         selectedColour = POSSIBLE_COLOURS.get(index);
-        selectedPlayer = getPlayerFromColour(selectedColour, Objects.requireNonNull(player.getServer()));
+        selectedPlayer = currentGame.getPlayerAtColour(selectedColour);
         if (selectedPlayer != null) {
             player.sendMessage(Text.literal("Selected " + selectedColour + " for command"), false);
             return true;

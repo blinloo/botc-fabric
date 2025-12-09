@@ -622,7 +622,7 @@ public class BotcFab implements ModInitializer {
         }
         if (player != null) {
             player.removedMarked();
-            executePlayer(player.getPlayer());
+            executePlayer(player);
         } else src.sendFeedback(() -> Text.literal("No pony is marked for execution so no pony was killed"),false);
         return 1;
     }
@@ -1073,7 +1073,7 @@ public class BotcFab implements ModInitializer {
                                 .suggests(new PlayerSuggestionProvider())
                                 .executes(context -> {
                                     ServerPlayerEntity player = EntityArgumentType.getPlayer(context, "player");// Get the player from name string
-                                    executePlayer(player);
+                                    executePlayer(currentGame.findPlayer(player));
                                     return 1;
                                 })
                 ))
