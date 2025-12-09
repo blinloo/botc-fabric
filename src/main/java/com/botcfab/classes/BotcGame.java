@@ -1,6 +1,8 @@
 package com.botcfab.classes;
 
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,6 +30,13 @@ public class BotcGame {
             //Add players classes for number of players
             players.add(new BotcPlayer(i, null, null));
         }
+    }
+
+    public Text getGameInfo(){
+        MutableText output;
+        this.storyteller.getName()
+
+        return output;
     }
 
     public boolean assignPlayer(int pos, ServerPlayerEntity player){

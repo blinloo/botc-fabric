@@ -257,29 +257,6 @@ public class PlayerUtils {
         return 1;
     }
 
-    static MutableText getPlayerOrder(BotcGame game){
-        MutableText PlayerOrderMessage = Text.literal("Player Order: \n");
-        for (BotcPlayer p:game.getPlayers()){
-            String c = p.getColour();
-            Text name = p.getName();
-            if (p.isDead()) {
-                PlayerOrderMessage
-                        .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
-                        .append(Text.literal("💀 "))
-                        .append(name.copy().setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.GRAY)))) //Player name grey for dead
-                        .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
-                        .append(Text.literal("\n")); //New line
-            } else {
-                PlayerOrderMessage
-                        .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
-                        .append(name.copy()) //Player name
-                        .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
-                        .append(Text.literal("\n")); //New line
-            }
-        }
-        return PlayerOrderMessage;
-    }
-
     static void sendMessageToPlayers(Text messageText, List<ServerPlayerEntity> playerList){
         for (ServerPlayerEntity p:playerList){
             p.sendMessage(messageText);
