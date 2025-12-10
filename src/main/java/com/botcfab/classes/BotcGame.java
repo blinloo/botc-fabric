@@ -1,5 +1,6 @@
 package com.botcfab.classes;
 
+import com.botcfab.FormattingHelper;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -8,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+
+import static com.botcfab.FormattingHelper.formatGameInfo;
 
 public class BotcGame {
     ArrayList<BotcPlayer> players = new ArrayList<>();
@@ -33,10 +36,7 @@ public class BotcGame {
     }
 
     public Text getGameInfo(){
-        MutableText output;
-        this.storyteller.getName()
-
-        return output;
+        return formatGameInfo(this);
     }
 
     public boolean assignPlayer(int pos, ServerPlayerEntity player){
@@ -107,6 +107,10 @@ public class BotcGame {
 
     public ArrayList<BotcPlayer> getPlayers(){
         return this.players;
+    }
+
+    public BotcPlayer getStoryteller(){
+        return this.storyteller;
     }
 
     public ArrayList<BotcPlayer> getKillFlaggedPlayers(){
