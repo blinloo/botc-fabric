@@ -89,7 +89,7 @@ public class BotcFab implements ModInitializer {
     static final String ALIVE_SCORE_HOLDER = "Alive";
     static final String DEAD_SCORE_HOLDER = "Dead";
     static final String VOTE_SCORE_HOLDER = "Vote Threshold";
-    public static final List<String> POSSIBLE_COLOURS = Arrays.asList(
+    public static List<String> POSSIBLE_COLOURS = Arrays.asList(
             "black",
             "yellow",
             "orange",
@@ -142,7 +142,8 @@ public class BotcFab implements ModInitializer {
     final static String DEFAULT_MAP = "default";
     final static String SCHOOL_MAP = "school";
     final static String CIRCUS_MAP = "circus";
-    final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP,CIRCUS_MAP);
+    final static String WINTER_MAP = "winter";
+    final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP,CIRCUS_MAP, WINTER_MAP);
     static String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
 
     //BLOCK POS FOR CLOCKTOWER MAP
@@ -406,14 +407,20 @@ public class BotcFab implements ModInitializer {
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
 
-        for (BotcPlayer p: currentGame.getPlayers()){ //Give onlinePlayers writable book
-            p.getPlayer().getInventory().insertStack( new ItemStack(Items.WRITABLE_BOOK));
-        }
-        teleportPlayers("home", srv, currentGame); //teleports onlinePlayers to homes
-        sendMessageToPlayers(getPlayerOrder(currentGame),playerMgr.getPlayerList()); //Sends player order to all onlinePlayers
-        nightFalls(src);
+        if (currentGame != null) {
 
-        return 1;
+            for (BotcPlayer p : currentGame.getPlayers()) { //Give onlinePlayers writable book
+                p.getPlayer().getInventory().insertStack(new ItemStack(Items.WRITABLE_BOOK));
+            }
+            teleportPlayers("home", srv, currentGame); //teleports onlinePlayers to homes
+            sendMessageToPlayers(getPlayerOrder(currentGame), playerMgr.getPlayerList()); //Sends player order to all onlinePlayers
+            nightFalls(src);
+
+            return 1;
+        } else {
+            src.sendFeedback(() -> Text.literal("No game initialised. Please run setup first!"), false);
+            return 0;
+        }
     }
 
     static int nightFalls(ServerCommandSource src){
@@ -597,7 +604,7 @@ public class BotcFab implements ModInitializer {
                 message.append(" has now been marked for execution");
                 if (currentGame.showVoteResult()) { //if show result to players is active
                     sendMessageToPlayers(message, playerList);
-                } else { //send result to ops if not
+                } else { //send result to ops if not initialised
                     src.sendFeedback(() -> message,true);
                 }
 
@@ -978,6 +985,7 @@ public class BotcFab implements ModInitializer {
                         .requires(source -> source.hasPermissionLevel(4))
                         .executes((context) -> {
                             mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import coordinates for map from Excel sheet
+                            POSSIBLE_COLOURS = List.copyOf(mapCoords.keySet());
                             return 1;
                         }))
                 .then(literal("changeMap").then(

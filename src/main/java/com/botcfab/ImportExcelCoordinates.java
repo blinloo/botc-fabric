@@ -29,7 +29,7 @@ public class ImportExcelCoordinates {
             while (iterator.hasNext()) {
                 Map<String,String> row = iterator.next();
                 LOGGER.info(row.toString());
-                String colour = row.get("Colours");
+                String colour = row.get("Colours"); //This is the key?
                 List<String> rowValues = new ArrayList<>(row.values());
                 if (colour != null && !colour.isBlank()) {
                     mc.put(colour, new CoordinateMapper(
