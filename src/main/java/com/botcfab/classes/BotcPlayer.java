@@ -12,10 +12,11 @@ public class BotcPlayer {
     boolean isInvisible;
     boolean isAccused;
     boolean isMarked;
-    boolean killFlag;
-    boolean reviveFlag;
+    boolean killFlag; //To be killed on morning
+    boolean reviveFlag; //To be revived on morning
     boolean loseGhostVote;
     boolean willSurviveExecution;
+    boolean currentlyBeingExecuted;
     int position;
     String colour; //Colour assigned to player
     Text playerName;
@@ -46,6 +47,7 @@ public class BotcPlayer {
         this.reviveFlag = false;
         this.loseGhostVote = true; //Change to false for banshee on ability activation
         this.willSurviveExecution = false;
+        this.currentlyBeingExecuted = false;
         if (p != null) {
             this.player = p;
             this.playerName = p.getStyledDisplayName();
@@ -184,6 +186,14 @@ public class BotcPlayer {
     }
     public void changeSurviveExecution(boolean newValue){
         this.willSurviveExecution = newValue;
+    }
+
+    public void changeExecutionStatus(boolean newValue){
+        this.currentlyBeingExecuted = newValue;
+    }
+
+    public boolean getExecutionStatus(){
+        return this.currentlyBeingExecuted;
     }
 
     public void changeLoseGhostVote(boolean newValue){

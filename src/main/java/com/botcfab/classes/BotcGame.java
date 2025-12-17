@@ -21,6 +21,7 @@ public class BotcGame {
     int colourStartIndex;
     boolean showVoteResult;
     boolean rolesVisible = false;
+    boolean playersInvis;
 
     //Only need a new one when storyteller changes?
     public BotcGame(BotcPlayer storyteller, int total, List<String> colours) {
@@ -28,6 +29,7 @@ public class BotcGame {
         this.totalPlayers = total;
         this.possibleColours = colours;
         this.showVoteResult = true;
+        this.playersInvis = true;
 
         for (int i = 0; i < totalPlayers; i++) {
             //Add players classes for number of players
@@ -155,6 +157,18 @@ public class BotcGame {
         return null;
     }
 
+    public BotcPlayer getPlayerBeingExecuted(){
+        for (BotcPlayer p:players){
+            if (p.getExecutionStatus()) {
+                return p;
+            }
+        }
+        if (storyteller.getExecutionStatus()){
+            return storyteller;
+        }
+        return null;
+    }
+
     public BotcPlayer findPlayer(ServerPlayerEntity playerEntity){
         for (BotcPlayer p:players){
             if (p.player == playerEntity) {
@@ -188,5 +202,13 @@ public class BotcGame {
 
     public void changeShowVoteResult(boolean newValue){
         this.showVoteResult = newValue;
+    }
+
+    public boolean invisPlayers(){
+        return this.playersInvis;
+    }
+
+    public void changePlayerInvis(boolean newValue){
+        this.playersInvis = newValue;
     }
 }

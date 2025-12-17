@@ -131,7 +131,7 @@ public class SelectionInventory {
                     PlayerUtils.executePlayer(selectedPlayer);
                     break;
                 case 23: //Instant execute player
-                    player.sendMessage(Text.literal("Instant execution: " + selectedName + " (" + selectedColour), true);
+                    player.sendMessage(Text.literal("Instant execution: " + selectedName + " (" + selectedColour ), true);
                     PlayerUtils.executePlayer(selectedPlayer);
                     break;
                 case 24: //Instant revive player

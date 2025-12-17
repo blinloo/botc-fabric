@@ -74,8 +74,14 @@ public class FormattingHelper {
             } else {
                 gameInfoText.append(Text.literal(ALIVE));
             }
-            gameInfoText.append(Text.literal("\n")); //New line
+            if (p.getKillFlag()){
+                gameInfoText.append(Text.literal("Marked for kill on day\n"));
+            }
+            if (p.getReviveFlag()){
+                gameInfoText.append(Text.literal("Marked for revive on day\n"));
+            }
 
+            gameInfoText.append(Text.literal("\n")); //New line - 2 between players
             gameInfoText.append(Text.literal("\n")); //New line
         }
         return gameInfoText;

@@ -4,6 +4,7 @@ import com.botcfab.classes.BotcGame;
 import com.botcfab.classes.BotcPlayer;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.enums.BlockFace;
 import net.minecraft.entity.player.PlayerEntity;
@@ -74,10 +75,6 @@ public class PlayerUtils {
         return "";
     }
 
-    static ServerPlayerEntity getPlayerFromColour(String colour, BotcGame game){
-        return game.getPlayerAtColour(colour).getPlayer();
-    }
-
     static int getTagCount(String tag, MinecraftServer srv){
         //TODO Replace this with game call
         List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
@@ -137,6 +134,7 @@ public class PlayerUtils {
 
     static void executePlayer(BotcPlayer gamePlayer){
         ServerPlayerEntity player = gamePlayer.getPlayer();
+        gamePlayer.changeExecutionStatus(true);
         player.addCommandTag(CURRENT_EXECUTEE);
         ServerWorld world = player.getServerWorld();
         MinecraftServer srv = world.getServer();
@@ -146,7 +144,7 @@ public class PlayerUtils {
         switch (mapSelected) {
             case DEFAULT_MAP:
                 tp(player, EXECUTE_POS.down(1)); //tp executed player to the block
-                world.setBlockState(EXECUTE_POS.up(250), Blocks.ANVIL.getDefaultState()); //create anvil 50 blocks up above execution
+                world.setBlockState(EXECUTE_POS.up(200), Blocks.ANVIL.getDefaultState()); //create anvil 50 blocks up above execution
                 break;
             case SCHOOL_MAP:
                 //TODO open pit here and teleport player
@@ -173,6 +171,10 @@ public class PlayerUtils {
                 tp(player, EXECUTE_POS); //tp executed player to the cannon
                 //TODO Start timer for levitation and open circus roof
                 world.setBlockState(EXECUTE_POS.up(250), Blocks.ANVIL.getDefaultState()); //create anvil 50 blocks up above execution
+                break;
+            case WINTER_MAP:
+                tp(player, EXECUTE_POS); //tp executed player to the centre
+                world.setBlockState(EXECUTE_POS.up(20), Blocks.AIR.getDefaultState()); //remove support for dripstone
                 break;
         }
         createOrSetAliveDisplay(scoreboard, srv);
@@ -205,6 +207,26 @@ public class PlayerUtils {
                     break;
                 case SCHOOL_MAP:
                     placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
+                    break;
+                case WINTER_MAP: //Levers face different ways on maps
+                    switch (playerColour) {
+                        case "green", "cyan":
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, BlockFace.FLOOR);
+                            break;
+                        case "blue", "magenta":
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
+                            break;
+                        case "pink", "red":
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR);
+                            break;
+                        case "orange", "yellow":
+                            placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
+                            break;
+                    }
+                    break;
+                default:
+                    placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
+                    break;
             }
         } else {
             if (player.hasGhostVote()) { //Player has ghost vote, iron block and oxidised copper
@@ -285,6 +307,9 @@ public class PlayerUtils {
                     if (!Objects.equals(colour, "")) {
                         tp(p, mapCoords.get(colour).homeInside); //teleport player to coords
                     }
+                    if (player.isStoryteller()){
+                        tp(p,EXECUTE_POS);//Teleport storyteller to execution point
+                    }
                 }
                 break;
             case "vote","chair","town":
@@ -302,7 +327,7 @@ public class PlayerUtils {
                 for (BotcPlayer player : game.getPlayers()) {
                     ServerPlayerEntity p = player.getPlayer();
                     Set<String> tags = p.getCommandTags();
-                    if (tags.contains(LEGION)) {
+                    if (tags.contains(LEGION) || player.isStoryteller()) {
                         tp(p, EVIL_ROOM_POS); //Needs to go up 1 so space isn't occupied
                     }
                 }
@@ -317,7 +342,8 @@ public class PlayerUtils {
             if (!Objects.equals(colour, "")) {
                 tp(player, mapCoords.get(colour).homeInside);
             } else {
-                return 0;
+                //If no colour found, tp to execution point.
+                tp(player, EXECUTE_POS);
             }
             return 1;
         } else {

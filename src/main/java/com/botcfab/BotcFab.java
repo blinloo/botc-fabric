@@ -105,6 +105,7 @@ public class BotcFab implements ModInitializer {
 
     //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
     static Map<String, CoordinateMapper> mapCoords = new HashMap<>();
+    static int maxPlayers;
     static final ArrayList<Integer> indexBounds = new ArrayList<>();
     //Highest vote count
     static int highestVote;
@@ -179,6 +180,7 @@ public class BotcFab implements ModInitializer {
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
         mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import csv file here
+        maxPlayers = mapCoords.size();
 
         System.out.println("INITIALISED");
         src.sendFeedback(() -> Text.literal("Starting initialise code now"), false);
@@ -202,20 +204,6 @@ public class BotcFab implements ModInitializer {
 
         //Setup text for maps
         switch (mapSelected) {
-            case DEFAULT_MAP:
-                MEETING_MESSAGE = Text.literal("\nPlease head to the town square");
-                RETURN_MESSAGE = Text.literal("\nPlease return to your houses");
-                DAY_MESSAGE = Text.literal("The sun rises ☀")
-                        .setStyle(Style.EMPTY.withColor(Formatting.GOLD));
-                NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
-                        .setStyle(Style.EMPTY.withColor(Formatting.BLUE));
-                KILL_TEXT = Text.literal(" has been ") //Make these not final for school map, change to expelled, suspended etc
-                        .append(Text.literal("killed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
-                REVIVE_TEXT = Text.literal(" has been ")
-                        .append(Text.literal("revived.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
-                EXECUTE_TEXT = Text.literal(" has been ")
-                        .append(Text.literal("executed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
-                break;
             case SCHOOL_MAP:
                 MEETING_MESSAGE = Text.literal("\nPlease head to the main hall");
                 RETURN_MESSAGE = Text.literal("\nPlease return to your dorms");
@@ -244,6 +232,20 @@ public class BotcFab implements ModInitializer {
                 EXECUTE_TEXT = Text.literal(" has been ")
                         .append(Text.literal("fired out of the cannon.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
                 break;
+            default: //Default is used for default map as well
+                MEETING_MESSAGE = Text.literal("\nPlease head to the town square");
+                RETURN_MESSAGE = Text.literal("\nPlease return to your houses");
+                DAY_MESSAGE = Text.literal("The sun rises ☀")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GOLD));
+                NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
+                        .setStyle(Style.EMPTY.withColor(Formatting.BLUE));
+                KILL_TEXT = Text.literal(" has been ") //Make these not final for school map, change to expelled, suspended etc
+                        .append(Text.literal("killed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
+                REVIVE_TEXT = Text.literal(" has been ")
+                        .append(Text.literal("revived.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
+                EXECUTE_TEXT = Text.literal(" has been ")
+                        .append(Text.literal("executed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
+                break;
         }
 
         //Sets the coordinates missing from sheet per map
@@ -264,6 +266,12 @@ public class BotcFab implements ModInitializer {
                 LEAVE_VC_TRIGGER_POS = new BlockPos(18,-37,12);
                 TOWN_VC_TRIGGER_POS = new BlockPos(16,-37,12);
                 break;
+            case WINTER_MAP:
+                EXECUTE_POS = new BlockPos(-140, -28, 330);
+                EVIL_ROOM_POS = new BlockPos(126, -28, 57);//Not updated, could just use same one tho
+                MINIGAMES_POS = new BlockPos(-120, -27, -13);
+                LEAVE_VC_TRIGGER_POS = new BlockPos(18,-37,12);
+                TOWN_VC_TRIGGER_POS = new BlockPos(16,-37,12);
         }
 
         // Loop through all colours in map
@@ -370,6 +378,23 @@ public class BotcFab implements ModInitializer {
                             break;
                         case "blue", "cyan", "gray":
                             placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.EAST, player.getName(), assignedColour, signType);
+                            break;
+                    }
+                    break;
+                case WINTER_MAP:
+                    signType = Blocks.SPRUCE_WALL_SIGN.getDefaultState();
+                    switch (assignedColour) {
+                        case "yellow", "orange":
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, player.getName(), assignedColour, signType);
+                            break;
+                        case "pink", "red":
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour, signType);
+                            break;
+                        case "magenta", "blue":
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, player.getName(), assignedColour, signType);
+                            break;
+                        case "cyan", "green":
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour, signType);
                             break;
                     }
                     break;
@@ -798,52 +823,61 @@ public class BotcFab implements ModInitializer {
             world.setBlockState(LEAVE_VC_TRIGGER_POS,Blocks.AIR.getDefaultState());
         }
 
-        if (playerList != null) {
+        if (currentGame.getPlayers() != null) {
             //Code for player death particles and particle effects
-            for (ServerPlayerEntity p : playerList) { //uses full server list to avoid calling null
-                Set<String> tags = p.getCommandTags();
-                p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 1, false, false));
-                if (tags.contains(INVIS_TAG)) {
-                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
-                    //if (tags.contains(SPEC)) {
-                    //    world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.001);
-                    //}
-                }
-                if (!tags.contains(INVIS_TAG)) {
-                    p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for alive onlinePlayers
-                }
+            for (BotcPlayer player : currentGame.getPlayers()) {
+                ServerPlayerEntity p = player.getPlayer();
+                if (p != null) {
+                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 2, false, false));
+                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, -1, 5, false, false));
+                    if (currentGame.invisPlayers()) {
+                        if (player.getInvisStatus()) {
+                            p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
+                            //if (tags.contains(SPEC)) {
+                            //    world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.001);
+                            //}
+                        } else {
+                            p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for alive onlinePlayers
+                        }
+                    } else {
+                        p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for all if disabled
+                    }
 
-                if (tags.contains(ACCUSED) || tags.contains(MARKED)) {
-                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, -1, 1, false, false));
-                } else {
-                    p.removeStatusEffect(StatusEffects.GLOWING);
+                    if (player.isAccused() || player.isMarked()) {
+                        p.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, -1, 1, false, false));
+                    } else {
+                        p.removeStatusEffect(StatusEffects.GLOWING);
+                    }
                 }
             }
             //Code for execution checks
             if (executionInProgress) {
                 boolean executionFinished = false;
-                ServerPlayerEntity executee = getPlayerFromColour(CURRENT_EXECUTEE,currentGame);
+                BotcPlayer executeePlayer = currentGame.getPlayerBeingExecuted();
+                ServerPlayerEntity executee = executeePlayer.getPlayer();
+                Vec3d murderZone;
+                double distance;
                 if (executee != null){
                     switch (mapSelected) {
                         case DEFAULT_MAP:
-                            Vec3d murderZone = new Vec3d(EXECUTE_POS.down(1).getX()+0.5, EXECUTE_POS.down(1).getY()+0.3, EXECUTE_POS.down(1).getZ()+0.5); //Get centre of block
-                            double distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
-                            if (distance > 1.2) {
+                            murderZone = new Vec3d(EXECUTE_POS.down(1).getX()+0.5, EXECUTE_POS.down(1).getY()+0.3, EXECUTE_POS.down(1).getZ()+0.5); //Get centre of block
+                            distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
+                            if (distance > 2) {
                                 executee.teleport(murderZone.getX(),murderZone.getY(),murderZone.getZ(),false); //needs accurate tp
                                 executee.sendMessage(Text.literal("Nice try :)"), false);
                             }
-
                             BlockState anvilPosState = world.getBlockState(EXECUTE_POS);
                             if (anvilPosState.isOf(Blocks.ANVIL) || anvilPosState.isOf(Blocks.CHIPPED_ANVIL) || anvilPosState.isOf(Blocks.DAMAGED_ANVIL)) {
                                 world.setBlockState(EXECUTE_POS, Blocks.AIR.getDefaultState());
                                 //spawn redstone blood particles
                                 world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.REDSTONE_BLOCK.getDefaultState()), EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY()-0.2, EXECUTE_POS.getZ()+0.5, 25, 0.3, 0.5, 0.3, 0.1);
-                                executionFinished = true; //used so
+                                executionFinished = true;
                             }
                             break;
                         case SCHOOL_MAP:
                             if (executee.getBlockPos().getY() < -60) { //checks if played being executed is below certain y level.
                                 executionFinished = true;
+                                executee.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, 10, 1, false, false)); //Add slow fall for a moment
                                 tp(executee,mapCoords.get(getColourFromPlayer(executee)).chair);
                                 //Cover up hole
                                 world.setBlockState(new BlockPos(454,3,156), Blocks.RED_TERRACOTTA.getDefaultState());
@@ -858,11 +892,30 @@ public class BotcFab implements ModInitializer {
                                 //also place all pit cover blocks back
                             }
                             break;
+                        case WINTER_MAP:
+                            murderZone = new Vec3d(EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY()+0.3, EXECUTE_POS.getZ()+0.5); //Get centre of block
+                            distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
+                            if (distance > 1.6) {
+                                executee.teleport(murderZone.getX(),murderZone.getY(),murderZone.getZ(),false); //needs accurate tp
+                                executee.sendMessage(Text.literal("Nice try :)"), false);
+                            }
+                            BlockState dripPosState = world.getBlockState(EXECUTE_POS.up(1));
+                            if (dripPosState.isOf(Blocks.POINTED_DRIPSTONE)) {
+                                //spawn ice particles
+                                world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.ICE.getDefaultState()), EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY()-0.2, EXECUTE_POS.getZ()+0.5, 40, 0.3, 1.5, 0.3, 0.1);
+                                world.setBlockState(EXECUTE_POS.up(20), Blocks.DRIPSTONE_BLOCK.getDefaultState()); //restore dripstone support
+                                world.setBlockState(EXECUTE_POS.up(19), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
+                                world.setBlockState(EXECUTE_POS.up(18), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
+                                world.setBlockState(EXECUTE_POS.up(17), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
+                                world.setBlockState(EXECUTE_POS.up(16), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
+                                executionFinished = true;
+                            }
+                            break;
                     }
                     if (executionFinished) { //code that overlaps for all maps
                         //sends message in chat for kill
                         sendMessageToPlayers(getEventText(executee,CURRENT_EXECUTEE), playerList); //Sends execution message to all onlinePlayers
-                        if (!executee.getCommandTags().contains(SURVIVE_EXECUTION)){
+                        if (!executeePlayer.surviveExecution()){
                             //If player is not marked to survive execution
                             killPlayer(currentGame.findPlayer(executee));
                         } else {
@@ -871,11 +924,13 @@ public class BotcFab implements ModInitializer {
                                 case DEFAULT_MAP -> Text.literal("but they survived!");
                                 case SCHOOL_MAP -> Text.literal("but it was revoked!");
                                 case CIRCUS_MAP -> Text.literal("but they landed safely!");
-                                default -> Text.literal("bad code :(");
+                                default -> Text.literal("but they didn't die!");
                             };
                             sendMessageToPlayers(noDeathMsg,playerList);
                         }
                         executee.removeCommandTag(CURRENT_EXECUTEE);
+                        executeePlayer.changeExecutionStatus(false);
+
                         executionInProgress = false;
                     }
                 } else {
@@ -1027,10 +1082,10 @@ public class BotcFab implements ModInitializer {
 
                                             switch (type) {
                                                 case SPEC:
-                                                    PlayerUtils.onAddSpectator(context);
+                                                    onAddSpectator(context);
                                                     break;
                                                 case PLAYER:
-                                                    PlayerUtils.onAddPlayer(context);
+                                                    onAddPlayer(context);
                                                     break;
                                                 default:
                                                     context.getSource().sendFeedback(() -> Text.literal("Invalid team"), false);
@@ -1137,19 +1192,24 @@ public class BotcFab implements ModInitializer {
                 .then(literal("toggleSeatLock")
                         .requires(source -> source.hasPermissionLevel(4))
                         .executes(context -> {
-                                    playersLockedToSeats = !playersLockedToSeats;
-                                    context.getSource().sendFeedback(() -> Text.literal("Toggled player seat lock to " + playersLockedToSeats), false);
-                                    return 1;
-                                }
-                        ))
-                .then(literal("toggleOrganGrinder")
+                            playersLockedToSeats = !playersLockedToSeats;
+                            context.getSource().sendFeedback(() -> Text.literal("Toggled player seat lock to " + playersLockedToSeats), false);
+                            return 1;
+                        }))
+                .then(literal("hideVoteToggle")
                         .requires(source -> source.hasPermissionLevel(4))
                         .executes(context -> {
-                                    organGrinderActive = !organGrinderActive;
-                                    context.getSource().sendFeedback(() -> Text.literal("Organ grinder active set to " + organGrinderActive), false);
-                                    return 1;
-                                }
-                        ))
+                            currentGame.changeShowVoteResult(!currentGame.showVoteResult());
+                            context.getSource().sendFeedback(() -> Text.literal("Show vote result set to " + currentGame.showVoteResult()), false);
+                            return 1;
+                        }))
+                .then(literal("toggleInvis")
+                        .requires(source -> source.hasPermissionLevel(4))
+                        .executes(context -> {
+                            currentGame.changePlayerInvis(!currentGame.invisPlayers()); //Sets invis to other state
+                            context.getSource().sendFeedback(() -> Text.literal("Player invisibility set to " + currentGame.invisPlayers()), false);
+                            return 1;
+                        }))
                 .then(literal("showPlayerOrder")
                         .executes(context -> {
                             ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
