@@ -12,8 +12,6 @@ import net.minecraft.item.ItemStack;
 import java.util.List;
 import java.util.Objects;
 
-import static com.botcfab.BotcFab.POSSIBLE_COLOURS;
-import static com.botcfab.ItemUtils.*;
 import static com.botcfab.SelectionInventory.handleSelectionCommandPlayerInput;
 import static com.botcfab.SelectionInventory.openPlayerSelectMenu;
 
@@ -55,7 +53,6 @@ public class SelectionInventorySH extends GenericContainerScreenHandler {
                     BotcPlayer selected = SelectionInventory.handleSelectionColour(slotIndex); //Get player selected
                     if (selected != null) {
                         handleSelectionCommandPlayerInput((ServerPlayerEntity) clicker, prevIndex, selected);
-
                     }
                     if (clicker instanceof ServerPlayerEntity serverPlayer) {
                         serverPlayer.closeHandledScreen();

@@ -184,59 +184,60 @@ public class PlayerUtils {
         //Update vote marker and lamp for all players by checking tags
         String playerColour = player.getColour();
         //Replace lamps
-        if (!player.isDead()){ //If player not dead
-            world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
-            world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_COPPER_BULB.getDefaultState());
-            //Add back lever in case of revivals
-            switch (mapSelected) {
-                case DEFAULT_MAP: //Levers face different ways on maps
-                    switch (playerColour) {
-                        case "black", "cyan", "white":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR);
-                            break;
-                        case "yellow", "pink", "gray":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
-                            break;
-                        case "orange", "red", "brown":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, BlockFace.FLOOR);
-                            break;
-                        case "purple", "green", "blue":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
-                            break;
-                    }
-                    break;
-                case SCHOOL_MAP:
-                    placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
-                    break;
-                case WINTER_MAP: //Levers face different ways on maps
-                    switch (playerColour) {
-                        case "green", "cyan":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, BlockFace.FLOOR);
-                            break;
-                        case "blue", "magenta":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
-                            break;
-                        case "pink", "red":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR);
-                            break;
-                        case "orange", "yellow":
-                            placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
-                            break;
-                    }
-                    break;
-                default:
-                    placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
-                    break;
-            }
-        } else {
-            if (player.hasGhostVote()) { //Player has ghost vote, iron block and oxidised copper
-                world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.IRON_BLOCK.getDefaultState());
-                world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState());
-            }
-            else { //If player doesn't have ghost vote and dead, disable vote
-                world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
-                world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
-                world.setBlockState(mapCoords.get(playerColour).lever, Blocks.AIR.getDefaultState()); //Remove lever
+        if (playerColour != null) {
+            if (!player.isDead()) { //If player not dead
+                world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.GOLD_BLOCK.getDefaultState());
+                world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_COPPER_BULB.getDefaultState());
+                //Add back lever in case of revivals
+                switch (mapSelected) {
+                    case DEFAULT_MAP: //Levers face different ways on maps
+                        switch (playerColour) {
+                            case "black", "cyan", "white":
+                                placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR);
+                                break;
+                            case "yellow", "pink", "gray":
+                                placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
+                                break;
+                            case "orange", "red", "brown":
+                                placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, BlockFace.FLOOR);
+                                break;
+                            case "purple", "green", "blue":
+                                placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
+                                break;
+                        }
+                        break;
+                    case SCHOOL_MAP:
+                        placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
+                        break;
+                    case WINTER_MAP: //Levers face different ways on maps
+                        switch (playerColour) {
+                            case "green", "cyan":
+                                placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, BlockFace.FLOOR);
+                                break;
+                            case "blue", "magenta":
+                                placeLever(world, mapCoords.get(playerColour).lever, Direction.NORTH, BlockFace.FLOOR);
+                                break;
+                            case "pink", "red":
+                                placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR);
+                                break;
+                            case "orange", "yellow":
+                                placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
+                                break;
+                        }
+                        break;
+                    default:
+                        placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
+                        break;
+                }
+            } else {
+                if (player.hasGhostVote()) { //Player has ghost vote, iron block and oxidised copper
+                    world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.IRON_BLOCK.getDefaultState());
+                    world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.WAXED_OXIDIZED_COPPER.getDefaultState());
+                } else { //If player doesn't have ghost vote and dead, disable vote
+                    world.setBlockState(mapCoords.get(playerColour).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
+                    world.setBlockState(mapCoords.get(playerColour).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
+                    world.setBlockState(mapCoords.get(playerColour).lever, Blocks.AIR.getDefaultState()); //Remove lever
+                }
             }
         }
     }
@@ -275,7 +276,7 @@ public class PlayerUtils {
         hardResetPlayer(playerTarget);
         playerTarget.addCommandTag(PLAYER);
         playerTarget.changeGameMode(GameMode.ADVENTURE);
-        System.out.println("Added player " + playerTarget.getNameForScoreboard() +" to spectators");
+        System.out.println("Added player " + playerTarget.getNameForScoreboard() +" to players");
         return 1;
     }
 

@@ -61,13 +61,6 @@ public class SelectionInventory {
             index++;
         }
 
-        inventory.setStack(21, setCustomName(new ItemStack(Items.PLAYER_HEAD), Text.literal("Instant kill (no execution)")));
-        inventory.setStack(22, setCustomName(new ItemStack(Items.DARK_OAK_SIGN), Text.literal("Execute but don't kill")));
-        inventory.setStack(23, setCustomName(new ItemStack(Items.SKELETON_SKULL), Text.literal("Instant execute")));
-        inventory.setStack(24, setCustomName(new ItemStack(Items.LIGHT_WEIGHTED_PRESSURE_PLATE), Text.literal("Instant revive")));
-        inventory.setStack(25, setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")));
-        inventory.setStack(26, setCustomName(new ItemStack(Items.NETHER_STAR), Text.literal("Mark for revival")));
-
         NamedScreenHandlerFactory screenHandlerFactory = new SimpleNamedScreenHandlerFactory(
                 (syncId, playerInventory, playerEntity) ->
                     // Create a vanilla chest-like menu (27 slots)
@@ -178,11 +171,11 @@ public class SelectionInventory {
                     revivePlayer(selected);
                     break;
                 case 24: //Demon kill mark for night
-                    player.sendMessage(Text.literal("Marked " + selectedName + " for demon kill (" + colour+")"), true);
+                    player.sendMessage(Text.literal("Marked " + selectedName + " for demon kill (" + colour+")"), false);
                     markPlayerDemonKill(selected);
                     break;
                 case 25: //Revive player for night
-                    player.sendMessage(Text.literal("Added " + selectedName + " to revival list (" + colour+")"), true);
+                    player.sendMessage(Text.literal("Added " + selectedName + " to revival list (" + colour+")"), false);
                     markPlayerRevived(selected);
                     break;
             }

@@ -12,14 +12,41 @@ import java.util.ArrayList;
 
 import static com.botcfab.BotcFab.ALIVE;
 import static com.botcfab.BotcFab.DEAD;
-import static com.botcfab.ItemUtils.getColourHex;
 
 public class FormattingHelper {
+    static int getColourHex(String colour){
+        return switch (colour) {
+            case "white" -> 0xF0F0F0;
+            case "orange" -> 0xF9801D;
+            case "magenta" -> 0xC74EBD;
+            case "light_blue" -> 0x3AB3DA;
+            case "yellow" -> 0xFED83D;
+            case "lime" -> 0x80C71F;
+            case "pink" -> 0xF38BAA;
+            case "gray" -> 0x474F52;
+            case "light_gray" -> 0x9D9D97;
+            case "cyan" -> 0x169C9C;
+            case "purple" -> 0x8932B8;
+            case "blue" -> 0x3C44AA;
+            case "brown" -> 0x835432;
+            case "green" -> 0x5E7C16;
+            case "red" -> 0xB02E26;
+            case "black" -> 0x1D1D21;
+            default -> 0xF2B233;
+        };
+    }
+
     static MutableText getPlayerOrder(BotcGame game) {
         MutableText PlayerOrderMessage = Text.literal("Player Order: \n");
         for (BotcPlayer p : game.getPlayers()) {
             String c = p.getColour();
+            if (c == null){
+                c = "lime";
+            }
             Text name = p.getName();
+            if (name == null){
+                name = Text.literal("NULL");
+            }
             if (p.isDead()) {
                 PlayerOrderMessage
                         .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
@@ -56,16 +83,28 @@ public class FormattingHelper {
         for (BotcPlayer p : players) { //Show all players
             String c = p.getColour();
             Text name = p.getName();
+            if (c == null){
+                c = "lime";
+            }
+            if (name == null){
+                name = Text.literal("NULL");
+            }
             //Name
             gameInfoText
                     .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
                     .append(name.copy()) //Player name
                     .append(Text.literal("\n")); //New line
             //Role
-            gameInfoText
-                    .append(Text.literal("Role: "))
-                    .append(Text.literal(p.getRole().getName()))  // Role name
-                    .append(Text.literal("\n")); //New line
+            if (p.getRole() != null) {
+                gameInfoText
+                        .append(Text.literal("Role: "))
+                        .append(Text.literal(p.getRole().getName()))  // Role name
+                        .append(Text.literal("\n")); //New line
+            } else {
+                gameInfoText
+                        .append(Text.literal("Role: N/A"))
+                        .append(Text.literal("\n")); //New line
+            }
             //Status
             gameInfoText
                     .append(Text.literal("Status: "));

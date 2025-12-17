@@ -25,31 +25,10 @@ import net.minecraft.util.math.Direction;
 
 import java.util.*;
 
+import static com.botcfab.FormattingHelper.getColourHex;
 import static java.util.Map.entry;
 
 public class ItemUtils {
-    //static final List<Integer> COLOUR_HEX = Arrays.asList(0x000000, 0xFFEE00, 0xFF8D00, 0xFFAFC7, 0xE50000,
-    //        0x760088, 0x613915, 0x028121, 0xFFFFFF, 0x004CFF, 0x73D7EE, 0x888888); //Colour picked from progress pride flag
-    static final Map<String, Integer> COLOUR_HEX = Map.ofEntries( //Colours using minecraft dye hex values
-            entry("white", 0xF0F0F0),
-            entry("orange", 0xF9801D),
-            entry("magenta", 0xC74EBD),
-            entry("light_blue", 0x3AB3DA),
-            entry("yellow", 0xFED83D),
-            entry("lime", 0x80C71F),
-            entry("pink", 0xF38BAA),
-            entry("gray", 0x474F52),
-            entry("light_gray", 0x9D9D97),
-            entry("cyan", 0x169C9C),
-            entry("purple", 0x8932B8),
-            entry("blue", 0x3C44AA),
-            entry("brown", 0x835432),
-            entry("green", 0x5E7C16),
-            entry("red", 0xB02E26),
-            entry("black", 0x1D1D21)
-    );
-
-
     /**
      * Sets a custom display name on an ItemStack.
      *
@@ -69,8 +48,11 @@ public class ItemUtils {
     }
 
     public static ItemStack setPlayerHead(ServerPlayerEntity owner, String colour) {
-        if (owner == null || colour == null) {
-            throw new IllegalArgumentException("owner and name must not be null");
+        if (owner == null) {
+            return setCustomName(getWoolFromColour(colour),Text.literal("Invalid owner"));
+        }
+        if (colour == null) {
+            return setCustomName(getGlassFromColour("lime"),Text.literal("Invalid colour"));
         }
         ItemStack item = new ItemStack(Items.PLAYER_HEAD);
 
@@ -152,9 +134,7 @@ public class ItemUtils {
         p.getInventory().setStack(36,dyedBoots); //36 is slot for boots, IDK why help
     }
 
-    static int getColourHex(String colour){
-        return COLOUR_HEX.getOrDefault(colour, 0xF2B233); //Defaults to golden colour
-    }
+
 
     static ItemStack getWoolFromColour(String colour){
         return switch (colour) {

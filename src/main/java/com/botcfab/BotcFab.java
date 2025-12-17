@@ -89,20 +89,7 @@ public class BotcFab implements ModInitializer {
     static final String ALIVE_SCORE_HOLDER = "Alive";
     static final String DEAD_SCORE_HOLDER = "Dead";
     static final String VOTE_SCORE_HOLDER = "Vote Threshold";
-    public static ArrayList<String> POSSIBLE_COLOURS = (ArrayList<String>) Arrays.asList(
-            "black",
-            "yellow",
-            "orange",
-            "pink",
-            "red",
-            "purple",
-            "brown",
-            "green",
-            "white",
-            "blue",
-            "cyan",
-            "gray");
-
+    public static List<String> POSSIBLE_COLOURS;
     //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
     static Map<String, CoordinateMapper> mapCoords = new HashMap<>();
     static int maxPlayers;
@@ -179,8 +166,6 @@ public class BotcFab implements ModInitializer {
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
         mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import csv file here
-        POSSIBLE_COLOURS = (ArrayList<String>) List.copyOf(mapCoords.keySet());//Update possible colours based on map
-        maxPlayers = mapCoords.size();
 
         System.out.println("INITIALISED");
         src.sendFeedback(() -> Text.literal("Starting initialise code now"), false);
@@ -251,6 +236,7 @@ public class BotcFab implements ModInitializer {
         //Sets the coordinates missing from sheet per map
         switch (mapSelected) {
             case DEFAULT_MAP:
+                POSSIBLE_COLOURS = List.of("black","yellow","orange","pink","red","purple","brown","green","white","blue","cyan");
                 EXECUTE_POS = new BlockPos(6, -29, -2);
                 EVIL_ROOM_POS = new BlockPos(126, -28, 57);
                 MINIGAMES_POS = new BlockPos(-120, -27, -13);
@@ -260,6 +246,7 @@ public class BotcFab implements ModInitializer {
             case SCHOOL_MAP:
                 //TODO Change these once map is done
                 // Might need to change vc trigger as well to ensure is loaded
+                POSSIBLE_COLOURS = List.of("black","yellow","orange","pink","red","purple","brown","green","white","blue","cyan");
                 EXECUTE_POS = new BlockPos(455, 4, 157);
                 EVIL_ROOM_POS = new BlockPos(1, -28, 57);
                 MINIGAMES_POS = new BlockPos(-120, -27, -13);
@@ -267,12 +254,14 @@ public class BotcFab implements ModInitializer {
                 TOWN_VC_TRIGGER_POS = new BlockPos(16,-37,12);
                 break;
             case WINTER_MAP:
+                POSSIBLE_COLOURS = List.of("green","cyan","blue","magenta","pink","red","orange","yellow");
                 EXECUTE_POS = new BlockPos(-140, -28, 330);
                 EVIL_ROOM_POS = new BlockPos(126, -28, 57);//Not updated, could just use same one tho
                 MINIGAMES_POS = new BlockPos(-120, -27, -13);
                 LEAVE_VC_TRIGGER_POS = new BlockPos(18,-37,12);
                 TOWN_VC_TRIGGER_POS = new BlockPos(16,-37,12);
         }
+        maxPlayers = POSSIBLE_COLOURS.size();
 
         // Loop through all colours in map
         for (String i : mapCoords.keySet()) {
@@ -337,25 +326,35 @@ public class BotcFab implements ModInitializer {
         for (BotcPlayer player :currentGame.getPlayers()) {
             String assignedColour = player.getColour();
             ServerPlayerEntity p = player.getPlayer();
-            setColourBoots(p, assignedColour);
-            p.setSpawnPoint(World.OVERWORLD, mapCoords.get(assignedColour).homeInside, 0, true, false); //Set player spawn point
+            if (p != null) { //Makes sure the server player is not null
+                setColourBoots(p, assignedColour);
+                p.setSpawnPoint(World.OVERWORLD, mapCoords.get(assignedColour).homeInside, 0, true, false); //Set player spawn point
+            } else {
+                src.sendFeedback(() -> Text.literal("Could not fine player entity with colour "+ assignedColour +" in current game."), false);
+            }
             //Places signs, levers update in the updatePlayer function
+            Text signText;
+            if (p != null){
+                signText = player.getName();
+            } else {
+                signText = Text.literal(assignedColour);
+            }
             BlockState signType;
             switch (mapSelected) {
                 case DEFAULT_MAP:
                     signType = Blocks.SPRUCE_WALL_SIGN.getDefaultState();
                     switch (assignedColour) {
                         case "black", "yellow", "orange":
-                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, signText, assignedColour, signType);
                             break;
                         case "pink", "red", "purple":
-                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, signText, assignedColour, signType);
                             break;
                         case "brown", "green", "white":
-                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, signText, assignedColour, signType);
                             break;
                         case "blue", "cyan", "gray":
-                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, signText, assignedColour, signType);
                             break;
                     }
                     break;
@@ -363,21 +362,21 @@ public class BotcFab implements ModInitializer {
                     //sign behind chair
                     placeStandingSign(world, mapCoords.get(assignedColour).sign, 8, player.getName(), assignedColour);
                     //sign on wall theatre
-                    placeWallSign(world, mapCoords.get(assignedColour).lampsVoteMarker.up(1).south(1), Direction.SOUTH, player.getName(), assignedColour, Blocks.DARK_OAK_WALL_SIGN.getDefaultState());
+                    placeWallSign(world, mapCoords.get(assignedColour).lampsVoteMarker.up(1).south(1), Direction.SOUTH, signText, assignedColour, Blocks.DARK_OAK_WALL_SIGN.getDefaultState());
                     //Room signs above door
                     signType = Blocks.PALE_OAK_WALL_SIGN.getDefaultState();
                     switch (assignedColour) {
                         case "black", "green", "orange":
-                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.SOUTH, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.SOUTH, signText, assignedColour, signType);
                             break;
                         case "pink", "red", "purple":
-                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.WEST, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.WEST, signText, assignedColour, signType);
                             break;
                         case "brown", "yellow", "white":
-                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.NORTH, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.NORTH, signText, assignedColour, signType);
                             break;
                         case "blue", "cyan", "gray":
-                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.EAST, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).homeOutside.up(2), Direction.EAST, signText, assignedColour, signType);
                             break;
                     }
                     break;
@@ -385,16 +384,16 @@ public class BotcFab implements ModInitializer {
                     signType = Blocks.SPRUCE_WALL_SIGN.getDefaultState();
                     switch (assignedColour) {
                         case "yellow", "orange":
-                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, signText, assignedColour, signType);
                             break;
                         case "pink", "red":
-                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.NORTH, signText, assignedColour, signType);
                             break;
                         case "magenta", "blue":
-                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, signText, assignedColour, signType);
                             break;
                         case "cyan", "green":
-                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, player.getName(), assignedColour, signType);
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.SOUTH, signText, assignedColour, signType);
                             break;
                     }
                     break;
@@ -463,6 +462,13 @@ public class BotcFab implements ModInitializer {
         for (ServerPlayerEntity p:playerMgr.getPlayerList()){
             p.removeStatusEffect(StatusEffects.BLINDNESS);
             p.removeStatusEffect(StatusEffects.DARKNESS);
+        }
+        for (BotcPlayer p:currentGame.getPlayers()){
+            p.removedAccused();
+            p.removedMarked();
+            p.changeSurviveExecution(false);
+            p.changeExecutionStatus(false);
+            p.removeFlags();
         }
         removeTagAllPlayers(ACCUSED,srv);
         removeTagAllPlayers(DEATH_FLAG, srv);
@@ -648,7 +654,9 @@ public class BotcFab implements ModInitializer {
         MinecraftServer srv = src.getServer();
         List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         BotcPlayer player = currentGame.getMarkedPlayer();
-        currentGame.getAccusedPlayer().removedAccused(); //Removed any leftover accused players
+        if (currentGame.getAccusedPlayer() != null){
+            currentGame.getAccusedPlayer().removedAccused(); //Removed any leftover accused players
+        }
         for (ServerPlayerEntity p:playerList){
             p.removeStatusEffect(StatusEffects.BLINDNESS);
             p.removeStatusEffect(StatusEffects.DARKNESS);
@@ -823,124 +831,125 @@ public class BotcFab implements ModInitializer {
             world.setBlockState(LEAVE_VC_TRIGGER_POS,Blocks.AIR.getDefaultState());
         }
 
-        if (currentGame.getPlayers() != null) {
-            //Code for player death particles and particle effects
-            for (BotcPlayer player : currentGame.getPlayers()) {
-                ServerPlayerEntity p = player.getPlayer();
-                if (p != null) {
-                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 2, false, false));
-                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, -1, 5, false, false));
-                    if (currentGame.invisPlayers()) {
-                        if (player.getInvisStatus()) {
-                            p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
-                            //if (tags.contains(SPEC)) {
-                            //    world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.001);
-                            //}
+        if (currentGame != null) {
+            if (currentGame.getPlayers() != null) {
+                //Code for player death particles and particle effects
+                for (BotcPlayer player : currentGame.getPlayers()) {
+                    ServerPlayerEntity p = player.getPlayer();
+                    if (p != null) {
+                        p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 2, false, false));
+                        p.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, -1, 5, false, false));
+                        if (currentGame.invisPlayers()) {
+                            if (player.getInvisStatus()) {
+                                p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
+                                //if (tags.contains(SPEC)) {
+                                //    world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.001);
+                                //}
+                            } else {
+                                p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for alive onlinePlayers
+                            }
                         } else {
-                            p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for alive onlinePlayers
+                            p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for all if disabled
                         }
-                    } else {
-                        p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for all if disabled
-                    }
 
-                    if (player.isAccused() || player.isMarked()) {
-                        p.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, -1, 1, false, false));
-                    } else {
-                        p.removeStatusEffect(StatusEffects.GLOWING);
+                        if (player.isAccused() || player.isMarked()) {
+                            p.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, -1, 1, false, false));
+                        } else {
+                            p.removeStatusEffect(StatusEffects.GLOWING);
+                        }
                     }
                 }
-            }
-            //Code for execution checks
-            if (executionInProgress) {
-                boolean executionFinished = false;
-                BotcPlayer executeePlayer = currentGame.getPlayerBeingExecuted();
-                ServerPlayerEntity executee = executeePlayer.getPlayer();
-                Vec3d murderZone;
-                double distance;
-                if (executee != null){
-                    switch (mapSelected) {
-                        case DEFAULT_MAP:
-                            murderZone = new Vec3d(EXECUTE_POS.down(1).getX()+0.5, EXECUTE_POS.down(1).getY()+0.3, EXECUTE_POS.down(1).getZ()+0.5); //Get centre of block
-                            distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
-                            if (distance > 2) {
-                                executee.teleport(murderZone.getX(),murderZone.getY(),murderZone.getZ(),false); //needs accurate tp
-                                executee.sendMessage(Text.literal("Nice try :)"), false);
-                            }
-                            BlockState anvilPosState = world.getBlockState(EXECUTE_POS);
-                            if (anvilPosState.isOf(Blocks.ANVIL) || anvilPosState.isOf(Blocks.CHIPPED_ANVIL) || anvilPosState.isOf(Blocks.DAMAGED_ANVIL)) {
-                                world.setBlockState(EXECUTE_POS, Blocks.AIR.getDefaultState());
-                                //spawn redstone blood particles
-                                world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.REDSTONE_BLOCK.getDefaultState()), EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY()-0.2, EXECUTE_POS.getZ()+0.5, 25, 0.3, 0.5, 0.3, 0.1);
-                                executionFinished = true;
-                            }
-                            break;
-                        case SCHOOL_MAP:
-                            if (executee.getBlockPos().getY() < -60) { //checks if played being executed is below certain y level.
-                                executionFinished = true;
-                                executee.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, 10, 1, false, false)); //Add slow fall for a moment
-                                tp(executee,mapCoords.get(getColourFromPlayer(executee)).chair);
-                                //Cover up hole
-                                world.setBlockState(new BlockPos(454,3,156), Blocks.RED_TERRACOTTA.getDefaultState());
-                                world.setBlockState(new BlockPos(455,3,156), Blocks.RED_TERRACOTTA.getDefaultState());
-                                world.setBlockState(new BlockPos(456,3,156), Blocks.RED_TERRACOTTA.getDefaultState());
-                                world.setBlockState(new BlockPos(454,3,157), Blocks.RED_TERRACOTTA.getDefaultState());
-                                world.setBlockState(new BlockPos(455,3,157), Blocks.RED_TERRACOTTA.getDefaultState());
-                                world.setBlockState(new BlockPos(456,3,157), Blocks.RED_TERRACOTTA.getDefaultState());
-                                world.setBlockState(new BlockPos(454,3,158), Blocks.RED_TERRACOTTA.getDefaultState());
-                                world.setBlockState(new BlockPos(455,3,158), Blocks.RED_TERRACOTTA.getDefaultState());
-                                world.setBlockState(new BlockPos(456,3,158), Blocks.RED_TERRACOTTA.getDefaultState());
-                                //also place all pit cover blocks back
-                            }
-                            break;
-                        case WINTER_MAP:
-                            murderZone = new Vec3d(EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY()+0.3, EXECUTE_POS.getZ()+0.5); //Get centre of block
-                            distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
-                            if (distance > 1.6) {
-                                executee.teleport(murderZone.getX(),murderZone.getY(),murderZone.getZ(),false); //needs accurate tp
-                                executee.sendMessage(Text.literal("Nice try :)"), false);
-                            }
-                            BlockState dripPosState = world.getBlockState(EXECUTE_POS.up(1));
-                            if (dripPosState.isOf(Blocks.POINTED_DRIPSTONE)) {
-                                //spawn ice particles
-                                world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.ICE.getDefaultState()), EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY()-0.2, EXECUTE_POS.getZ()+0.5, 40, 0.3, 1.5, 0.3, 0.1);
-                                world.setBlockState(EXECUTE_POS.up(20), Blocks.DRIPSTONE_BLOCK.getDefaultState()); //restore dripstone support
-                                world.setBlockState(EXECUTE_POS.up(19), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
-                                world.setBlockState(EXECUTE_POS.up(18), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
-                                world.setBlockState(EXECUTE_POS.up(17), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
-                                world.setBlockState(EXECUTE_POS.up(16), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
-                                executionFinished = true;
-                            }
-                            break;
-                    }
-                    if (executionFinished) { //code that overlaps for all maps
-                        //sends message in chat for kill
-                        sendMessageToPlayers(getEventText(executee,CURRENT_EXECUTEE), playerList); //Sends execution message to all onlinePlayers
-                        if (!executeePlayer.surviveExecution()){
-                            //If player is not marked to survive execution
-                            killPlayer(currentGame.findPlayer(executee));
-                        } else {
-                            executee.removeCommandTag(SURVIVE_EXECUTION);
-                            Text noDeathMsg = switch (mapSelected) {
-                                case DEFAULT_MAP -> Text.literal("but they survived!");
-                                case SCHOOL_MAP -> Text.literal("but it was revoked!");
-                                case CIRCUS_MAP -> Text.literal("but they landed safely!");
-                                default -> Text.literal("but they didn't die!");
-                            };
-                            sendMessageToPlayers(noDeathMsg,playerList);
+                //Code for execution checks
+                if (executionInProgress) {
+                    boolean executionFinished = false;
+                    BotcPlayer executeePlayer = currentGame.getPlayerBeingExecuted();
+                    ServerPlayerEntity executee = executeePlayer.getPlayer();
+                    Vec3d murderZone;
+                    double distance;
+                    if (executee != null) {
+                        switch (mapSelected) {
+                            case DEFAULT_MAP:
+                                murderZone = new Vec3d(EXECUTE_POS.down(1).getX() + 0.5, EXECUTE_POS.down(1).getY() + 0.3, EXECUTE_POS.down(1).getZ() + 0.5); //Get centre of block
+                                distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
+                                if (distance > 2) {
+                                    executee.teleport(murderZone.getX(), murderZone.getY(), murderZone.getZ(), false); //needs accurate tp
+                                    executee.sendMessage(Text.literal("Nice try :)"), false);
+                                }
+                                BlockState anvilPosState = world.getBlockState(EXECUTE_POS);
+                                if (anvilPosState.isOf(Blocks.ANVIL) || anvilPosState.isOf(Blocks.CHIPPED_ANVIL) || anvilPosState.isOf(Blocks.DAMAGED_ANVIL)) {
+                                    world.setBlockState(EXECUTE_POS, Blocks.AIR.getDefaultState());
+                                    //spawn redstone blood particles
+                                    world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.REDSTONE_BLOCK.getDefaultState()), EXECUTE_POS.getX() + 0.5, EXECUTE_POS.getY() - 0.2, EXECUTE_POS.getZ() + 0.5, 25, 0.3, 0.5, 0.3, 0.1);
+                                    executionFinished = true;
+                                }
+                                break;
+                            case SCHOOL_MAP:
+                                if (executee.getBlockPos().getY() < -60) { //checks if played being executed is below certain y level.
+                                    executionFinished = true;
+                                    executee.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, 10, 1, false, false)); //Add slow fall for a moment
+                                    tp(executee, mapCoords.get(getColourFromPlayer(executee)).chair);
+                                    //Cover up hole
+                                    world.setBlockState(new BlockPos(454, 3, 156), Blocks.RED_TERRACOTTA.getDefaultState());
+                                    world.setBlockState(new BlockPos(455, 3, 156), Blocks.RED_TERRACOTTA.getDefaultState());
+                                    world.setBlockState(new BlockPos(456, 3, 156), Blocks.RED_TERRACOTTA.getDefaultState());
+                                    world.setBlockState(new BlockPos(454, 3, 157), Blocks.RED_TERRACOTTA.getDefaultState());
+                                    world.setBlockState(new BlockPos(455, 3, 157), Blocks.RED_TERRACOTTA.getDefaultState());
+                                    world.setBlockState(new BlockPos(456, 3, 157), Blocks.RED_TERRACOTTA.getDefaultState());
+                                    world.setBlockState(new BlockPos(454, 3, 158), Blocks.RED_TERRACOTTA.getDefaultState());
+                                    world.setBlockState(new BlockPos(455, 3, 158), Blocks.RED_TERRACOTTA.getDefaultState());
+                                    world.setBlockState(new BlockPos(456, 3, 158), Blocks.RED_TERRACOTTA.getDefaultState());
+                                    //also place all pit cover blocks back
+                                }
+                                break;
+                            case WINTER_MAP:
+                                murderZone = new Vec3d(EXECUTE_POS.getX() + 0.5, EXECUTE_POS.getY() + 0.3, EXECUTE_POS.getZ() + 0.5); //Get centre of block
+                                distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
+                                if (distance > 1.6) {
+                                    executee.teleport(murderZone.getX(), murderZone.getY(), murderZone.getZ(), false); //needs accurate tp
+                                    executee.sendMessage(Text.literal("Nice try :)"), false);
+                                }
+                                BlockState dripPosState = world.getBlockState(EXECUTE_POS.up(1));
+                                if (dripPosState.isOf(Blocks.POINTED_DRIPSTONE)) {
+                                    //spawn ice particles
+                                    world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.ICE.getDefaultState()), EXECUTE_POS.getX() + 0.5, EXECUTE_POS.getY() - 0.2, EXECUTE_POS.getZ() + 0.5, 40, 0.3, 1.5, 0.3, 0.1);
+                                    world.setBlockState(EXECUTE_POS.up(20), Blocks.DRIPSTONE_BLOCK.getDefaultState()); //restore dripstone support
+                                    world.setBlockState(EXECUTE_POS.up(19), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
+                                    world.setBlockState(EXECUTE_POS.up(18), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
+                                    world.setBlockState(EXECUTE_POS.up(17), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
+                                    world.setBlockState(EXECUTE_POS.up(16), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
+                                    executionFinished = true;
+                                }
+                                break;
                         }
-                        executee.removeCommandTag(CURRENT_EXECUTEE);
-                        executeePlayer.changeExecutionStatus(false);
+                        if (executionFinished) { //code that overlaps for all maps
+                            //sends message in chat for kill
+                            sendMessageToPlayers(getEventText(executee, CURRENT_EXECUTEE), playerList); //Sends execution message to all onlinePlayers
+                            if (!executeePlayer.surviveExecution()) {
+                                //If player is not marked to survive execution
+                                killPlayer(currentGame.findPlayer(executee));
+                            } else {
+                                executee.removeCommandTag(SURVIVE_EXECUTION);
+                                Text noDeathMsg = switch (mapSelected) {
+                                    case DEFAULT_MAP -> Text.literal("but they survived!");
+                                    case SCHOOL_MAP -> Text.literal("but it was revoked!");
+                                    case CIRCUS_MAP -> Text.literal("but they landed safely!");
+                                    default -> Text.literal("but they didn't die!");
+                                };
+                                sendMessageToPlayers(noDeathMsg, playerList);
+                            }
+                            executee.removeCommandTag(CURRENT_EXECUTEE);
+                            executeePlayer.changeExecutionStatus(false);
 
+                            executionInProgress = false;
+                        }
+                    } else {
+                        //No player is being executed
+                        world.getServer().sendMessage(Text.literal("No pony is being executed, cancelling execution phase"));
                         executionInProgress = false;
                     }
-                } else {
-                    //No player is being executed
-                    world.getServer().sendMessage(Text.literal("No pony is being executed, cancelling execution phase"));
-                    executionInProgress = false;
                 }
             }
         }
-
     }
 
     private void onServerTick(MinecraftServer srv){
@@ -984,10 +993,18 @@ public class BotcFab implements ModInitializer {
             if (!itemInHand.isEmpty() && itemInHand.getItem() == Items.BREEZE_ROD) {
                 if (target instanceof ServerPlayerEntity serverTarget) {
                     // Added selector tag to player
-                    BotcPlayer playerClass = currentGame.findPlayer(serverTarget);
-                    accusePlayer(playerClass, currentGame); //TODO seems to trigger twice? need to fix, non-urgent
-                    player.sendMessage(Text.literal("You tagged ").append(target.getName()), false);
-                    world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 0.6F, 0.7F);
+                    if (currentGame != null) {
+                        BotcPlayer playerClass = currentGame.findPlayer(serverTarget);
+                        if (playerClass != null) {
+                            accusePlayer(playerClass, currentGame); //TODO seems to trigger twice? need to fix, non-urgent
+                            player.sendMessage(Text.literal("You tagged ").append(target.getName()), false);
+                            world.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.WEATHER, 0.6F, 0.7F);
+                        } else {
+                            return ActionResult.FAIL;
+                        }
+                    } else {
+                        return ActionResult.FAIL;
+                    }
                 }
                 return ActionResult.SUCCESS; // Return success to stop further processing
             }
@@ -1040,7 +1057,6 @@ public class BotcFab implements ModInitializer {
                         .requires(source -> source.hasPermissionLevel(4))
                         .executes((context) -> {
                             mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import coordinates for map from Excel sheet
-                            POSSIBLE_COLOURS = (ArrayList<String>) List.copyOf(mapCoords.keySet());
                             return 1;
                         }))
                 .then(literal("changeMap").then(
@@ -1253,18 +1269,23 @@ public class BotcFab implements ModInitializer {
                 .then(literal("getGameInfo")
                         .requires(source -> source.hasPermissionLevel(4))
                         .executes(context -> {
+                            if (currentGame != null){
+                                context.getSource().sendFeedback(() -> currentGame.getGameInfo(), false);
+                            } else {
+                                context.getSource().sendFeedback(() -> Text.literal("No game to show info for"), false);
+                            }
                             context.getSource().sendFeedback(() -> Text.literal("Put Game info here"), false);
                             return 1;
                         }))
                 .then(literal("test")
                         .requires(source -> source.hasPermissionLevel(4))
                         .executes(context -> {
-                                    ServerWorld world = context.getSource().getWorld();
-                                    world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
-                                    world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.AIR.getDefaultState());
-                                    return 1;
-                                }
-                        ))
+                            ServerWorld world = context.getSource().getWorld();
+                            //world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
+                            //world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.AIR.getDefaultState());
+                            context.getSource().sendFeedback(() -> Text.literal("colours in map: " + POSSIBLE_COLOURS), false);
+                            return 1;
+                        }))
         );
 
         dispatcher.register(literal("leaveMinigames")

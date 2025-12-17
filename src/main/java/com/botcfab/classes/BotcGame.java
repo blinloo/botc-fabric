@@ -15,8 +15,8 @@ import static com.botcfab.FormattingHelper.formatGameInfo;
 public class BotcGame {
     ArrayList<BotcPlayer> players = new ArrayList<>();
     BotcPlayer storyteller;
-    ArrayList<String> possibleColours;
-    ArrayList<String> coloursInUse;
+    List<String> possibleColours;
+    ArrayList<String> coloursInUse = new ArrayList<>();
     int totalPlayers;
     int colourStartIndex;
     boolean showVoteResult;
@@ -24,7 +24,7 @@ public class BotcGame {
     boolean playersInvis;
 
     //Only need a new one when storyteller changes?
-    public BotcGame(BotcPlayer storyteller, int total, ArrayList<String> colours) {
+    public BotcGame(BotcPlayer storyteller, int total, List<String> colours) {
         this.storyteller = storyteller;
         this.totalPlayers = total;
         this.possibleColours = colours;
@@ -58,7 +58,6 @@ public class BotcGame {
             for (int index = 0; index < totalPlayers; index++) {
                 ServerPlayerEntity p = playerList.get(index);
                 assignPlayer(index,p); //Assign player to BotcPlayer class at position
-                index++;
             }
             return true;
         }
@@ -70,7 +69,7 @@ public class BotcGame {
         int index = 0;
         String currentColour;
 
-        if (reverseOrder) Collections.reverse(possibleColours);
+        //if (reverseOrder) Collections.reverse(possibleColours); //Removed due to errors for now
 
         for (BotcPlayer p:players){
             currentColour = possibleColours.get(index);
@@ -78,7 +77,7 @@ public class BotcGame {
             p.setColour(currentColour);
 
             index++;
-            if (!(index < possibleColours.size())){
+            if (index >= possibleColours.size()){
                 //if index out of bounds
                 return false;
             }
@@ -99,9 +98,11 @@ public class BotcGame {
 
     public BotcPlayer getPlayerAtColour(String colour){
         for (BotcPlayer p:players){
-            if (p.getColour().equals(colour))
-            {
-                return p;
+            if (p.getColour() != null){
+                if (p.getColour().equals(colour))
+                {
+                    return p;
+                }
             }
         }
         return null;
