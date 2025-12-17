@@ -15,8 +15,8 @@ import static com.botcfab.FormattingHelper.formatGameInfo;
 public class BotcGame {
     ArrayList<BotcPlayer> players = new ArrayList<>();
     BotcPlayer storyteller;
-    List<String> possibleColours;
-    List<String> coloursInUse;
+    ArrayList<String> possibleColours;
+    ArrayList<String> coloursInUse;
     int totalPlayers;
     int colourStartIndex;
     boolean showVoteResult;
@@ -24,7 +24,7 @@ public class BotcGame {
     boolean playersInvis;
 
     //Only need a new one when storyteller changes?
-    public BotcGame(BotcPlayer storyteller, int total, List<String> colours) {
+    public BotcGame(BotcPlayer storyteller, int total, ArrayList<String> colours) {
         this.storyteller = storyteller;
         this.totalPlayers = total;
         this.possibleColours = colours;
@@ -109,6 +109,10 @@ public class BotcGame {
 
     public ArrayList<BotcPlayer> getPlayers(){
         return this.players;
+    }
+
+    public ArrayList<String> getColours(){
+        return this.coloursInUse;
     }
 
     public BotcPlayer getStoryteller(){

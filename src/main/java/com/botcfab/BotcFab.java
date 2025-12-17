@@ -89,7 +89,7 @@ public class BotcFab implements ModInitializer {
     static final String ALIVE_SCORE_HOLDER = "Alive";
     static final String DEAD_SCORE_HOLDER = "Dead";
     static final String VOTE_SCORE_HOLDER = "Vote Threshold";
-    public static List<String> POSSIBLE_COLOURS = Arrays.asList(
+    public static ArrayList<String> POSSIBLE_COLOURS = (ArrayList<String>) Arrays.asList(
             "black",
             "yellow",
             "orange",
@@ -166,7 +166,6 @@ public class BotcFab implements ModInitializer {
         }
 
         // Final file path
-        //TODO Add code for both maps here: returns different csv
         return switch (mapSelected) {
             case DEFAULT_MAP -> modFolder.resolve("BOTC-coords-sheet.csv").toFile();
             case SCHOOL_MAP -> modFolder.resolve("school-BOTC-coords-sheet.csv").toFile();
@@ -180,6 +179,7 @@ public class BotcFab implements ModInitializer {
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
         mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import csv file here
+        POSSIBLE_COLOURS = (ArrayList<String>) List.copyOf(mapCoords.keySet());//Update possible colours based on map
         maxPlayers = mapCoords.size();
 
         System.out.println("INITIALISED");
@@ -434,8 +434,8 @@ public class BotcFab implements ModInitializer {
 
         if (currentGame != null) {
 
-            for (BotcPlayer p : currentGame.getPlayers()) { //Give onlinePlayers writable book
-                p.getPlayer().getInventory().insertStack(new ItemStack(Items.WRITABLE_BOOK));
+            for (BotcPlayer p : currentGame.getPlayers()) { //Give players in game the items they need, book, teleport items and paper
+                givePlayerGameItems(p.getPlayer());
             }
             teleportPlayers("home", srv, currentGame); //teleports onlinePlayers to homes
             sendMessageToPlayers(getPlayerOrder(currentGame), playerMgr.getPlayerList()); //Sends player order to all onlinePlayers
@@ -611,8 +611,8 @@ public class BotcFab implements ModInitializer {
             int displayGhostVotes = ghostVotesTotal; //ghost votes used
             BotcPlayer markedPlayer = currentGame.getMarkedPlayer();
 
-            if (!organGrinderActive) {
-                sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes."), playerList);
+            if (currentGame.showVoteResult()) {
+                sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n These players voted: "), playerList);
             }
             src.sendFeedback(() -> Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes."),true);
             if ((displayTotalVotes > highestVote) && (displayTotalVotes >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
@@ -1040,7 +1040,7 @@ public class BotcFab implements ModInitializer {
                         .requires(source -> source.hasPermissionLevel(4))
                         .executes((context) -> {
                             mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import coordinates for map from Excel sheet
-                            POSSIBLE_COLOURS = List.copyOf(mapCoords.keySet());
+                            POSSIBLE_COLOURS = (ArrayList<String>) List.copyOf(mapCoords.keySet());
                             return 1;
                         }))
                 .then(literal("changeMap").then(
@@ -1220,11 +1220,21 @@ public class BotcFab implements ModInitializer {
                             }
                             return 1;
                         }))
-                .then(literal("getItems")
+                .then(literal("getStorytellerItems")
                         .executes(context -> {
                             ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
                             if (player != null) {
                                 givePlayerStorytellerItems(player);
+                            } else {
+                                context.getSource().sendFeedback(() -> Text.literal("No player to give items, do not run in server console."), false);
+                            }
+                            return 1;
+                        }))
+                .then(literal("getGameItems")
+                        .executes(context -> {
+                            ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
+                            if (player != null) {
+                                givePlayerGameItems(player);
                             } else {
                                 context.getSource().sendFeedback(() -> Text.literal("No player to give items, do not run in server console."), false);
                             }

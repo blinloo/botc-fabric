@@ -9,30 +9,47 @@ import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.BlockFace;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.*;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.Enchantments;
 import net.minecraft.item.DyeItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.property.Properties;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Rarity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
-import static com.botcfab.BotcFab.POSSIBLE_COLOURS;
+import static java.util.Map.entry;
 
 public class ItemUtils {
-    static final List<Integer> COLOUR_HEX = Arrays.asList(0x000000, 0xFFEE00, 0xFF8D00, 0xFFAFC7, 0xE50000,
-            0x760088, 0x613915, 0x028121, 0xFFFFFF, 0x004CFF, 0x73D7EE, 0x888888); //Colour picked from progress pride flag
+    //static final List<Integer> COLOUR_HEX = Arrays.asList(0x000000, 0xFFEE00, 0xFF8D00, 0xFFAFC7, 0xE50000,
+    //        0x760088, 0x613915, 0x028121, 0xFFFFFF, 0x004CFF, 0x73D7EE, 0x888888); //Colour picked from progress pride flag
+    static final Map<String, Integer> COLOUR_HEX = Map.ofEntries( //Colours using minecraft dye hex values
+            entry("white", 0xF0F0F0),
+            entry("orange", 0xF9801D),
+            entry("magenta", 0xC74EBD),
+            entry("light_blue", 0x3AB3DA),
+            entry("yellow", 0xFED83D),
+            entry("lime", 0x80C71F),
+            entry("pink", 0xF38BAA),
+            entry("gray", 0x474F52),
+            entry("light_gray", 0x9D9D97),
+            entry("cyan", 0x169C9C),
+            entry("purple", 0x8932B8),
+            entry("blue", 0x3C44AA),
+            entry("brown", 0x835432),
+            entry("green", 0x5E7C16),
+            entry("red", 0xB02E26),
+            entry("black", 0x1D1D21)
+    );
+
+
     /**
      * Sets a custom display name on an ItemStack.
      *
@@ -51,14 +68,19 @@ public class ItemUtils {
         return item;
     }
 
-    public static ItemStack setPlayerHead(ItemStack item, ServerPlayerEntity owner) {
-        if (item == null || owner == null || item.getItem() != Items.PLAYER_HEAD) {
-            throw new IllegalArgumentException("ItemStack and name must not be null");
+    public static ItemStack setPlayerHead(ServerPlayerEntity owner, String colour) {
+        if (owner == null || colour == null) {
+            throw new IllegalArgumentException("owner and name must not be null");
         }
+        ItemStack item = new ItemStack(Items.PLAYER_HEAD);
 
         ProfileComponent profile = new ProfileComponent(owner.getGameProfile());
+        Text name = Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(colour))))  // Square with colour
+                .append(owner.getStyledDisplayName().copy()) //Add name text
+                .append(Text.literal(" - " + colour));
+
         // Apply the CustomNameComponent via components
-        item.set(DataComponentTypes.CUSTOM_NAME, owner.getStyledDisplayName());
+        item.set(DataComponentTypes.CUSTOM_NAME, name);
         item.set(DataComponentTypes.PROFILE, profile);
 
         return item;
@@ -131,11 +153,7 @@ public class ItemUtils {
     }
 
     static int getColourHex(String colour){
-        if (POSSIBLE_COLOURS.contains(colour)) {
-            return COLOUR_HEX.get(POSSIBLE_COLOURS.indexOf(colour));
-        } else {
-            return 0;
-        }
+        return COLOUR_HEX.getOrDefault(colour, 0xF2B233); //Defaults to golden colour
     }
 
     static ItemStack getWoolFromColour(String colour){
@@ -152,6 +170,10 @@ public class ItemUtils {
             case "blue" -> new ItemStack(Items.BLUE_WOOL);
             case "cyan" -> new ItemStack(Items.CYAN_WOOL);
             case "gray" -> new ItemStack(Items.GRAY_WOOL);
+            case "light_blue" -> new ItemStack(Items.LIGHT_BLUE_WOOL);
+            case "magenta" -> new ItemStack(Items.MAGENTA_WOOL);
+            case "light_gray" -> new ItemStack(Items.LIGHT_GRAY_WOOL);
+            case "lime" -> new ItemStack(Items.LIME_WOOL);
             default -> null;
         };
     }
@@ -169,6 +191,10 @@ public class ItemUtils {
             case "blue" -> new ItemStack(Items.BLUE_STAINED_GLASS);
             case "cyan" -> new ItemStack(Items.CYAN_STAINED_GLASS);
             case "gray" -> new ItemStack(Items.GRAY_STAINED_GLASS);
+            case "light_blue" -> new ItemStack(Items.LIGHT_BLUE_STAINED_GLASS);
+            case "magenta" -> new ItemStack(Items.MAGENTA_STAINED_GLASS);
+            case "light_gray" -> new ItemStack(Items.LIGHT_GRAY_STAINED_GLASS);
+            case "lime" -> new ItemStack(Items.LIME_STAINED_GLASS);
             default -> null;
         };
     }
@@ -193,6 +219,35 @@ public class ItemUtils {
             {
                 player.sendMessage(Text.literal("Not enough space in inventory for items! Please make space and run the command again"));
                 return;
+            }
+        }
+    }
+
+    static void givePlayerGameItems(ServerPlayerEntity player){
+        ArrayList<ItemStack> items = new ArrayList<>();
+        ItemStack grimoire = setCustomName(new ItemStack(Items.HEART_POTTERY_SHERD),Text.literal("Return home"));
+        grimoire.set(DataComponentTypes.RARITY, Rarity.RARE);
+        grimoire.remove(DataComponentTypes.HIDE_TOOLTIP); //Might not do anything
+        items.add(grimoire);
+
+        ItemStack minigameCompass = setCustomName(new ItemStack(Items.RECOVERY_COMPASS),Text.literal("Go to Minigames"));
+        minigameCompass.set(DataComponentTypes.RARITY, Rarity.RARE);
+        items.add(minigameCompass);
+
+        ItemStack playerOrder = setCustomName(new ItemStack(Items.PAPER),Text.literal("Get Player Order"));
+        playerOrder.set(DataComponentTypes.RARITY, Rarity.UNCOMMON);
+        items.add(playerOrder);
+
+        ItemStack noteBook = setCustomName(new ItemStack(Items.WRITABLE_BOOK),Text.literal("Notes"));
+        noteBook.set(DataComponentTypes.RARITY, Rarity.RARE);
+        items.add(noteBook);
+
+        for (ItemStack i:items){
+            if (!player.getInventory().contains(i)) { //Checks if player already has item
+                if (!player.getInventory().insertStack(i)) { //Checks if
+                    player.sendMessage(Text.literal("Not enough space in inventory for items! Please make space and run the command again"));
+                    return;
+                }
             }
         }
     }

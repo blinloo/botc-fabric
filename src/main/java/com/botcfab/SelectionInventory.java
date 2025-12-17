@@ -10,6 +10,9 @@ import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import static com.botcfab.BotcFab.*;
@@ -23,18 +26,40 @@ public class SelectionInventory {
     public static void openMenu(ServerPlayerEntity player) {
         // Create inventory with 9 slots
         Inventory inventory = new SimpleInventory(27);
-
-        // Add selectable items
-        inventory.setStack(0, setCustomName(new ItemStack(Items.DIRT), Text.literal("Setup Game")));
-        inventory.setStack(1, setCustomName(new ItemStack(Items.GRASS_BLOCK), Text.literal("Begin game and teleport players")));
-        inventory.setStack(2, setCustomName(new ItemStack(Items.SUNFLOWER), Text.literal("Start day")));
-        inventory.setStack(3, setCustomName(new ItemStack(Items.SNOWBALL), Text.literal("Night falls")));
-        inventory.setStack(4, setCustomName(new ItemStack(Items.WAXED_COPPER_BULB), Text.literal("Lock in votes")));
-        inventory.setStack(5, setCustomName(new ItemStack(Items.DARK_OAK_HANGING_SIGN), Text.literal("Begin execution of marked player")));
-        inventory.setStack(6, setCustomName(new ItemStack(Items.ANDESITE_SLAB), Text.literal("Teleport players to chairs")));
-        inventory.setStack(7, setCustomName(new ItemStack(Items.RED_BED), Text.literal("Teleport players to homes")));
-        inventory.setStack(8, setCustomName(new ItemStack(Items.BELL), Text.literal("Start discussion time (6min)")));
+        List<ItemStack> basicCommands = Arrays.asList(
+                setCustomName(new ItemStack(Items.DIRT), Text.literal("Setup Game")),
+                setCustomName(new ItemStack(Items.GRASS_BLOCK), Text.literal("Begin game and teleport players")),
+                setCustomName(new ItemStack(Items.SUNFLOWER), Text.literal("Start day")),
+                setCustomName(new ItemStack(Items.SNOWBALL), Text.literal("Night falls")),
+                setCustomName(new ItemStack(Items.WAXED_COPPER_BULB), Text.literal("Lock in votes")),
+                setCustomName(new ItemStack(Items.DARK_OAK_HANGING_SIGN), Text.literal("Begin execution of marked player")),
+                setCustomName(new ItemStack(Items.ANDESITE_SLAB), Text.literal("Teleport players to chairs")),
+                setCustomName(new ItemStack(Items.RED_BED), Text.literal("Teleport players to homes")),
+                setCustomName(new ItemStack(Items.BELL), Text.literal("Start discussion time (6min)"))
+        );
+        // Add selectable items slots 0-8
+        int index = 0;
+        for (ItemStack command:basicCommands){
+            inventory.setStack(index,command);
+            index++;
+        }
         //Slots that require player input 21-26
+        //TODO Changing to 18
+        List<ItemStack> playerCommands = Arrays.asList(
+                setCustomName(new ItemStack(Items.PLAYER_HEAD), Text.literal("Instant kill (no execution)")),
+                setCustomName(new ItemStack(Items.DARK_OAK_SIGN), Text.literal("Execute but don't kill")),
+                new ItemStack(Items.AIR),
+                setCustomName(new ItemStack(Items.SKELETON_SKULL), Text.literal("Instant execute")),
+                setCustomName(new ItemStack(Items.LIGHT_WEIGHTED_PRESSURE_PLATE), Text.literal("Instant revive")),
+                new ItemStack(Items.AIR),
+                setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")),
+                setCustomName(new ItemStack(Items.NETHER_STAR), Text.literal("Mark for revival"))
+        );
+        index = 18;
+        for (ItemStack command:playerCommands){
+            inventory.setStack(index,command);
+            index++;
+        }
 
         inventory.setStack(21, setCustomName(new ItemStack(Items.PLAYER_HEAD), Text.literal("Instant kill (no execution)")));
         inventory.setStack(22, setCustomName(new ItemStack(Items.DARK_OAK_SIGN), Text.literal("Execute but don't kill")));
@@ -42,16 +67,31 @@ public class SelectionInventory {
         inventory.setStack(24, setCustomName(new ItemStack(Items.LIGHT_WEIGHTED_PRESSURE_PLATE), Text.literal("Instant revive")));
         inventory.setStack(25, setCustomName(new ItemStack(Items.REDSTONE), Text.literal("Mark demon kill")));
         inventory.setStack(26, setCustomName(new ItemStack(Items.NETHER_STAR), Text.literal("Mark for revival")));
-        int slot = 9; //9-20 is colour selection
-        for (String colour : POSSIBLE_COLOURS) { //TODO UPDATE TO USE BotcGame
+
+        NamedScreenHandlerFactory screenHandlerFactory = new SimpleNamedScreenHandlerFactory(
+                (syncId, playerInventory, playerEntity) ->
+                    // Create a vanilla chest-like menu (27 slots)
+                    new SelectionInventorySH(syncId,playerInventory,inventory, playerEntity, "command", basicCommands,-1)
+                ,
+                Text.literal("--==| Select a command |==--")
+        );
+
+        // Open the GUI
+        player.openHandledScreen(screenHandlerFactory);
+    }
+
+    public static void openPlayerSelectMenu(ServerPlayerEntity player, int prevIndex) {
+        // Create inventory with 27 slots
+        Inventory inventory = new SimpleInventory(27);
+        List<ItemStack> players = new ArrayList<>(List.of());
+        int slot = 0;
+        for (String colour : currentGame.getColours()) {
             if (currentGame != null) {
                 BotcPlayer p = currentGame.getPlayerAtColour(colour);
                 if (p != null) {//if player exists add their colour to slot
-                    if (p == selectedPlayer) { //Mark selected player with glass
-                        inventory.setStack(slot, setCustomName(getGlassFromColour(colour), p.getName()));
-                    } else {
-                        inventory.setStack(slot, setCustomName(getWoolFromColour(colour), p.getName()));
-                    }
+                    ItemStack playerHead = setPlayerHead(p.getPlayer(),p.getColour());
+                    players.add(playerHead);
+                    inventory.setStack(slot, playerHead); //Set to player head
                 } else {
                     inventory.setStack(slot, new ItemStack(Items.BARRIER));
                 }
@@ -61,10 +101,10 @@ public class SelectionInventory {
 
         NamedScreenHandlerFactory screenHandlerFactory = new SimpleNamedScreenHandlerFactory(
                 (syncId, playerInventory, playerEntity) ->
-                    // Create a vanilla chest-like menu (27 slots)
-                    new SelectionInventorySH(syncId,playerInventory,inventory, playerEntity)
+                        // Create a vanilla chest-like menu (27 slots)
+                        new SelectionInventorySH(syncId,playerInventory,inventory, playerEntity, "player",players,prevIndex)
                 ,
-                Text.literal("--==| Select a command |==--")
+                Text.literal("--==| Select a player |==--")
         );
 
         // Open the GUI
@@ -76,93 +116,84 @@ public class SelectionInventory {
             //TODO put BOTC commands here
             case 0: //setup
                 player.sendMessage(Text.literal("Setting up game"), false);
-                BotcFab.setupGame(player.getCommandSource());
+                setupGame(player.getCommandSource());
                 break;
             case 1: //begin game
                 player.sendMessage(Text.literal("Beginning game and teleporting players"), false);
-                BotcFab.beginGame(player.getCommandSource());
+                beginGame(player.getCommandSource());
                 break;
             case 2: //start day
                 player.sendMessage(Text.literal("Starting day"), false);
-                BotcFab.startDay(player.getCommandSource());
+                startDay(player.getCommandSource());
                 break;
             case 3: //night falls
                 player.sendMessage(Text.literal("Ending day"), false);
-                BotcFab.nightFalls(player.getCommandSource());
+                nightFalls(player.getCommandSource());
                 break;
             case 4: //Lock in votes
                 player.sendMessage(Text.literal("Locking in votes"), true);
-                BotcFab.voteLockIn(player.getCommandSource());
+                voteLockIn(player.getCommandSource());
                 break;
             case 5: //Begin execution
                 player.sendMessage(Text.literal("Starting execution"), true);
-                BotcFab.beginExecution(player.getCommandSource());
+                beginExecution(player.getCommandSource());
                 break;
             case 6: //Tp players to chair
                 player.sendMessage(Text.literal("Teleporting to chairs"), true);
-                PlayerUtils.teleportPlayers("vote",player.getCommandSource().getServer(),currentGame);
+                teleportPlayers("vote",player.getCommandSource().getServer(),currentGame);
                 break;
             case 7: //Tp players to homes
                 player.sendMessage(Text.literal("Teleporting to home"), true);
-                PlayerUtils.teleportPlayers("home",player.getCommandSource().getServer(),currentGame);
+                teleportPlayers("home",player.getCommandSource().getServer(),currentGame);
                 break;
             case 8: //Tp players to homes
                 player.sendMessage(Text.literal("Started discussion time (6min)"), true);
-                BotcFab.startDiscussionTime(player.getCommandSource());
+                startDiscussionTime(player.getCommandSource());
                 break;
-
-            //TODO Finish adding commands
             default:
                 player.sendMessage(Text.literal("Unknown selection."), false);
         }
     }
 
-    public static void handleSelectionCommandPlayerInput(ServerPlayerEntity player, int index) {
-        if (selectedPlayer != null) {
-            String selectedName = selectedPlayer.getNameString();
+    public static void handleSelectionCommandPlayerInput(ServerPlayerEntity player, int index, BotcPlayer selected) {
+        if (selected != null) {
+            String selectedName = selected.getNameString();
+            String colour = selected.getColour();
             switch (index) {
-                case 21: //Instant kill player
-                    player.sendMessage(Text.literal("Instant kill: " + selectedName + " (" + selectedColour), true);
-                    PlayerUtils.killPlayer(selectedPlayer);
+                case 18: //Instant kill player
+                    player.sendMessage(Text.literal("Instant kill: " + selectedName + " (" + colour), true);
+                    killPlayer(selected);
                     break;
-                case 22: //Instant execute but no kill player
-                    player.sendMessage(Text.literal("Instant execution (no kill): " + selectedName + " (" + selectedColour), true);
-                    selectedPlayer.changeSurviveExecution(true);
-                    PlayerUtils.executePlayer(selectedPlayer);
+                case 19: //Instant execute but no kill player
+                    player.sendMessage(Text.literal("Instant execution (no kill): " + selectedName + " (" + colour), true);
+                    selected.changeSurviveExecution(true);
+                    executePlayer(selected);
                     break;
-                case 23: //Instant execute player
-                    player.sendMessage(Text.literal("Instant execution: " + selectedName + " (" + selectedColour ), true);
-                    PlayerUtils.executePlayer(selectedPlayer);
+                case 21: //Instant execute player
+                    player.sendMessage(Text.literal("Instant execution: " + selectedName + " (" + colour ), true);
+                    executePlayer(selected);
                     break;
-                case 24: //Instant revive player
-                    player.sendMessage(Text.literal("Instant revival: " + selectedName + " (" + selectedColour), true);
-                    PlayerUtils.revivePlayer(selectedPlayer);
+                case 22: //Instant revive player
+                    player.sendMessage(Text.literal("Instant revival: " + selectedName + " (" + colour), true);
+                    revivePlayer(selected);
                     break;
-                case 25: //Demon kill mark for night
-                    player.sendMessage(Text.literal("Marked " + selectedName + " for demon kill (" + selectedColour+")"), true);
-                    PlayerUtils.markPlayerDemonKill(selectedPlayer);
+                case 24: //Demon kill mark for night
+                    player.sendMessage(Text.literal("Marked " + selectedName + " for demon kill (" + colour+")"), true);
+                    markPlayerDemonKill(selected);
                     break;
-                case 26: //Revive player for night
-                    player.sendMessage(Text.literal("Added " + selectedName + " to revival list (" + selectedColour+")"), true);
-                    PlayerUtils.markPlayerRevived(selectedPlayer);
+                case 25: //Revive player for night
+                    player.sendMessage(Text.literal("Added " + selectedName + " to revival list (" + colour+")"), true);
+                    markPlayerRevived(selected);
                     break;
             }
         } else {
-            player.sendMessage(Text.literal("Please select a valid colour from the row below first"), false);
+            player.sendMessage(Text.literal("Please select a valid colour"), false);
         }
     }
 
 
-    public static boolean handleSelectionColour(ServerPlayerEntity player, int index) {
-        //TODO check colour select
-        selectedColour = POSSIBLE_COLOURS.get(index);
-        selectedPlayer = currentGame.getPlayerAtColour(selectedColour);
-        if (selectedPlayer != null) {
-            player.sendMessage(Text.literal("Selected " + selectedColour + " for command"), false);
-            return true;
-        } else {
-            player.sendMessage(Text.literal("No player with that colour, failed selection"), false);
-            return false;
-        }
+    public static BotcPlayer handleSelectionColour(int index) {
+        String selectedColour = currentGame.getColours().get(index);
+        return currentGame.getPlayerAtColour(selectedColour);
     }
 }
