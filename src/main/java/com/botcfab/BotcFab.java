@@ -93,7 +93,6 @@ public class BotcFab implements ModInitializer {
     //Huge penis of coordinates with ref, e.g. mapCoords.get("Yellow").ghost
     static Map<String, CoordinateMapper> mapCoords = new HashMap<>();
     static int maxPlayers;
-    static final ArrayList<Integer> indexBounds = new ArrayList<>();
     //Highest vote count
     static int highestVote;
     static int playerTotal = 0;
@@ -157,6 +156,7 @@ public class BotcFab implements ModInitializer {
             case DEFAULT_MAP -> modFolder.resolve("BOTC-coords-sheet.csv").toFile();
             case SCHOOL_MAP -> modFolder.resolve("school-BOTC-coords-sheet.csv").toFile();
             case CIRCUS_MAP -> modFolder.resolve("circus-BOTC-coords-sheet.csv").toFile();
+            case WINTER_MAP -> modFolder.resolve("winter-BOTC-coords-sheet.csv").toFile();
             default -> null;
         };
     }
@@ -406,8 +406,6 @@ public class BotcFab implements ModInitializer {
         playerTotal = currentGame.getTotalPlayers();
         srv.sendMessage(Text.literal("Total players: "+ playerTotal));
 
-        srv.sendMessage(Text.literal(indexBounds.toString()));
-
         //Remove votes and signs for missing players
         for (String c:POSSIBLE_COLOURS){
             if (currentGame.getPlayerAtColour(c) == null){
@@ -525,39 +523,36 @@ public class BotcFab implements ModInitializer {
         MinecraftServer srv = src.getServer();
         ServerWorld world = src.getWorld();
         int delayPerBlock = 20; // 1 second = 20 ticks
-        int voteThreshold, startColourIndex, count = 1, alivePlayers = getTagCount(ALIVE, srv);
-        //playerTotal = getTagCount(PLAYER, srv)
-
+        int voteThreshold, startColourIndex, count = 1, alivePlayers;
         List<DelayedBlockSetter> taskList = new ArrayList<>();
+        List<String> currentGameColours = currentGame.getColours();
+        int maxIndex = currentGameColours.size()-1;
+        src.sendFeedback(() -> Text.literal("Max index: " + maxIndex), false);
+
         //Get vote threshold for alive onlinePlayers
+        alivePlayers = currentGame.getAlivePlayers();
         voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
 
-        final BotcPlayer accusedPlayer = currentGame.getAccusedPlayer();
+        BotcPlayer accusedPlayer = currentGame.getAccusedPlayer();
         if (accusedPlayer == null){
             src.sendFeedback(() -> Text.literal("No player accused, please accuse someone!"), false);
             return;
         }
         String accusedColour = accusedPlayer.getColour();
 
-        int accusedIndex = POSSIBLE_COLOURS.indexOf(accusedColour);
+        int accusedIndex = currentGameColours.indexOf(accusedColour);
         startColourIndex = accusedIndex+1; //+1 to start from player after accused
 
-        if (startColourIndex > 11){
-            startColourIndex = 0; //sets start to 0 if > 11 then checks if this is within bounds
-        }
-        if (!indexBounds.contains(startColourIndex)){
-            startColourIndex = indexBounds.getFirst(); //Sets index to start of colour index bounds
+        if (startColourIndex > maxIndex){
+            startColourIndex = 0; //sets start to 0 if > possible colour size
         }
 
         for (int i = startColourIndex; count <= playerTotal+1; i++) { //need to be <= or else the accused doesn't get a vote (+1 cus it starts at 1 to have initial delay
             int delay = count * delayPerBlock; //Add delay between vote locks
-            if (i > 11){
+            if (i > maxIndex){
                 i = 0;
             }
-            if (!indexBounds.contains(i)){
-                i = indexBounds.getFirst(); //Sets index to start of colour index bounds
-            }
-            BlockPos redstoneBlock = mapCoords.get(POSSIBLE_COLOURS.get(i)).triggersLampPiston;
+            BlockPos redstoneBlock = mapCoords.get(currentGameColours.get(i)).triggersLampPiston;
             taskList.add(new DelayedBlockSetter(world, redstoneBlock, Blocks.AIR.getDefaultState(), delay)); //Set redstone block to air
             count++;
         }
@@ -566,18 +561,15 @@ public class BotcFab implements ModInitializer {
         Runnable onAllDone = () -> {
             src.sendFeedback(() -> Text.literal("Starting count..."), false);
             List<ServerPlayerEntity> playerList = src.getWorld().getPlayers();
-            ArrayList<Text> playersVoted = new ArrayList<Text>();
+            ArrayList<Text> playersVoted = new ArrayList<>();
             int playerCount = 0, aliveVotesTotal = 0, ghostVotesTotal = 0;
             int playerSize = currentGame.getTotalPlayers();
 
             for (int i = finalStartColourIndex; playerCount < playerSize; i++) {
-                if (i > 11){
+                if (i > maxIndex){
                     i = 0;
                 }
-                if (!indexBounds.contains(i)){
-                    i = indexBounds.getFirst(); //Sets index to start of colour index bounds
-                }
-                String colour = POSSIBLE_COLOURS.get(i);
+                String colour = currentGameColours.get(i);
                 BlockPos pos = mapCoords.get(colour).triggersLampPiston;
                 BlockPos lockedVote;
                 switch (mapSelected) {
@@ -617,14 +609,17 @@ public class BotcFab implements ModInitializer {
             int displayGhostVotes = ghostVotesTotal; //ghost votes used
             BotcPlayer markedPlayer = currentGame.getMarkedPlayer();
 
-            if (currentGame.showVoteResult()) {
-                sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n These players voted: "), playerList);
+            //TODO change this to show only to storyteller + spectators (no op required)
+            if (currentGame.showVoteResult()) { //Only show result to ops if hide result is on
+                sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n These players voted: " + playersVoted + "\n"), playerList);
+            } else {
+                src.sendFeedback(() -> Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n These players voted: " + playersVoted + "\n"),true);
             }
-            src.sendFeedback(() -> Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes."),true);
+
             if ((displayTotalVotes > highestVote) && (displayTotalVotes >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
                 highestVote = displayTotalVotes; //Change the highest vote to this vote
                 //Mark player for execution
-                accusedPlayer.markAccused();
+                accusedPlayer.markMarked();
                 if (markedPlayer != null) { //Remove any previous marked onlinePlayers
                     markedPlayer.removedMarked();
                 }
@@ -692,31 +687,33 @@ public class BotcFab implements ModInitializer {
     }
 
     static void createOrSetAliveDisplay(ServerScoreboard scoreboard, MinecraftServer srv){
-        int alivePlayers = getTagCount(ALIVE, srv);
-        int deadPlayers = getTagCount(GHOST, srv) + getTagCount(DEAD, srv);
-        int voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
-        ScoreboardObjective objective = scoreboard.getNullableObjective(INFO_OBJECTIVE);
-        NumberFormat numberFormat = StyledNumberFormat.YELLOW; //Can be RED, YELLOW or EMPTY
-        if (objective == null){
-            objective = scoreboard.addObjective(
-                    INFO_OBJECTIVE, // Objective name (unique id)
-                    ScoreboardCriterion.DUMMY, // Criterion type (dummy = manual numbers)
-                    Text.literal("Player Info"), // Display name (shown in sidebar, below name, etc.)
-                    ScoreboardCriterion.RenderType.INTEGER, // Render type (number type)
-                    true, //Whether the value updates live
-                    numberFormat //Format of numbers, colour and display
-            );
+        if (currentGame != null) {
+            int alivePlayers = currentGame.getAlivePlayers();
+            int deadPlayers = currentGame.getTotalPlayers() - alivePlayers;
+            int voteThreshold = (alivePlayers / 2) + (alivePlayers % 2);
+            ScoreboardObjective objective = scoreboard.getNullableObjective(INFO_OBJECTIVE);
+            NumberFormat numberFormat = StyledNumberFormat.YELLOW; //Can be RED, YELLOW or EMPTY
+            if (objective == null) {
+                objective = scoreboard.addObjective(
+                        INFO_OBJECTIVE, // Objective name (unique id)
+                        ScoreboardCriterion.DUMMY, // Criterion type (dummy = manual numbers)
+                        Text.literal("Player Info"), // Display name (shown in sidebar, below name, etc.)
+                        ScoreboardCriterion.RenderType.INTEGER, // Render type (number type)
+                        true, //Whether the value updates live
+                        numberFormat //Format of numbers, colour and display
+                );
+            }
+            ScoreAccess aliveScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(ALIVE_SCORE_HOLDER), objective);
+            ScoreAccess deadScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(DEAD_SCORE_HOLDER), objective);
+            ScoreAccess voteScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(VOTE_SCORE_HOLDER), objective);
+            aliveScoreAccess.setDisplayText(Text.literal("Alive "));
+            aliveScoreAccess.setScore(alivePlayers);
+            deadScoreAccess.setDisplayText(Text.literal("Dead "));
+            deadScoreAccess.setScore(deadPlayers);
+            voteScoreAccess.setDisplayText(Text.literal("Vote Threshold "));
+            voteScoreAccess.setScore(voteThreshold);
+            scoreboard.setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR, objective);
         }
-        ScoreAccess aliveScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(ALIVE_SCORE_HOLDER),objective);
-        ScoreAccess deadScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(DEAD_SCORE_HOLDER),objective);
-        ScoreAccess voteScoreAccess = scoreboard.getOrCreateScore(ScoreHolder.fromName(VOTE_SCORE_HOLDER),objective);
-        aliveScoreAccess.setDisplayText(Text.literal("Alive "));
-        aliveScoreAccess.setScore(alivePlayers);
-        deadScoreAccess.setDisplayText(Text.literal("Dead "));
-        deadScoreAccess.setScore(deadPlayers);
-        voteScoreAccess.setDisplayText(Text.literal("Vote Threshold "));
-        voteScoreAccess.setScore(voteThreshold);
-        scoreboard.setObjectiveSlot(ScoreboardDisplaySlot.SIDEBAR,objective);
     }
 
     private static MutableText getEventText(ServerPlayerEntity player, String event){
@@ -1284,6 +1281,9 @@ public class BotcFab implements ModInitializer {
                             //world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
                             //world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.AIR.getDefaultState());
                             context.getSource().sendFeedback(() -> Text.literal("colours in map: " + POSSIBLE_COLOURS), false);
+                            if (currentGame != null) {
+                                context.getSource().sendFeedback(() -> Text.literal("colours in use in game: " + currentGame.getColours()), false);
+                            }
                             return 1;
                         }))
         );

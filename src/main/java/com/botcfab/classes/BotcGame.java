@@ -120,6 +120,16 @@ public class BotcGame {
         return this.storyteller;
     }
 
+    public int getAlivePlayers(){
+        int count = 0;
+        for (BotcPlayer p:players){
+            if (!p.isDead()){
+                count++;
+            }
+        }
+        return count;
+    }
+
     public ArrayList<BotcPlayer> getKillFlaggedPlayers(){
         ArrayList<BotcPlayer> flaggedPlayers = new ArrayList<>();
         for (BotcPlayer p:players){

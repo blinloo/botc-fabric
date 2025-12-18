@@ -132,7 +132,11 @@ public class BotcPlayer {
     }
 
     public Text getName(){
-        return playerName;
+        if (playerName != null) {
+            return playerName;
+        } else {
+            return Text.literal("NULL");
+        }
     }
 
     public String getNameString(){

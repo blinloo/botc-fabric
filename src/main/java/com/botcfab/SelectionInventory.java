@@ -178,6 +178,8 @@ public class SelectionInventory {
                     player.sendMessage(Text.literal("Added " + selectedName + " to revival list (" + colour+")"), false);
                     markPlayerRevived(selected);
                     break;
+                case 26: //Mark accused
+                    accusePlayer(selected,currentGame);
             }
         } else {
             player.sendMessage(Text.literal("Please select a valid colour"), false);

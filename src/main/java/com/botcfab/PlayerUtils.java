@@ -93,6 +93,9 @@ public class PlayerUtils {
         for (BotcPlayer p:game.getPlayers()) {
             p.removedAccused();
         }
+        if (game.getStoryteller().isAccused()){
+            game.getStoryteller().removedAccused();
+        }
         accusedPlayer.markAccused();
     }
 

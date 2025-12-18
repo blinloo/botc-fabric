@@ -218,7 +218,7 @@ public class ItemUtils {
         playerOrder.set(DataComponentTypes.RARITY, Rarity.UNCOMMON);
         items.add(playerOrder);
 
-        ItemStack noteBook = setCustomName(new ItemStack(Items.WRITABLE_BOOK),Text.literal("Notes"));
+        ItemStack noteBook = new ItemStack(Items.WRITABLE_BOOK);
         noteBook.set(DataComponentTypes.RARITY, Rarity.RARE);
         items.add(noteBook);
 
