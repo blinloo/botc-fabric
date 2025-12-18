@@ -135,6 +135,7 @@ public class BotcFab implements ModInitializer {
 
     //BLOCK POS FOR CLOCKTOWER MAP
     static BlockPos EXECUTE_POS;
+    static BlockPos SPAWN_POS;
     static BlockPos EVIL_ROOM_POS;
     static BlockPos MINIGAMES_POS;
     static BlockPos LEAVE_VC_TRIGGER_POS;
@@ -238,6 +239,7 @@ public class BotcFab implements ModInitializer {
             case DEFAULT_MAP:
                 POSSIBLE_COLOURS = List.of("black","yellow","orange","pink","red","purple","brown","green","white","blue","cyan");
                 EXECUTE_POS = new BlockPos(6, -29, -2);
+                SPAWN_POS = new BlockPos(4,-29,-2);
                 EVIL_ROOM_POS = new BlockPos(126, -28, 57);
                 MINIGAMES_POS = new BlockPos(-120, -27, -13);
                 LEAVE_VC_TRIGGER_POS = new BlockPos(18,-37,12);
@@ -248,6 +250,7 @@ public class BotcFab implements ModInitializer {
                 // Might need to change vc trigger as well to ensure is loaded
                 POSSIBLE_COLOURS = List.of("black","yellow","orange","pink","red","purple","brown","green","white","blue","cyan");
                 EXECUTE_POS = new BlockPos(455, 4, 157);
+                SPAWN_POS = new BlockPos(455,1,190);
                 EVIL_ROOM_POS = new BlockPos(1, -28, 57);
                 MINIGAMES_POS = new BlockPos(-120, -27, -13);
                 LEAVE_VC_TRIGGER_POS = new BlockPos(18,-37,12);
@@ -256,6 +259,7 @@ public class BotcFab implements ModInitializer {
             case WINTER_MAP:
                 POSSIBLE_COLOURS = List.of("green","cyan","blue","magenta","pink","red","orange","yellow");
                 EXECUTE_POS = new BlockPos(-140, -28, 330);
+                SPAWN_POS = new BlockPos(-140,-22,344);
                 EVIL_ROOM_POS = new BlockPos(126, -28, 57);//Not updated, could just use same one tho
                 MINIGAMES_POS = new BlockPos(-120, -27, -13);
                 LEAVE_VC_TRIGGER_POS = new BlockPos(18,-37,12);
@@ -609,11 +613,20 @@ public class BotcFab implements ModInitializer {
             int displayGhostVotes = ghostVotesTotal; //ghost votes used
             BotcPlayer markedPlayer = currentGame.getMarkedPlayer();
 
+
             //TODO change this to show only to storyteller + spectators (no op required)
             if (currentGame.showVoteResult()) { //Only show result to ops if hide result is on
-                sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n These players voted: " + playersVoted + "\n"), playerList);
+                sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n"), playerList);
             } else {
-                src.sendFeedback(() -> Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n These players voted: " + playersVoted + "\n"),true);
+                src.sendFeedback(() -> Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n"),true);
+            }
+            if (!playersVoted.isEmpty()) {
+                MutableText votedListText = Text.literal("These players voted: ");
+                for (Text t : playersVoted) {
+                    votedListText
+                            .append(t) //Add name
+                            .append(Text.literal(" ")); //Space after
+                }
             }
 
             if ((displayTotalVotes > highestVote) && (displayTotalVotes >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
@@ -884,7 +897,7 @@ public class BotcFab implements ModInitializer {
                                 if (executee.getBlockPos().getY() < -60) { //checks if played being executed is below certain y level.
                                     executionFinished = true;
                                     executee.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOW_FALLING, 10, 1, false, false)); //Add slow fall for a moment
-                                    tp(executee, mapCoords.get(getColourFromPlayer(executee)).chair);
+                                    tp(executee, mapCoords.get(executeePlayer.getColour()).chair);
                                     //Cover up hole
                                     world.setBlockState(new BlockPos(454, 3, 156), Blocks.RED_TERRACOTTA.getDefaultState());
                                     world.setBlockState(new BlockPos(455, 3, 156), Blocks.RED_TERRACOTTA.getDefaultState());
@@ -951,31 +964,29 @@ public class BotcFab implements ModInitializer {
 
     private void onServerTick(MinecraftServer srv){
 
-        if (playersLockedToSeats && srv.getPlayerManager().getPlayerList() != null) { //checks if onlinePlayers locked is true and onlinePlayers list is not null
-            for (ServerPlayerEntity p:srv.getPlayerManager().getPlayerList()) {
-                Set<String> tags = p.getCommandTags();
-                if (!tags.contains(STORYTELLER) || !tags.contains(SPEC)){
-                    String playerColour = getColourFromPlayer(p);
-                    //BlockPos playerPos = p.getBlockPos();
-                    Vec3d playerPos = p.getPos();
-                    BlockPos targetPos;
+        if (playersLockedToSeats && srv.getPlayerManager().getPlayerList() != null && currentGame != null) { //checks if onlinePlayers locked is true and onlinePlayers list is not null
+            for (BotcPlayer player:currentGame.getPlayers()) {
+                String playerColour = player.getColour();
+                ServerPlayerEntity p = player.getPlayer();
+                //BlockPos playerPos = p.getBlockPos();
+                Vec3d playerPos = p.getPos();
+                BlockPos targetPos;
 
-                    if (!tags.contains(CURRENT_EXECUTEE)) { //Check player is not currently being executed
-                        targetPos = mapCoords.get(playerColour).chair.up(1);
-                    } else {
-                        break;
-                    }
+                if (player.getExecutionStatus()) { //Check player is not currently being executed
+                    targetPos = mapCoords.get(playerColour).chair.up(1);
+                } else {
+                    break;
+                }
 
-                    //double distance = playerPos.getSquaredDistance(targetPos);
-                    double distance = playerPos.squaredDistanceTo(targetPos.getX()+0.5, targetPos.getY()+0.5, targetPos.getZ()+0.5); //accounts for slab of chair now
-                    if (distance > 1.5) {
-                        tp(p,targetPos);
-                        p.sendMessage(Text.literal("You were too far away. Teleporting to target..."), false);
-                    }
-                    if (organGrinderActive){
-                        p.addStatusEffect(new StatusEffectInstance(StatusEffects.BLINDNESS, -1, 10, false, true));
-                        p.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, -1, 10, false, true));
-                    }
+                //double distance = playerPos.getSquaredDistance(targetPos);
+                double distance = playerPos.squaredDistanceTo(targetPos.getX()+0.5, targetPos.getY()+0.5, targetPos.getZ()+0.5); //accounts for slab of chair now
+                if (distance > 1.5) {
+                    tp(p,targetPos);
+                    p.sendMessage(Text.literal("You were too far away. Teleporting to target..."), false);
+                }
+                if (organGrinderActive){
+                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.BLINDNESS, -1, 10, false, true));
+                    p.addStatusEffect(new StatusEffectInstance(StatusEffects.DARKNESS, -1, 10, false, true));
                 }
             }
         }
@@ -1021,13 +1032,18 @@ public class BotcFab implements ModInitializer {
             //Check for heart pottery shard
             if (itemInHand.getItem() == Items.HEART_POTTERY_SHERD) {
                 String colour = getColourFromPlayer(player);
-                tp(player, mapCoords.get(colour).homeInside);
+                if (POSSIBLE_COLOURS.contains(colour)) {
+                    tp(player, mapCoords.get(colour).homeInside);
+                } else {
+                    tp(player, SPAWN_POS);
+                }
                 return ActionResult.SUCCESS;
             }
 
             //Check for recovery compass
             if (itemInHand.getItem() == Items.RECOVERY_COMPASS) {
                 gotoMinigames(player);
+
                 return ActionResult.SUCCESS;
             }
 
@@ -1292,7 +1308,7 @@ public class BotcFab implements ModInitializer {
                 .executes(PlayerUtils::leaveMinigames));
 
         dispatcher.register(literal("gotoMinigames")
-                .executes(context -> PlayerUtils.gotoMinigames(context.getSource().getPlayer()))
+                .executes(context -> gotoMinigames(context.getSource().getPlayer()))
         );
     }
 

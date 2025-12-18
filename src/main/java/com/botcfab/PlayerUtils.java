@@ -66,13 +66,14 @@ public class PlayerUtils {
     }
 
     static String getColourFromPlayer(ServerPlayerEntity player){
-        Set<String> tags = player.getCommandTags();
-        for (String i : POSSIBLE_COLOURS){
-            if (tags.contains(i)){
-                return i;
+        if (currentGame != null) {
+            BotcPlayer playerClass = currentGame.findPlayer(player);
+            if (playerClass != null) {
+                return playerClass.getColour();
+            } else {
+                return "";
             }
         }
-        return "";
     }
 
     static int getTagCount(String tag, MinecraftServer srv){
