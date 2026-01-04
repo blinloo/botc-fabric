@@ -8,7 +8,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,7 +45,7 @@ public class SelectionInventory {
             inventory.setStack(index,command);
             index++;
         }
-        //Slots that require player input 21-26
+        //Slots that require player input 18-26
         //TODO Changing to 18
         List<ItemStack> playerCommands = Arrays.asList(
                 setCustomName(new ItemStack(Items.PLAYER_HEAD), Text.literal("Instant kill (no execution)")),
@@ -108,39 +110,48 @@ public class SelectionInventory {
         switch (index) {
             //TODO put BOTC commands here
             case 0: //setup
-                player.sendMessage(Text.literal("Setting up game"), false);
+                player.sendMessage(Text.literal("Setting up game")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), false);
                 setupGame(player.getCommandSource());
                 break;
             case 1: //begin game
-                player.sendMessage(Text.literal("Beginning game and teleporting players"), false);
+                player.sendMessage(Text.literal("Beginning game and teleporting players")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), false);
                 beginGame(player.getCommandSource());
                 break;
             case 2: //start day
-                player.sendMessage(Text.literal("Starting day"), false);
+                player.sendMessage(Text.literal("Starting day")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), false);
                 startDay(player.getCommandSource());
                 break;
             case 3: //night falls
-                player.sendMessage(Text.literal("Ending day"), false);
+                player.sendMessage(Text.literal("Ending day")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), false);
                 nightFalls(player.getCommandSource());
                 break;
             case 4: //Lock in votes
-                player.sendMessage(Text.literal("Locking in votes"), true);
+                player.sendMessage(Text.literal("Locking in votes")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
                 voteLockIn(player.getCommandSource());
                 break;
             case 5: //Begin execution
-                player.sendMessage(Text.literal("Starting execution"), true);
+                player.sendMessage(Text.literal("Starting execution")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
                 beginExecution(player.getCommandSource());
                 break;
             case 6: //Tp players to chair
-                player.sendMessage(Text.literal("Teleporting to chairs"), true);
+                player.sendMessage(Text.literal("Teleporting to chairs")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
                 teleportPlayers("vote",player.getCommandSource().getServer(),currentGame);
                 break;
             case 7: //Tp players to homes
-                player.sendMessage(Text.literal("Teleporting to home"), true);
+                player.sendMessage(Text.literal("Teleporting to home")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
                 teleportPlayers("home",player.getCommandSource().getServer(),currentGame);
                 break;
             case 8: //Tp players to homes
-                player.sendMessage(Text.literal("Started discussion time (6min)"), true);
+                player.sendMessage(Text.literal("Started discussion time (6min)")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
                 startDiscussionTime(player.getCommandSource());
                 break;
             default:
@@ -154,35 +165,42 @@ public class SelectionInventory {
             String colour = selected.getColour();
             switch (index) {
                 case 18: //Instant kill player
-                    player.sendMessage(Text.literal("Instant kill: " + selectedName + " (" + colour), true);
+                    player.sendMessage(Text.literal("Instant kill: " + selectedName + " (" + colour)
+                            .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
                     killPlayer(selected);
                     break;
                 case 19: //Instant execute but no kill player
-                    player.sendMessage(Text.literal("Instant execution (no kill): " + selectedName + " (" + colour), true);
+                    player.sendMessage(Text.literal("Instant execution (no kill): " + selectedName + " (" + colour)
+                            .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
                     selected.changeSurviveExecution(true);
                     executePlayer(selected);
                     break;
                 case 21: //Instant execute player
-                    player.sendMessage(Text.literal("Instant execution: " + selectedName + " (" + colour ), true);
+                    player.sendMessage(Text.literal("Instant execution: " + selectedName + " (" + colour )
+                            .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
                     executePlayer(selected);
                     break;
                 case 22: //Instant revive player
-                    player.sendMessage(Text.literal("Instant revival: " + selectedName + " (" + colour), true);
+                    player.sendMessage(Text.literal("Instant revival: " + selectedName + " (" + colour)
+                            .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
                     revivePlayer(selected);
                     break;
                 case 24: //Demon kill mark for night
-                    player.sendMessage(Text.literal("Marked " + selectedName + " for demon kill (" + colour+")"), false);
+                    player.sendMessage(Text.literal("Marked " + selectedName + " for demon kill (" + colour+")")
+                            .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), false);
                     markPlayerDemonKill(selected);
                     break;
                 case 25: //Revive player for night
-                    player.sendMessage(Text.literal("Added " + selectedName + " to revival list (" + colour+")"), false);
+                    player.sendMessage(Text.literal("Added " + selectedName + " to revival list (" + colour+")")
+                            .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), false);
                     markPlayerRevived(selected);
                     break;
                 case 26: //Mark accused
                     accusePlayer(selected,currentGame);
             }
         } else {
-            player.sendMessage(Text.literal("Please select a valid colour"), false);
+            player.sendMessage(Text.literal("Please select a valid colour")
+                    .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), false);
         }
     }
 

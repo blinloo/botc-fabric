@@ -162,6 +162,19 @@ public class BotcFab implements ModInitializer {
         };
     }
 
+    public static Path getFolderPath() {
+        Path configDir = FabricLoader.getInstance().getConfigDir();
+
+        // Make your mod's subfolder (recommended)
+        Path modFolder = configDir.resolve("botc-fab"); // "config/"string"
+        File folder = modFolder.toFile();
+        if (!folder.exists()) {
+            if (folder.mkdirs()) LOGGER.info("Created config"); // create folder if it doesn't exist
+        }
+
+        return modFolder;
+    }
+
     private static void onGameInit(MinecraftServer srv) { //Run this on server startup, onlinePlayers do not need to be connected
         ServerCommandSource src = srv.getCommandSource();
         ServerScoreboard scoreboard = srv.getScoreboard();
