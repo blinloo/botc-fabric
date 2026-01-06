@@ -2,6 +2,8 @@ package com.botcfab;
 
 import com.botcfab.classes.BotcGame;
 import com.botcfab.classes.BotcPlayer;
+import com.botcfab.classes.BotcRole;
+import com.botcfab.classes.BotcRoleCacher;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ModInitializer;
@@ -101,6 +103,7 @@ public class BotcFab implements ModInitializer {
     static ArrayList<BotcPlayer> gamePlayers = new ArrayList<>();
     static int numberPlayers;
     static BotcGame currentGame;
+    static BotcRoleCacher rolesList;
 
     //Timer bar variables
     private static ServerBossBar timerBar;
@@ -180,6 +183,7 @@ public class BotcFab implements ModInitializer {
         ServerScoreboard scoreboard = srv.getScoreboard();
         ServerWorld world = src.getWorld();
         mapCoords = ImportExcelCoordinates.read(getConfigFilePath()); //Import csv file here
+        rolesList = new BotcRoleCacher();
 
         System.out.println("INITIALISED");
         src.sendFeedback(() -> Text.literal("Starting initialise code now"), false);
@@ -259,8 +263,6 @@ public class BotcFab implements ModInitializer {
                 TOWN_VC_TRIGGER_POS = new BlockPos(16,-37,12);
                 break;
             case SCHOOL_MAP:
-                //TODO Change these once map is done
-                // Might need to change vc trigger as well to ensure is loaded
                 POSSIBLE_COLOURS = List.of("black","yellow","orange","pink","red","purple","brown","green","white","blue","cyan");
                 EXECUTE_POS = new BlockPos(455, 4, 157);
                 SPAWN_POS = new BlockPos(455,1,190);
@@ -300,7 +302,7 @@ public class BotcFab implements ModInitializer {
         ArrayList<ServerPlayerEntity> players = new ArrayList<>();
         ServerPlayerEntity storyTeller = src.getPlayer(); // Gets the person that called the command. Whoever called it is Storyteller
 
-        //TODO add list of barrel coordinates to csv and copt contents to each one
+        //TODO add list of barrel coordinates to csv and copy contents to each one
 
         if (storyTeller != null) {
             // Remove all tags before adding new ones
@@ -1131,6 +1133,43 @@ public class BotcFab implements ModInitializer {
                                                     break;
                                                 default:
                                                     context.getSource().sendFeedback(() -> Text.literal("Invalid team"), false);
+                                            }
+                                            return 1;
+                                        }))))
+                .then(literal("setRole")
+                        .then(CommandManager.argument("colour", StringArgumentType.string())
+                                .requires(source -> source.hasPermissionLevel(4))
+                                .suggests((context, builder) -> {
+                                    //TODO make sure this can't run without currentGame being initialised
+                                    for (String c:currentGame.getColours()){
+                                        builder.suggest(c); //Adds all possible colours in game to suggestion
+                                    }
+                                    return builder.buildFuture();
+                                })
+                                .then(CommandManager.argument("role_id", StringArgumentType.string())
+                                        .requires(source -> source.hasPermissionLevel(4))
+                                        .suggests(new PlayerSuggestionProvider())
+                                        .executes(context -> {
+                                            String colour = StringArgumentType.getString(context, "colour");
+                                            colour = colour.toLowerCase(); //lowercase to account for typos
+                                            String role_id = StringArgumentType.getString(context, "role_id");
+                                            role_id = role_id.toLowerCase(); //lowercase to account for typos
+
+                                            if (currentGame.getColours().contains(colour)){
+                                                BotcPlayer player = currentGame.getPlayerAtColour(colour);
+                                                if (player != null){
+                                                    BotcRole role = rolesList.getRole(role_id);
+                                                    if (role != null){
+                                                        player.setRole(role);
+                                                    } else {
+                                                        context.getSource().sendFeedback(() -> Text.literal("Invalid role id"), false);
+                                                    }
+                                                } else {
+                                                    context.getSource().sendFeedback(() -> Text.literal("Player not found at colour"), false);
+                                                }
+
+                                            } else {
+                                                context.getSource().sendFeedback(() -> Text.literal("Invalid colour"), false);
                                             }
                                             return 1;
                                         }))))

@@ -12,7 +12,7 @@ import java.util.List;
 
 public class BotcRoleCacher {
     private static HashMap<String, BotcRole> cachedRoles = new HashMap<>();
-    static {
+    public BotcRoleCacher() {
         ObjectMapper mapper = new ObjectMapper();
         try {
             Path configPath = BotcFab.getFolderPath();
@@ -38,7 +38,7 @@ public class BotcRoleCacher {
      * @param roleId The unique string ID of the role.
      * @return The BotcRole object or null if not found.
      */
-    public static BotcRole getRole(String roleId) {
+    public BotcRole getRole(String roleId) {
         return cachedRoles.get(roleId);
     }
 }
