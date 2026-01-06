@@ -70,10 +70,9 @@ public class PlayerUtils {
             BotcPlayer playerClass = currentGame.findPlayer(player);
             if (playerClass != null) {
                 return playerClass.getColour();
-            } else {
-                return "";
             }
         }
+        return ""; //Default return if errors
     }
 
     static int getTagCount(String tag, MinecraftServer srv){
