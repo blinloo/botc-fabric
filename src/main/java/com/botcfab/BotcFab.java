@@ -15,9 +15,12 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.*;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.FallingBlockEntity;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -452,6 +455,9 @@ public class BotcFab implements ModInitializer {
 
             for (BotcPlayer p : currentGame.getPlayers()) { //Give players in game the items they need, book, teleport items and paper
                 givePlayerGameItems(p.getPlayer());
+                if (p.getRole() != null){
+                    givePlayerRole(p.getPlayer(),p.getRole());
+                }
             }
             teleportPlayers("home", srv, currentGame); //teleports onlinePlayers to homes
             sendMessageToPlayers(getPlayerOrder(currentGame), playerMgr.getPlayerList()); //Sends player order to all onlinePlayers
@@ -934,14 +940,19 @@ public class BotcFab implements ModInitializer {
                                     executee.sendMessage(Text.literal("Nice try :)"), false);
                                 }
                                 BlockState dripPosState = world.getBlockState(EXECUTE_POS.up(1));
-                                if (dripPosState.isOf(Blocks.POINTED_DRIPSTONE)) {
+                                //BlockEntity dripEntity = world.getBlockEntity(EXECUTE_POS);
+                                if (executee.getInventory().contains(new ItemStack(Items.POINTED_DRIPSTONE))) {
+                                    executee.getInventory().removeStack(executee.getInventory().getSlotWithStack(new ItemStack(Items.POINTED_DRIPSTONE)));
+                                    //Removes dripstone from player inv
+                                    //TODO check does not work, need to use entities
                                     //spawn ice particles
                                     world.spawnParticles(new BlockStateParticleEffect(ParticleTypes.BLOCK, Blocks.ICE.getDefaultState()), EXECUTE_POS.getX() + 0.5, EXECUTE_POS.getY() - 0.2, EXECUTE_POS.getZ() + 0.5, 40, 0.3, 1.5, 0.3, 0.1);
                                     world.setBlockState(EXECUTE_POS.up(20), Blocks.DRIPSTONE_BLOCK.getDefaultState()); //restore dripstone support
-                                    world.setBlockState(EXECUTE_POS.up(19), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
-                                    world.setBlockState(EXECUTE_POS.up(18), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
-                                    world.setBlockState(EXECUTE_POS.up(17), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
-                                    world.setBlockState(EXECUTE_POS.up(16), Blocks.POINTED_DRIPSTONE.getDefaultState()); //restore dripstone support
+                                    world.setBlockState(EXECUTE_POS.up(19), Blocks.POINTED_DRIPSTONE.getDefaultState().with(Properties.VERTICAL_DIRECTION,Direction.DOWN)); //restore dripstone support
+                                    world.setBlockState(EXECUTE_POS.up(18), Blocks.POINTED_DRIPSTONE.getDefaultState().with(Properties.VERTICAL_DIRECTION,Direction.DOWN)); //restore dripstone support
+                                    world.setBlockState(EXECUTE_POS.up(17), Blocks.POINTED_DRIPSTONE.getDefaultState().with(Properties.VERTICAL_DIRECTION,Direction.DOWN)); //restore dripstone support
+                                    world.setBlockState(EXECUTE_POS.up(16), Blocks.POINTED_DRIPSTONE.getDefaultState().with(Properties.VERTICAL_DIRECTION,Direction.DOWN)); //restore dripstone support
+                                    //FallingBlockEntity.spawnFromBlock(world,EXECUTE_POS.up(16),Blocks.POINTED_DRIPSTONE.getDefaultState());
                                     executionFinished = true;
                                 }
                                 break;
@@ -1058,7 +1069,6 @@ public class BotcFab implements ModInitializer {
             //Check for recovery compass
             if (itemInHand.getItem() == Items.RECOVERY_COMPASS) {
                 gotoMinigames(player);
-
                 return ActionResult.SUCCESS;
             }
 
@@ -1153,7 +1163,7 @@ public class BotcFab implements ModInitializer {
                                             String colour = StringArgumentType.getString(context, "colour");
                                             colour = colour.toLowerCase(); //lowercase to account for typos
                                             String role_id = StringArgumentType.getString(context, "role_id");
-                                            role_id = role_id.toLowerCase(); //lowercase to account for typos
+                                            role_id = role_id.toLowerCase().replaceAll("\\s", ""); //lowercase to account for typos and removes spaces
 
                                             if (currentGame.getColours().contains(colour)){
                                                 BotcPlayer player = currentGame.getPlayerAtColour(colour);

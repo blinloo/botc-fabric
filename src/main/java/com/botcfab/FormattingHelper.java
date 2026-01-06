@@ -2,6 +2,7 @@ package com.botcfab;
 
 import com.botcfab.classes.BotcGame;
 import com.botcfab.classes.BotcPlayer;
+import com.botcfab.classes.BotcRole;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -63,6 +64,20 @@ public class FormattingHelper {
             }
         }
         return PlayerOrderMessage;
+    }
+
+    public static MutableText formatRoleName(BotcRole role){
+        if (role != null){
+
+        }
+        return Text.literal("NULL ROLE");
+    }
+
+    public static MutableText formatRoleDesc(BotcRole role){
+        if (role != null){
+
+        }
+        return Text.literal("NULL ROLE DESC");
     }
 
     public static MutableText formatGameInfo(BotcGame game) {

@@ -1,5 +1,6 @@
 package com.botcfab;
 
+import com.botcfab.classes.BotcRole;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -230,5 +231,10 @@ public class ItemUtils {
                 }
             }
         }
+    }
+
+    static void givePlayerRole(ServerPlayerEntity player, BotcRole role){
+        player.getInventory().insertStack(setCustomName(new ItemStack(Items.WRITABLE_BOOK), Text.literal(role.getName())));
+
     }
 }
