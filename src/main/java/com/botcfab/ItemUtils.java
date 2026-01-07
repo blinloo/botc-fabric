@@ -26,7 +26,7 @@ import net.minecraft.util.math.Direction;
 
 import java.util.*;
 
-import static com.botcfab.FormattingHelper.getColourHex;
+import static com.botcfab.FormattingHelper.*;
 import static java.util.Map.entry;
 
 public class ItemUtils {
@@ -234,7 +234,9 @@ public class ItemUtils {
     }
 
     static void givePlayerRole(ServerPlayerEntity player, BotcRole role){
-        player.getInventory().insertStack(setCustomName(new ItemStack(Items.WRITABLE_BOOK), Text.literal(role.getName())));
+        ItemStack paper = new ItemStack(Items.PAPER);
+        setCustomName(paper, formatRoleName(role).append("\n").append(formatRoleDesc(role)));
+        player.getInventory().insertStack(paper);
 
     }
 }

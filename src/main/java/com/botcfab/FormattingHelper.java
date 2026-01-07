@@ -68,14 +68,33 @@ public class FormattingHelper {
 
     public static MutableText formatRoleName(BotcRole role){
         if (role != null){
-
+            MutableText name = Text.literal(role.getName());
+            switch (role.getTeam()) {
+                case "townsfolk":
+                    name.setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_BLUE)));
+                    break;
+                case "outsider":
+                    name.setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.BLUE)));
+                    break;
+                case "minion":
+                    name.setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED)));
+                    break;
+                case "demon":
+                    name.setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED)));
+                    break;
+                default:
+                    //If role does not have team, green makes error obvious.
+                    name.setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.GREEN)));
+                    break;
+            }
+            return name;
         }
         return Text.literal("NULL ROLE");
     }
 
     public static MutableText formatRoleDesc(BotcRole role){
         if (role != null){
-
+            return Text.literal(role.getAbility());
         }
         return Text.literal("NULL ROLE DESC");
     }
