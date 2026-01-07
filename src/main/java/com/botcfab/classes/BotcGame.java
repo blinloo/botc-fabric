@@ -1,8 +1,6 @@
 package com.botcfab.classes;
 
-import com.botcfab.FormattingHelper;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;

@@ -27,7 +27,6 @@ import net.minecraft.util.math.Direction;
 import java.util.*;
 
 import static com.botcfab.FormattingHelper.*;
-import static java.util.Map.entry;
 
 public class ItemUtils {
     /**

@@ -1,7 +1,5 @@
 package com.botcfab.classes;
 
-import net.minecraft.server.network.ServerPlayerEntity;
-
 import java.util.ArrayList;
 
 public class BotcScript {

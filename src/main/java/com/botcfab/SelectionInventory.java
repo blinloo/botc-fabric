@@ -15,7 +15,6 @@ import net.minecraft.util.Formatting;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 import static com.botcfab.BotcFab.*;
 import static com.botcfab.ItemUtils.*;
