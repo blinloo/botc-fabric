@@ -2,6 +2,7 @@ package com.botcfab;
 
 import com.botcfab.classes.BotcGame;
 import com.botcfab.classes.BotcPlayer;
+import com.botcfab.classes.BotcRole;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.block.Blocks;
@@ -67,20 +68,6 @@ public class PlayerUtils {
             }
         }
         return ""; //Default return if errors
-    }
-
-    static int getTagCount(String tag, MinecraftServer srv){
-        //TODO Replace this with game call
-        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
-        int count = 0;
-        if (playerList != null) {
-            for (ServerPlayerEntity p : playerList) {
-                Set<String> tags = p.getCommandTags();
-                if (tags.contains(tag) && tags.contains(PLAYER))
-                    count++;
-            }
-        }
-        return count;
     }
 
     static void accusePlayer(BotcPlayer accusedPlayer, BotcGame game){
@@ -251,30 +238,28 @@ public class PlayerUtils {
         } else return target;
     }
 
-    static int onAddSpectator(CommandContext<ServerCommandSource> context) {
+    static void onAddSpectator(CommandContext<ServerCommandSource> context) {
         ServerPlayerEntity specTarget = getPlayerFromSource(context);
         if (specTarget == null) {
-            return 0;
+            return;
         }
 
         hardResetPlayer(specTarget);
         specTarget.addCommandTag(SPEC);
         specTarget.changeGameMode(GameMode.SPECTATOR);
         System.out.println("Added player " + specTarget.getNameForScoreboard() +" to spectators");
-        return 1;
     }
 
-    static int onAddPlayer(CommandContext<ServerCommandSource> context) {
+    static void onAddPlayer(CommandContext<ServerCommandSource> context) {
         ServerPlayerEntity playerTarget = getPlayerFromSource(context);
         if (playerTarget == null) {
-            return 0;
+            return;
         }
 
         hardResetPlayer(playerTarget);
         playerTarget.addCommandTag(PLAYER);
         playerTarget.changeGameMode(GameMode.ADVENTURE);
         System.out.println("Added player " + playerTarget.getNameForScoreboard() +" to players");
-        return 1;
     }
 
     static void sendMessageToPlayers(Text messageText, List<ServerPlayerEntity> playerList){
@@ -294,7 +279,6 @@ public class PlayerUtils {
 
     static void teleportPlayers(String location, MinecraftServer srv, BotcGame game){
         //location either "home" or "vote"
-        List<ServerPlayerEntity> playerList = srv.getPlayerManager().getPlayerList();
         String colour;
         ServerWorld world = srv.getOverworld();
         switch (location){
@@ -323,10 +307,12 @@ public class PlayerUtils {
                 break;
             case "legion","evil":
                 for (BotcPlayer player : game.getPlayers()) {
-                    ServerPlayerEntity p = player.getPlayer();
-                    Set<String> tags = p.getCommandTags();
-                    if (tags.contains(LEGION) || player.isStoryteller()) {
-                        tp(p, EVIL_ROOM_POS); //Needs to go up 1 so space isn't occupied
+                    BotcRole role = player.getRole();
+                    if (role != null) {
+                        if (!Objects.equals(role.getId(), "marionette") && (Objects.equals(role.getTeam(), "minion") || Objects.equals(role.getTeam(), "demon"))) {
+                            //If player is demon/minion and not marionette, tp to evil room
+                            tp(player.getPlayer(), EVIL_ROOM_POS);
+                        }
                     }
                 }
                 break;

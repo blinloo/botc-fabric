@@ -21,8 +21,6 @@ import static com.botcfab.ItemUtils.*;
 import static com.botcfab.PlayerUtils.*;
 
 public class SelectionInventory {
-    static String selectedColour = "";
-    static BotcPlayer selectedPlayer = null;
 
     public static void openMenu(ServerPlayerEntity player) {
         // Create inventory with 9 slots
@@ -83,7 +81,7 @@ public class SelectionInventory {
             if (currentGame != null) {
                 BotcPlayer p = currentGame.getPlayerAtColour(colour);
                 if (p != null) {//if player exists add their colour to slot
-                    ItemStack playerHead = setPlayerHead(p.getPlayer(),p.getColour());
+                    ItemStack playerHead = setPlayerHead(p.getPlayer(),colour);
                     players.add(playerHead);
                     inventory.setStack(slot, playerHead); //Set to player head
                 } else {

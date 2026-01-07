@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class BotcRoleCacher {
-    private static HashMap<String, BotcRole> cachedRoles = new HashMap<>();
+    private static final HashMap<String, BotcRole> cachedRoles = new HashMap<>();
     public BotcRoleCacher() {
         ObjectMapper mapper = new ObjectMapper();
         try {

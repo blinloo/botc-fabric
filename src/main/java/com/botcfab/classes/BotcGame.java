@@ -39,16 +39,14 @@ public class BotcGame {
         return formatGameInfo(this);
     }
 
-    public boolean assignPlayer(int pos, ServerPlayerEntity player){
+    public void assignPlayer(int pos, ServerPlayerEntity player){
         if (pos > totalPlayers){
-            return false;
+            return;
         }
         players.get(pos).setPlayer(player);
-
-        return true;
     }
 
-    public boolean assignRandomPlayers(ArrayList<ServerPlayerEntity> playerList){
+    public void assignRandomPlayers(ArrayList<ServerPlayerEntity> playerList){
         //Assigns players to each position in random order
         Collections.shuffle(playerList);
 
@@ -57,12 +55,10 @@ public class BotcGame {
                 ServerPlayerEntity p = playerList.get(index);
                 assignPlayer(index,p); //Assign player to BotcPlayer class at position
             }
-            return true;
         }
-        return false;
     }
 
-    public boolean assignColours(){
+    public void assignColours(){
         boolean reverseOrder = ThreadLocalRandom.current().nextBoolean(); //Decides if colours are in order or reversed.
         int index = 0;
         String currentColour;
@@ -77,17 +73,15 @@ public class BotcGame {
             index++;
             if (index >= possibleColours.size()){
                 //if index out of bounds
-                return false;
+                return;
             }
         }
 
-        return true;
     }
 
-    public boolean setupRandomGame(ArrayList<ServerPlayerEntity> playerList){
+    public void setupRandomGame(ArrayList<ServerPlayerEntity> playerList){
         assignColours();
         assignRandomPlayers(playerList);
-        return true;
     }
 
     public int getTotalPlayers(){
@@ -197,17 +191,9 @@ public class BotcGame {
     public boolean getRoleVisible(){
         return this.rolesVisible;
     }
-    public boolean hideRoles(){
-        this.rolesVisible = false;
-        return true;
-    }
-    public boolean showRoles(){
-        this.rolesVisible = true;
-        return true;
-    }
-    public boolean toggleRoleVisible(){
-        this.rolesVisible = !this.rolesVisible;
-        return true;
+    
+    public void setRoleVisible(boolean input){
+        this.rolesVisible = input;
     }
     public boolean showVoteResult(){
         return showVoteResult;

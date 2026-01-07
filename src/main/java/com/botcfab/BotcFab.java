@@ -100,8 +100,6 @@ public class BotcFab implements ModInitializer {
     static int playerTotal = 0;
 
     //Player class list
-    static ArrayList<BotcPlayer> gamePlayers = new ArrayList<>();
-    static int numberPlayers;
     static BotcGame currentGame;
     static BotcRoleCacher rolesList;
 
@@ -172,7 +170,7 @@ public class BotcFab implements ModInitializer {
         Path modFolder = configDir.resolve("botc-fab"); // "config/"string"
         File folder = modFolder.toFile();
         if (!folder.exists()) {
-            if (folder.mkdirs()) LOGGER.info("Created config"); // create folder if it doesn't exist
+            if (folder.mkdirs()) LOGGER.info("Created folder"); // create folder if it doesn't exist
         }
 
         return modFolder;
@@ -518,13 +516,11 @@ public class BotcFab implements ModInitializer {
 
         sendMessageToPlayers((DAY_MESSAGE.copy().append(MEETING_MESSAGE)),playerList);
         //Send player death message and update status
-        int deaths = getTagCount(DEATH_FLAG, srv);
         for (BotcPlayer deadPlayer:currentGame.getKillFlaggedPlayers()){
             sendMessageToPlayers(getEventText(deadPlayer.getPlayer(),DEATH_FLAG) ,playerList);
             killPlayer(deadPlayer);
             deadPlayer.removeFlags();
         }
-        int revives = getTagCount(REVIVE_FLAG, srv);
         for (BotcPlayer revivedPlayer:currentGame.getReviveFlaggedPlayers()){
             sendMessageToPlayers(getEventText(revivedPlayer.getPlayer(),REVIVE_FLAG) ,playerList);
             revivePlayer(revivedPlayer);
@@ -541,8 +537,7 @@ public class BotcFab implements ModInitializer {
     }
 
     static void voteLockIn(ServerCommandSource src) {
-        // remove redstone block
-        MinecraftServer srv = src.getServer();
+        // remove redstone block;
         ServerWorld world = src.getWorld();
         int delayPerBlock = 20; // 1 second = 20 ticks
         int voteThreshold, startColourIndex, count = 1, alivePlayers;
@@ -870,9 +865,7 @@ public class BotcFab implements ModInitializer {
                         if (currentGame.invisPlayers()) {
                             if (player.getInvisStatus()) {
                                 p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
-                                //if (tags.contains(SPEC)) {
-                                //    world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.001);
-                                //}
+                                //Spooky particles   world.spawnParticles(ParticleTypes.SOUL, p.getX(), p.getY(), p.getZ(), 1, 0.4, 0, 0.4, 0.001);
                             } else {
                                 p.removeStatusEffect(StatusEffects.INVISIBILITY); //Remove invisible for alive onlinePlayers
                             }
@@ -936,8 +929,7 @@ public class BotcFab implements ModInitializer {
                                     executee.teleport(murderZone.getX(), murderZone.getY(), murderZone.getZ(), false); //needs accurate tp
                                     executee.sendMessage(Text.literal("Nice try :)"), false);
                                 }
-                                BlockState dripPosState = world.getBlockState(EXECUTE_POS.up(1));
-                                //BlockEntity dripEntity = world.getBlockEntity(EXECUTE_POS);
+                                //BlockState dripPosState = world.getBlockState(EXECUTE_POS.up(1));
                                 if (executee.getInventory().contains(new ItemStack(Items.POINTED_DRIPSTONE))) {
                                     executee.getInventory().removeStack(executee.getInventory().getSlotWithStack(new ItemStack(Items.POINTED_DRIPSTONE)));
                                     //Removes dripstone from player inv
@@ -1352,9 +1344,7 @@ public class BotcFab implements ModInitializer {
                 .then(literal("test")
                         .requires(source -> source.hasPermissionLevel(4))
                         .executes(context -> {
-                            ServerWorld world = context.getSource().getWorld();
-                            //world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
-                            //world.setBlockState(LEAVE_VC_TRIGGER_POS, Blocks.AIR.getDefaultState());
+                            //ServerWorld world = context.getSource().getWorld();
                             context.getSource().sendFeedback(() -> Text.literal("colours in map: " + POSSIBLE_COLOURS), false);
                             if (currentGame != null) {
                                 context.getSource().sendFeedback(() -> Text.literal("colours in use in game: " + currentGame.getColours()), false);

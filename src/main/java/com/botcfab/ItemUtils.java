@@ -51,9 +51,6 @@ public class ItemUtils {
         if (owner == null) {
             return setCustomName(getWoolFromColour(colour),Text.literal("Invalid owner"));
         }
-        if (colour == null) {
-            return setCustomName(getGlassFromColour("lime"),Text.literal("Invalid colour"));
-        }
         ItemStack item = new ItemStack(Items.PLAYER_HEAD);
 
         ProfileComponent profile = new ProfileComponent(owner.getGameProfile());
