@@ -1139,15 +1139,25 @@ public class BotcFab implements ModInitializer {
                         .then(CommandManager.argument("colour", StringArgumentType.string())
                                 .requires(source -> source.hasPermissionLevel(4))
                                 .suggests((context, builder) -> {
-                                    //TODO make sure this can't run without currentGame being initialised
-                                    for (String c:currentGame.getColours()){
-                                        builder.suggest(c); //Adds all possible colours in game to suggestion
+                                    if (currentGame != null) {
+                                        for (String c : currentGame.getColours()) {
+                                            builder.suggest(c); //Adds all possible colours in game to suggestion
+                                        }
                                     }
+                                    builder.suggest("NO GAME INITIALISED");
                                     return builder.buildFuture();
+
                                 })
                                 .then(CommandManager.argument("role_id", StringArgumentType.string())
                                         .requires(source -> source.hasPermissionLevel(4))
-                                        .suggests(new PlayerSuggestionProvider())
+                                        .suggests((context, builder) -> {
+                                            //TODO Change to current selected script if applicable
+                                            for (String id:rolesList.getAllRoleIDs()){
+                                                builder.suggest(id); //Adds all possible role ids to suggestion
+                                                //Might crash as there is a lot
+                                            }
+                                            return builder.buildFuture();
+                                        })
                                         .executes(context -> {
                                             String colour = StringArgumentType.getString(context, "colour");
                                             colour = colour.toLowerCase(); //lowercase to account for typos

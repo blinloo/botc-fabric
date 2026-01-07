@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 public class BotcRoleCacher {
     private static final HashMap<String, BotcRole> cachedRoles = new HashMap<>();
@@ -40,5 +41,9 @@ public class BotcRoleCacher {
      */
     public BotcRole getRole(String roleId) {
         return cachedRoles.get(roleId);
+    }
+
+    public Set<String> getAllRoleIDs(){
+        return cachedRoles.keySet();
     }
 }
