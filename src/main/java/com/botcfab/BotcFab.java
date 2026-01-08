@@ -544,7 +544,7 @@ public class BotcFab implements ModInitializer {
         List<DelayedBlockSetter> taskList = new ArrayList<>();
         List<String> currentGameColours = currentGame.getColours();
         int maxIndex = currentGameColours.size()-1;
-        src.sendFeedback(() -> Text.literal("Max index: " + maxIndex), false);
+        //src.sendFeedback(() -> Text.literal("Max index: " + maxIndex), false); //Just for testing, not needed
 
         //Get vote threshold for alive onlinePlayers
         alivePlayers = currentGame.getAlivePlayers();
@@ -605,14 +605,14 @@ public class BotcFab implements ModInitializer {
                 if (lockedVoteState.getBlock() == Blocks.WAXED_COPPER_BULB && lockedVoteState.get(Properties.LIT)) {
                     aliveVotesTotal++;
                     if (playerVoting != null) {
-                        playersVoted.add(playerVoting.getName());
+                        playersVoted.add(playerVoting.getName());//Add player to voted list
                     }
                 } else if (lockedVoteState.getBlock() == Blocks.SEA_LANTERN) {
                     ghostVotesTotal++;
                     // remove ghost vote and tag from player
                     world.setBlockState(lockedVote,Blocks.COAL_BLOCK.getDefaultState());
                     if (playerVoting != null) {
-                        playersVoted.add(playerVoting.getName());
+                        playersVoted.add(playerVoting.getName());//Add player to voted list
                         if (playerVoting.canLoseGhostVote()){
                             playerVoting.removeGhostVote();
                         }
@@ -627,20 +627,26 @@ public class BotcFab implements ModInitializer {
             BotcPlayer markedPlayer = currentGame.getMarkedPlayer();
 
 
-            //TODO change this to show only to storyteller + spectators (no op required)
-            if (currentGame.showVoteResult()) { //Only show result to ops if hide result is on
-                sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n"), playerList);
-            } else {
-                src.sendFeedback(() -> Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n"),true);
-            }
+            MutableText votedListText;
             if (!playersVoted.isEmpty()) {
-                MutableText votedListText = Text.literal("These players voted: ");
+                votedListText = Text.literal("These players voted: ");
                 for (Text t : playersVoted) {
                     votedListText
                             .append(t) //Add name
                             .append(Text.literal(" ")); //Space after
                 }
+            } else {
+                votedListText = Text.literal("");
             }
+            //TODO change this to show only to storyteller + spectators (no op required)
+            if (currentGame.showVoteResult()) { //Only show result to ops if hide result is on
+                sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n"), playerList);
+                sendMessageToPlayers(votedListText, playerList); //Defaults to empty if no votes
+            } else {
+                src.sendFeedback(() -> Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n"),true);
+                src.sendFeedback(() -> votedListText,true);
+            }
+
 
             if ((displayTotalVotes > highestVote) && (displayTotalVotes >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
                 highestVote = displayTotalVotes; //Change the highest vote to this vote
