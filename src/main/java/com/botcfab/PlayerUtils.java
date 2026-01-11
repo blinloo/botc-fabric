@@ -303,7 +303,8 @@ public class PlayerUtils {
                     }
                 }
                 //Leave vc groups for town square
-                world.setBlockState(TOWN_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
+                //TODO this needs to only run once, otherwise console spams
+                //world.setBlockState(TOWN_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
                 break;
             case "legion","evil":
                 for (BotcPlayer player : game.getPlayers()) {

@@ -20,6 +20,7 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.DyeColor;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Rarity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -43,6 +44,20 @@ public class ItemUtils {
 
         // Rename using components
         item.set(DataComponentTypes.CUSTOM_NAME, name);
+
+        return item;
+    }
+
+    public static ItemStack setCustomLore(ItemStack item, Text lore, TextColor colour) {
+        if (item == null || lore == null) {
+            throw new IllegalArgumentException("ItemStack and lore must not be null");
+        }
+        List<Text> loreList = List.of(lore);
+        List<Text> styleList = List.of(lore.copy().setStyle(Style.EMPTY.withColor(colour))); //Add colour to styled list
+        // change lore using components
+        item.get(DataComponentTypes.LORE);
+        LoreComponent loreComp = new LoreComponent(loreList,styleList);
+        item.set(DataComponentTypes.LORE, loreComp);
 
         return item;
     }
@@ -231,7 +246,8 @@ public class ItemUtils {
 
     static void givePlayerRole(ServerPlayerEntity player, BotcRole role){
         ItemStack paper = new ItemStack(Items.PAPER);
-        setCustomName(paper, formatRoleName(role).append("\n").append(formatRoleDesc(role)));
+        paper = setCustomName(paper, formatRoleName(role)); //Set name of paper to role
+        paper = setCustomLore(paper, formatRoleDesc(role),TextColor.fromFormatting(Formatting.GRAY)); //Set Lore of paper to role description
         player.getInventory().insertStack(paper);
 
     }

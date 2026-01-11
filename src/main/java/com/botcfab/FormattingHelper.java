@@ -71,16 +71,16 @@ public class FormattingHelper {
             MutableText name = Text.literal(role.getName());
             switch (role.getTeam()) {
                 case "townsfolk":
-                    name.setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_BLUE)));
+                    name.setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex("blue"))));
                     break;
                 case "outsider":
-                    name.setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.BLUE)));
+                    name.setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex("light_blue"))));
                     break;
                 case "minion":
                     name.setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED)));
                     break;
                 case "demon":
-                    name.setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED)));
+                    name.setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex("red"))));
                     break;
                 default:
                     //If role does not have team, green makes error obvious.

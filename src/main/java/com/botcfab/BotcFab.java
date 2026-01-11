@@ -1149,8 +1149,10 @@ public class BotcFab implements ModInitializer {
                                         for (String c : currentGame.getColours()) {
                                             builder.suggest(c); //Adds all possible colours in game to suggestion
                                         }
+                                    } else {
+                                        //If there is no game initiliased, send warning
+                                        builder.suggest("NO GAME INITIALISED");
                                     }
-                                    builder.suggest("NO GAME INITIALISED");
                                     return builder.buildFuture();
 
                                 })
@@ -1175,7 +1177,9 @@ public class BotcFab implements ModInitializer {
                                                 if (player != null){
                                                     BotcRole role = rolesList.getRole(role_id);
                                                     if (role != null){
-                                                        player.setRole(role);
+                                                        player.setRole(role); //Sets player role in game to input
+                                                        //Sends output msg to command runner
+                                                        context.getSource().sendFeedback(() -> Text.literal("Set " + player.getNameString() + "'s role to " + role.getName()), false);
                                                     } else {
                                                         context.getSource().sendFeedback(() -> Text.literal("Invalid role id"), false);
                                                     }
