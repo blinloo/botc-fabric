@@ -12,26 +12,33 @@ import static com.botcfab.FormattingHelper.formatGameInfo;
 
 public class BotcGame {
     ArrayList<BotcPlayer> players = new ArrayList<>();
+    ArrayList<BotcPlayer> travellers = new ArrayList<>();
     BotcPlayer storyteller;
     List<String> possibleColours;
     ArrayList<String> coloursInUse = new ArrayList<>();
     int totalPlayers;
+    int numberTravellers;
     int colourStartIndex;
     boolean showVoteResult;
     boolean rolesVisible = false;
     boolean playersInvis;
 
     //Only need a new one when storyteller changes?
-    public BotcGame(BotcPlayer storyteller, int total, List<String> colours) {
+    public BotcGame(BotcPlayer storyteller, int total, List<String> colours, int travellerCount) {
         this.storyteller = storyteller;
         this.totalPlayers = total;
         this.possibleColours = colours;
         this.showVoteResult = true;
         this.playersInvis = true;
+        this.numberTravellers = travellerCount;
 
         for (int i = 0; i < totalPlayers; i++) {
             //Add players classes for number of players
             players.add(new BotcPlayer(i, null, null));
+        }
+        for (int i = 0; i < numberTravellers; i++) {
+            //Add players classes for travellers, shouldn't run if travellers = 0
+            travellers.add(new BotcPlayer(i, null, null));
         }
     }
 
@@ -40,10 +47,16 @@ public class BotcGame {
     }
 
     public void assignPlayer(int pos, ServerPlayerEntity player){
-        if (pos > totalPlayers){
-            return;
+        //pos is 0 to max-1
+        if (pos < totalPlayers){
+            players.get(pos).setPlayer(player);
         }
-        players.get(pos).setPlayer(player);
+    }
+
+    public void assignTraveller(int pos, ServerPlayerEntity player){
+        if (pos < numberTravellers){
+            travellers.get(pos).setPlayer(player);
+        }
     }
 
     public void assignRandomPlayers(ArrayList<ServerPlayerEntity> playerList){

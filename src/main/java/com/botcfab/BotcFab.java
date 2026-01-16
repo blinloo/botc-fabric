@@ -73,6 +73,7 @@ public class BotcFab implements ModInitializer {
     static final String STORYTELLER = "storyteller";
     static final String PLAYER = "player";
     static final String SPEC = "spectator";
+    static final String TRAVELLER = "traveller";
     static final String ALIVE = "alive";
     static final String MARKED = "marked";
     static final String DEAD = "dead";
@@ -84,7 +85,7 @@ public class BotcFab implements ModInitializer {
     static final String LEGION = "legion";
     static final String SURVIVE_EXECUTION = "survive_exe";
     static final String INVIS_TAG = "invisible";
-    static final List<String> ALL_TAGS = Arrays.asList(PLAYER,STORYTELLER,SPEC,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE,LEGION,SURVIVE_EXECUTION,INVIS_TAG);
+    static final List<String> ALL_TAGS = Arrays.asList(PLAYER,STORYTELLER,SPEC,TRAVELLER,ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE,LEGION,SURVIVE_EXECUTION,INVIS_TAG);
     static final List<String> ALL_GAME_TAGS = Arrays.asList(ALIVE,MARKED,DEAD,GHOST,DEATH_FLAG,REVIVE_FLAG,ACCUSED,CURRENT_EXECUTEE,LEGION,SURVIVE_EXECUTION,INVIS_TAG);
 
     static final String INFO_OBJECTIVE = "info";
@@ -336,7 +337,7 @@ public class BotcFab implements ModInitializer {
             src.sendFeedback(() -> Text.literal("No pony online :("), false);
         } else {
             BotcPlayer ST = new BotcPlayer(-1,storyTeller,null);
-            currentGame = new BotcGame(ST, players.size(), POSSIBLE_COLOURS);
+            currentGame = new BotcGame(ST, players.size(), POSSIBLE_COLOURS, 0);
             currentGame.setupRandomGame(players);
         }
 
@@ -867,7 +868,7 @@ public class BotcFab implements ModInitializer {
                     ServerPlayerEntity p = player.getPlayer();
                     if (p != null) {
                         p.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, -1, 2, false, false));
-                        p.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, -1, 5, false, false));
+                        p.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, -1, 2, false, false));
                         if (currentGame.invisPlayers()) {
                             if (player.getInvisStatus()) {
                                 p.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 1, false, false));
@@ -1120,6 +1121,7 @@ public class BotcFab implements ModInitializer {
                                     //for (String o:tpOptions)
                                     builder.suggest(SPEC); //Suggest types to add
                                     builder.suggest(PLAYER);
+                                    builder.suggest(TRAVELLER);
                                     return builder.buildFuture();
                                 })
                                 .then(CommandManager.argument("player_name", StringArgumentType.string())
@@ -1150,7 +1152,7 @@ public class BotcFab implements ModInitializer {
                                             builder.suggest(c); //Adds all possible colours in game to suggestion
                                         }
                                     } else {
-                                        //If there is no game initiliased, send warning
+                                        //If there is no game initialized, send warning
                                         builder.suggest("NO GAME INITIALISED");
                                     }
                                     return builder.buildFuture();
@@ -1182,6 +1184,50 @@ public class BotcFab implements ModInitializer {
                                                         context.getSource().sendFeedback(() -> Text.literal("Set " + player.getNameString() + "'s role to " + role.getName()), false);
                                                     } else {
                                                         context.getSource().sendFeedback(() -> Text.literal("Invalid role id"), false);
+                                                    }
+                                                } else {
+                                                    context.getSource().sendFeedback(() -> Text.literal("Player not found at colour"), false);
+                                                }
+
+                                            } else {
+                                                context.getSource().sendFeedback(() -> Text.literal("Invalid colour"), false);
+                                            }
+                                            return 1;
+                                        }))))
+                .then(literal("setPlayerColour")
+                        .then(CommandManager.argument("colour", StringArgumentType.string())
+                                .requires(source -> source.hasPermissionLevel(4))
+                                .suggests((context, builder) -> {
+                                    if (currentGame != null) {
+                                        for (String c : currentGame.getColours()) {
+                                            builder.suggest(c); //Adds all possible colours in game to suggestion
+                                        }
+                                    } else {
+                                        //If there is no game initialized, send warning
+                                        builder.suggest("NO GAME INITIALISED");
+                                    }
+                                    return builder.buildFuture();
+
+                                })
+                                .then(CommandManager.argument("player", StringArgumentType.string())
+                                        .requires(source -> source.hasPermissionLevel(4))
+                                        .suggests(new PlayerSuggestionProvider()) //Suggests online players
+                                        .executes(context -> {
+                                            String colour = StringArgumentType.getString(context, "colour");
+                                            colour = colour.toLowerCase(); //lowercase to account for typos
+
+
+                                            if (currentGame.getColours().contains(colour)){
+                                                BotcPlayer player = currentGame.getPlayerAtColour(colour);
+                                                if (player != null){
+                                                    ServerPlayerEntity playerTarget = getPlayerFromSource(context);
+                                                    if (playerTarget != null){
+                                                        player.setPlayer(playerTarget); //Set player to position
+                                                        //Sends output msg to command runner
+                                                        String finalColour = colour;
+                                                        context.getSource().sendFeedback(() -> Text.literal("Set " + playerTarget.getName() + " position to " + finalColour), false);
+                                                    } else {
+                                                        context.getSource().sendFeedback(() -> Text.literal("Invalid player specified"), false);
                                                     }
                                                 } else {
                                                     context.getSource().sendFeedback(() -> Text.literal("Player not found at colour"), false);
