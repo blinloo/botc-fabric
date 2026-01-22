@@ -8,6 +8,7 @@ import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.enums.BlockFace;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
@@ -119,7 +120,6 @@ public class PlayerUtils {
     static void executePlayer(BotcPlayer gamePlayer){
         ServerPlayerEntity player = gamePlayer.getPlayer();
         gamePlayer.changeExecutionStatus(true);
-        player.addCommandTag(CURRENT_EXECUTEE);
         ServerWorld world = player.getServerWorld();
         MinecraftServer srv = world.getServer();
         ServerScoreboard scoreboard = srv.getScoreboard();
@@ -271,6 +271,12 @@ public class PlayerUtils {
 
     static void showTitle(ServerPlayerEntity player, Text titleText){
         player.networkHandler.sendPacket(new TitleS2CPacket(titleText));
+    }
+    static void showSubtitle(ServerPlayerEntity player, Text subtitleText){
+        player.networkHandler.sendPacket(new SubtitleS2CPacket(subtitleText));
+    }
+    static void showActionBar(ServerPlayerEntity player, Text actionText){
+        player.sendMessage(actionText,true);
     }
 
     static void tp(ServerPlayerEntity player, BlockPos destination){ //teleports player to BlockPos by converting to x,y,z

@@ -34,7 +34,8 @@ public class SelectionInventory {
                 setCustomName(new ItemStack(Items.DARK_OAK_HANGING_SIGN), Text.literal("Begin execution of marked player")),
                 setCustomName(new ItemStack(Items.ANDESITE_SLAB), Text.literal("Teleport players to chairs")),
                 setCustomName(new ItemStack(Items.RED_BED), Text.literal("Teleport players to homes")),
-                setCustomName(new ItemStack(Items.BELL), Text.literal("Start discussion time (6min)"))
+                setCustomName(new ItemStack(Items.BELL), Text.literal("Start discussion time (6min)")),
+                setCustomName(new ItemStack(Items.RED_WOOL), Text.literal("Reset night flags (kills/revives)"))
         );
         // Add selectable items slots 0-8
         int index = 0;
@@ -43,7 +44,6 @@ public class SelectionInventory {
             index++;
         }
         //Slots that require player input 18-26
-        //TODO Changing to 18
         List<ItemStack> playerCommands = Arrays.asList(
                 setCustomName(new ItemStack(Items.PLAYER_HEAD), Text.literal("Instant kill (no execution)")),
                 setCustomName(new ItemStack(Items.DARK_OAK_SIGN), Text.literal("Execute but don't kill")),
@@ -150,6 +150,11 @@ public class SelectionInventory {
                 player.sendMessage(Text.literal("Started discussion time (6min)")
                         .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
                 startDiscussionTime(player.getCommandSource());
+                break;
+            case 9: //Clear marked players
+                player.sendMessage(Text.literal("Cleared all flags (no players marked for kills/revives)")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
+                currentGame.resetGameFlags();
                 break;
             default:
                 player.sendMessage(Text.literal("Unknown selection."), false);

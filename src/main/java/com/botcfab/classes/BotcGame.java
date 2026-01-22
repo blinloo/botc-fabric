@@ -97,6 +97,16 @@ public class BotcGame {
         assignRandomPlayers(playerList);
     }
 
+    public void resetGameFlags(){
+        for (BotcPlayer p:players){
+            p.removedAccused();
+            p.removedMarked();
+            p.changeSurviveExecution(false);
+            p.changeExecutionStatus(false);
+            p.removeFlags();
+        }
+    }
+
     public int getTotalPlayers(){
         return this.totalPlayers;
     }

@@ -482,19 +482,7 @@ public class BotcFab implements ModInitializer {
             p.removeStatusEffect(StatusEffects.BLINDNESS);
             p.removeStatusEffect(StatusEffects.DARKNESS);
         }
-        for (BotcPlayer p:currentGame.getPlayers()){
-            p.removedAccused();
-            p.removedMarked();
-            p.changeSurviveExecution(false);
-            p.changeExecutionStatus(false);
-            p.removeFlags();
-        }
-        removeTagAllPlayers(ACCUSED,srv);
-        removeTagAllPlayers(DEATH_FLAG, srv);
-        removeTagAllPlayers(REVIVE_FLAG, srv);
-        removeTagAllPlayers(CURRENT_EXECUTEE, srv);
-        removeTagAllPlayers(MARKED, srv);
-        removeTagAllPlayers(SURVIVE_EXECUTION, srv);
+        currentGame.resetGameFlags();
         Team team = scoreboard.getTeam(TEAM_ALL);
         if (team != null) { //Make nametags visible at morning.
             team.setNameTagVisibilityRule(AbstractTeam.VisibilityRule.NEVER);
@@ -636,17 +624,18 @@ public class BotcFab implements ModInitializer {
                             .append(t) //Add name
                             .append(Text.literal(" ")); //Space after
                 }
+                votedListText.setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.GRAY))); //Grey for storyteller text
             } else {
                 votedListText = Text.literal("");
             }
             //TODO change this to show only to storyteller + spectators (no op required)
             if (currentGame.showVoteResult()) { //Only show result to ops if hide result is on
                 sendMessageToPlayers(Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n"), playerList);
-                sendMessageToPlayers(votedListText, playerList); //Defaults to empty if no votes
             } else {
                 src.sendFeedback(() -> Text.literal("A total of " + displayTotalVotes + " votes were received, including " + displayGhostVotes + " ghost votes. \n"),true);
-                src.sendFeedback(() -> votedListText,true);
             }
+            //Show voted list to storyteller only
+            currentGame.getStoryteller().getPlayer().sendMessage(votedListText);
 
 
             if ((displayTotalVotes > highestVote) && (displayTotalVotes >= voteThreshold)){ //On beating highest vote and vote threshold mark accused player and remove old.
@@ -885,7 +874,16 @@ public class BotcFab implements ModInitializer {
                         } else {
                             p.removeStatusEffect(StatusEffects.GLOWING);
                         }
+                        if (currentGame.getRoleVisible()) {
+                            if (player.getRole() != null) {
+                                //Shows roles on player action bar
+                                showActionBar(p, Text.literal(player.getRole().getName()));
+                            }
+                        }
                     }
+                }
+                if (currentGame.getStoryteller().getPlayer() != null & currentGame.getRoleVisible()){
+                    showActionBar(currentGame.getStoryteller().getPlayer(), Text.literal("Storyteller"));
                 }
                 //Code for execution checks
                 if (executionInProgress) {
@@ -960,7 +958,7 @@ public class BotcFab implements ModInitializer {
                                 //If player is not marked to survive execution
                                 killPlayer(currentGame.findPlayer(executee));
                             } else {
-                                executee.removeCommandTag(SURVIVE_EXECUTION);
+                                //Code for surviving execution
                                 Text noDeathMsg = switch (mapSelected) {
                                     case DEFAULT_MAP -> Text.literal("but they survived!");
                                     case SCHOOL_MAP -> Text.literal("but it was revoked!");
@@ -969,9 +967,7 @@ public class BotcFab implements ModInitializer {
                                 };
                                 sendMessageToPlayers(noDeathMsg, playerList);
                             }
-                            executee.removeCommandTag(CURRENT_EXECUTEE);
                             executeePlayer.changeExecutionStatus(false);
-
                             executionInProgress = false;
                         }
                     } else {
@@ -1354,6 +1350,13 @@ public class BotcFab implements ModInitializer {
                         .executes(context -> {
                             currentGame.changePlayerInvis(!currentGame.invisPlayers()); //Sets invis to other state
                             context.getSource().sendFeedback(() -> Text.literal("Player invisibility set to " + currentGame.invisPlayers()), false);
+                            return 1;
+                        }))
+                .then(literal("toggleShownRoles")
+                        .requires(source -> source.hasPermissionLevel(4))
+                        .executes(context -> {
+                            currentGame.setRoleVisible(!currentGame.getRoleVisible()); //Sets role visibility to other state
+                            context.getSource().sendFeedback(() -> Text.literal("Shown roles set to " + currentGame.getRoleVisible()), false);
                             return 1;
                         }))
                 .then(literal("showPlayerOrder")
