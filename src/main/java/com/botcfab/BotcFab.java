@@ -1205,7 +1205,7 @@ public class BotcFab implements ModInitializer {
                                     return builder.buildFuture();
 
                                 })
-                                .then(CommandManager.argument("player", StringArgumentType.string())
+                                .then(CommandManager.argument("player_name", StringArgumentType.string())
                                         .requires(source -> source.hasPermissionLevel(4))
                                         .suggests(new PlayerSuggestionProvider()) //Suggests online players
                                         .executes(context -> {
