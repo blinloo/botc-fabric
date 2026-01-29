@@ -1134,6 +1134,9 @@ public class BotcFab implements ModInitializer {
                                                 case PLAYER:
                                                     onAddPlayer(context);
                                                     break;
+                                                case TRAVELLER:
+                                                    onAddTraveller(context);
+                                                    break;
                                                 default:
                                                     context.getSource().sendFeedback(() -> Text.literal("Invalid team"), false);
                                             }

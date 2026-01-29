@@ -262,6 +262,18 @@ public class PlayerUtils {
         System.out.println("Added player " + playerTarget.getNameForScoreboard() +" to players");
     }
 
+    static void onAddTraveller(CommandContext<ServerCommandSource> context) {
+        ServerPlayerEntity playerTarget = getPlayerFromSource(context);
+        if (playerTarget == null) {
+            return;
+        }
+
+        hardResetPlayer(playerTarget);
+        playerTarget.addCommandTag(TRAVELLER);
+        playerTarget.changeGameMode(GameMode.ADVENTURE);
+        System.out.println("Added player " + playerTarget.getNameForScoreboard() +" to travellers");
+    }
+
     static void sendMessageToPlayers(Text messageText, List<ServerPlayerEntity> playerList){
         for (ServerPlayerEntity p:playerList){
             p.sendMessage(messageText);
