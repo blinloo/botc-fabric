@@ -5,6 +5,7 @@ import com.botcfab.classes.BotcPlayer;
 import com.botcfab.classes.BotcRole;
 import com.botcfab.classes.BotcRoleCacher;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ModInitializer;
 
@@ -18,6 +19,7 @@ import net.minecraft.block.*;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.boss.ServerBossBar;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -304,7 +306,8 @@ public class BotcFab implements ModInitializer {
 
         if (storyTeller != null) {
             // Remove all tags before adding new ones
-            storyTeller.getInventory().setStack(36,ItemStack.EMPTY); //Remove boots
+            storyTeller.equipStack(EquipmentSlot.FEET,ItemStack.EMPTY); //Remove boots
+
             storyTeller.addCommandTag(STORYTELLER); //Add tag for storyteller
             storyTeller.removeCommandTag(PLAYER);
             src.sendFeedback(() -> (Text.literal("Storyteller is: " + storyTeller.getNameForScoreboard())),true);
@@ -321,14 +324,14 @@ public class BotcFab implements ModInitializer {
             Set<String> tags = p.getCommandTags();
             if (tags.contains(SPEC)) {
                 p.removeCommandTag(PLAYER);
-                p.changeGameMode(GameMode.SPECTATOR);
+                //p.changeGameMode(GameMode.SPECTATOR); //Don't auto change gamemode
             }
             if (tags.contains(PLAYER)) {
                 p.removeCommandTag(STORYTELLER);
                 playerMgr.removeFromOperators(p.getGameProfile()); //remove from ops
                 players.add(p);
                 p.changeGameMode(GameMode.ADVENTURE);
-                p.getInventory().setStack(36,ItemStack.EMPTY); //Remove boots
+                p.equipStack(EquipmentSlot.FEET,ItemStack.EMPTY); //Remove boots
             }
         }
 
@@ -1077,6 +1080,20 @@ public class BotcFab implements ModInitializer {
                 .then(literal("setupGame")
                     .requires(source -> source.hasPermissionLevel(4))
                     .executes(context -> setupGame(context.getSource())))
+//                .then(literal("presetupColours").then(
+//                        CommandManager.argument("players", IntegerArgumentType.integer())
+//                                .requires(source -> source.hasPermissionLevel(4))
+//                                .executes(context -> {
+//                                    int playerNum = IntegerArgumentType.getInteger(context, "players");
+//                                    if (playerNum <= maxPlayers) {
+//                                        //Runs initialise to change csv coordinates sheet and update other map coords
+//                                        setupGame()
+//                                    } else {
+//                                        context.getSource().sendFeedback(() -> Text.literal("Too many players for map selected"), false);
+//                                    }
+//
+//                                    return 1;
+//                                })))
                 .then(literal("startGame")
                         .requires(source -> source.hasPermissionLevel(4))
                         .executes(context -> beginGame(context.getSource())))

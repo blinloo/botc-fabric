@@ -11,8 +11,7 @@ import net.minecraft.util.Formatting;
 
 import java.util.ArrayList;
 
-import static com.botcfab.BotcFab.ALIVE;
-import static com.botcfab.BotcFab.DEAD;
+import static com.botcfab.BotcFab.*;
 
 public class FormattingHelper {
     static int getColourHex(String colour){
@@ -39,6 +38,27 @@ public class FormattingHelper {
 
     static MutableText getPlayerOrder(BotcGame game) {
         MutableText PlayerOrderMessage = Text.literal("Player Order: \n");
+        for (String c : game.getColours()){
+            BotcPlayer p = currentGame.getPlayerAtColour(c);
+            Text name = p.getName();
+            if (name == null){
+                name = Text.literal("NULL");
+            }
+            if (p.isDead()) {
+                PlayerOrderMessage
+                        .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
+                        .append(Text.literal("💀 "))
+                        .append(name.copy().setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.GRAY)))) //Player name grey for dead
+                        .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
+                        .append(Text.literal("\n")); //New line
+            } else {
+                PlayerOrderMessage
+                        .append(Text.literal("⬛ ").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))  // Square with colour
+                        .append(name.copy()) //Player name
+                        .append(Text.literal(" ⬛").setStyle(Style.EMPTY.withColor(TextColor.fromRgb(getColourHex(c)))))
+                        .append(Text.literal("\n")); //New line
+            }
+        }
         for (BotcPlayer p : game.getPlayers()) {
             String c = p.getColour();
             if (c == null){

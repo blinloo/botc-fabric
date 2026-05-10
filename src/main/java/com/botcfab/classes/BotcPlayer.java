@@ -140,7 +140,11 @@ public class BotcPlayer {
     }
 
     public String getNameString(){
-        return player.getNameForScoreboard();
+        if (player != null) {
+            return player.getNameForScoreboard();
+        } else
+            return "no name";
+
     }
 
     public void setRole(BotcRole r){
