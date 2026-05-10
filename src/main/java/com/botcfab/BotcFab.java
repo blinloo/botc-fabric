@@ -302,8 +302,6 @@ public class BotcFab implements ModInitializer {
         ArrayList<ServerPlayerEntity> players = new ArrayList<>();
         ServerPlayerEntity storyTeller = src.getPlayer(); // Gets the person that called the command. Whoever called it is Storyteller
 
-        //TODO add list of barrel coordinates to csv and copy contents to each one
-
         if (storyTeller != null) {
             // Remove all tags before adding new ones
             storyTeller.getInventory().setStack(36,ItemStack.EMPTY); //Remove boots
@@ -349,7 +347,7 @@ public class BotcFab implements ModInitializer {
                 setColourBoots(p, assignedColour);
                 p.setSpawnPoint(World.OVERWORLD, mapCoords.get(assignedColour).homeInside, 0, true, false); //Set player spawn point
             } else {
-                src.sendFeedback(() -> Text.literal("Could not fine player entity with colour "+ assignedColour +" in current game."), false);
+                src.sendFeedback(() -> Text.literal("Could not find player entity with colour "+ assignedColour +" in current game."), false);
             }
             //Places signs, levers update in the updatePlayer function
             Text signText;
@@ -429,7 +427,7 @@ public class BotcFab implements ModInitializer {
         for (String c:POSSIBLE_COLOURS){
             if (currentGame.getPlayerAtColour(c) == null){
                 world.setBlockState(mapCoords.get(c).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
-                world.setBlockState(mapCoords.get(c).lampsVoteMarker, Blocks.COAL_BLOCK.getDefaultState()); //Disable ghost vote after use by setting to coal
+                world.setBlockState(mapCoords.get(c).lampsVoteMarker, Blocks.AIR.getDefaultState()); //Set block to AIR for empty player seat
                 world.setBlockState(mapCoords.get(c).lever, Blocks.AIR.getDefaultState()); //Remove lever
                 world.setBlockState(mapCoords.get(c).sign, Blocks.AIR.getDefaultState()); //Remove empty signs
                 if (mapSelected.equals(SCHOOL_MAP)) {

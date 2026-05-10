@@ -75,7 +75,7 @@ public class BotcGame {
     public void assignColours(){
         boolean reverseOrder = ThreadLocalRandom.current().nextBoolean(); //Decides if colours are in order or reversed.
         int index = 0;
-        List <String> tempColours = possibleColours;
+        ArrayList<String> tempColours = new ArrayList<String>(possibleColours);
         String currentColour;
 
         //if (reverseOrder) Collections.reverse(possibleColours); //Removed due to errors for now
