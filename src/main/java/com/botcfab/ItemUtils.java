@@ -10,6 +10,7 @@ import net.minecraft.block.entity.SignText;
 import net.minecraft.block.enums.BlockFace;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.*;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.DyeItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -143,7 +144,8 @@ public class ItemUtils {
         //boots.addEnchantment((RegistryEntry<Enchantment>) Enchantments.BINDING_CURSE,1); //Might work?
         List<DyeItem> dyes = List.of(DyeItem.byColor(DyeColor.byName(c,DyeColor.LIME))); //Defaults to lime if colour not got from String
         ItemStack dyedBoots = DyedColorComponent.setColor(boots, dyes);
-        p.getInventory().setStack(36,dyedBoots); //36 is slot for boots, IDK why help
+        p.equipStack(EquipmentSlot.FEET,dyedBoots); //Set equip slot FEET to boots item
+        //OLD p.getInventory().setStack(36,dyedBoots); //36 is slot for boots, IDK why help
     }
 
 
@@ -245,10 +247,25 @@ public class ItemUtils {
     }
 
     static void givePlayerRole(ServerPlayerEntity player, BotcRole role){
-        ItemStack paper = new ItemStack(Items.PAPER);
-        paper = setCustomName(paper, formatRoleName(role)); //Set name of paper to role
-        paper = setCustomLore(paper, formatRoleDesc(role),TextColor.fromFormatting(Formatting.GRAY)); //Set Lore of paper to role description
-        player.getInventory().insertStack(paper);
+        ItemStack netherstar = new ItemStack(Items.NETHER_STAR);
+
+        if (player.getInventory().contains(netherstar)){
+            do {
+                player.getInventory().removeStack(player.getInventory().getSlotWithStack(netherstar));
+            } while (player.getInventory().getSlotWithStack(netherstar) != -1);
+
+        }
+        netherstar = setCustomName(netherstar, formatRoleName(role)); //Set name of nether star to role
+        netherstar = setCustomLore(netherstar, formatRoleDesc(role),TextColor.fromFormatting(Formatting.GRAY)); //Set Lore of nether star to role description
+        player.getInventory().insertStack(netherstar);
+    }
+
+    static void setPlayerHat(ServerPlayerEntity player){
+        ItemStack handItem = player.getMainHandStack();
+        if (!handItem.isEmpty()) {
+            if (player.getEquippedStack(EquipmentSlot.HEAD).isEmpty()) //If head slot is empty
+                player.equipStack(EquipmentSlot.HEAD,handItem);
+        }
 
     }
 }

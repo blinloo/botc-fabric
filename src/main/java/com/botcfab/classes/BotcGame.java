@@ -5,6 +5,7 @@ import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -74,21 +75,25 @@ public class BotcGame {
     public void assignColours(){
         boolean reverseOrder = ThreadLocalRandom.current().nextBoolean(); //Decides if colours are in order or reversed.
         int index = 0;
+        List <String> tempColours = possibleColours;
         String currentColour;
 
         //if (reverseOrder) Collections.reverse(possibleColours); //Removed due to errors for now
 
         for (BotcPlayer p:players){
-            currentColour = possibleColours.get(index);
+            currentColour = tempColours.remove(ThreadLocalRandom.current().nextInt(tempColours.size())); //Removes and selects random colour from list to avoid duplicates
+            //currentColour = possibleColours.get(index); OLD default sorting
             coloursInUse.add(currentColour);
-            p.setColour(currentColour);
+            p.setColour(currentColour); //Set player colour to current colour
 
             index++;
-            if (index >= possibleColours.size()){
-                //if index out of bounds
-                return;
-            }
+//            if (index >= possibleColours.size()){
+//                //if index out of bounds
+//                index = 0;
+//                return;
+//            }
         }
+        coloursInUse.sort(Comparator.comparingInt(possibleColours::indexOf)); //Sort list by possible colour order.
 
     }
 

@@ -58,6 +58,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 
+import static com.botcfab.FormattingHelper.formatRoleName;
 import static com.botcfab.FormattingHelper.getPlayerOrder;
 import static com.botcfab.PlayerUtils.*;
 import static  com.botcfab.ItemUtils.*;
@@ -442,14 +443,12 @@ public class BotcFab implements ModInitializer {
     }
 
     static int beginGame(ServerCommandSource src) {
-        //TODO
-        // - give roles to onlinePlayers on named paper
         MinecraftServer srv = src.getServer();
         PlayerManager playerMgr = srv.getPlayerManager();
 
         if (currentGame != null) {
 
-            for (BotcPlayer p : currentGame.getPlayers()) { //Give players in game the items they need, book, teleport items and paper
+            for (BotcPlayer p : currentGame.getPlayers()) { //Give players in game the items they need, book, teleport items, paper and role item (nether star)
                 givePlayerGameItems(p.getPlayer());
                 if (p.getRole() != null){
                     givePlayerRole(p.getPlayer(),p.getRole());
@@ -877,7 +876,7 @@ public class BotcFab implements ModInitializer {
                         if (currentGame.getRoleVisible()) {
                             if (player.getRole() != null) {
                                 //Shows roles on player action bar
-                                showActionBar(p, Text.literal(player.getRole().getName()));
+                                showActionBar(p, formatRoleName(player.getRole())); //Text.literal(player.getRole().getName())
                             }
                         }
                     }
@@ -1402,7 +1401,7 @@ public class BotcFab implements ModInitializer {
                     }
                     return 1;
                 }))
-                .then(literal("getGameInfo")
+                .then(literal("getGameInfo") //Print info about current game into chat, roles players, etc...
                         .requires(source -> source.hasPermissionLevel(4))
                         .executes(context -> {
                             if (currentGame != null){
@@ -1411,6 +1410,16 @@ public class BotcFab implements ModInitializer {
                                 context.getSource().sendFeedback(() -> Text.literal("No game to show info for"), false);
                             }
                             context.getSource().sendFeedback(() -> Text.literal("Put Game info here"), false);
+                            return 1;
+                        }))
+                .then(literal("hat")
+                        .executes(context -> {
+                            ServerPlayerEntity player = context.getSource().getPlayer(); //gets player running command
+                            if (player != null) {
+                                setPlayerHat(player); //Sets HEAD slot of player to item in main hand.
+                            } else {
+                                context.getSource().sendFeedback(() -> Text.literal("No player to set hat of, do not run in server console."), false);
+                            }
                             return 1;
                         }))
                 .then(literal("test")
