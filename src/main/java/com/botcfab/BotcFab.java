@@ -230,12 +230,26 @@ public class BotcFab implements ModInitializer {
                         .setStyle(Style.EMPTY.withColor(Formatting.GOLD));
                 NIGHT_MESSAGE = Text.literal("The curtain falls 🌙")
                         .setStyle(Style.EMPTY.withColor(Formatting.BLUE));
-                KILL_TEXT = Text.literal(" has been ") //Make these not final for school map, change to expelled, suspended etc
+                KILL_TEXT = Text.literal(" has been ")
                         .append(Text.literal("clowned. 🤡").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
                 REVIVE_TEXT = Text.literal(" has ")
                         .append(Text.literal("landed safely.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
                 EXECUTE_TEXT = Text.literal(" has been ")
                         .append(Text.literal("fired out of the cannon.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
+                break;
+            case WINTER_MAP:
+                MEETING_MESSAGE = Text.literal("\nPlease head main hall");
+                RETURN_MESSAGE = Text.literal("\nPlease return to rooms");
+                DAY_MESSAGE = Text.literal("The jingle bell rings ☀")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GOLD));
+                NIGHT_MESSAGE = Text.literal("You feel a chill in the air 🌙")
+                        .setStyle(Style.EMPTY.withColor(Formatting.BLUE));
+                KILL_TEXT = Text.literal(" tried to ")
+                        .append(Text.literal("unionize").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
+                REVIVE_TEXT = Text.literal(" has experienced a ")
+                        .append(Text.literal("Christmas miracle.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
+                EXECUTE_TEXT = Text.literal(" has been ")
+                        .append(Text.literal("impaled.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
                 break;
             default: //Default is used for default map as well
                 MEETING_MESSAGE = Text.literal("\nPlease head to the town square");
@@ -256,7 +270,7 @@ public class BotcFab implements ModInitializer {
         //Sets the coordinates missing from sheet per map
         switch (mapSelected) {
             case DEFAULT_MAP:
-                POSSIBLE_COLOURS = List.of("black","yellow","orange","pink","red","purple","brown","green","white","blue","cyan");
+                POSSIBLE_COLOURS = List.of("black","yellow","orange","pink","red","purple","brown","green","white","blue","cyan","gray");
                 EXECUTE_POS = new BlockPos(6, -29, -2);
                 SPAWN_POS = new BlockPos(4,-29,-2);
                 EVIL_ROOM_POS = new BlockPos(126, -28, 57);
@@ -265,7 +279,7 @@ public class BotcFab implements ModInitializer {
                 TOWN_VC_TRIGGER_POS = new BlockPos(16,-37,12);
                 break;
             case SCHOOL_MAP:
-                POSSIBLE_COLOURS = List.of("black","yellow","orange","pink","red","purple","brown","green","white","blue","cyan");
+                POSSIBLE_COLOURS = List.of("black","yellow","orange","pink","red","purple","brown","green","white","blue","cyan","gray");
                 EXECUTE_POS = new BlockPos(455, 4, 157);
                 SPAWN_POS = new BlockPos(455,1,190);
                 EVIL_ROOM_POS = new BlockPos(1, -28, 57);
@@ -430,8 +444,8 @@ public class BotcFab implements ModInitializer {
         for (String c:POSSIBLE_COLOURS){
             if (currentGame.getPlayerAtColour(c) == null){
                 world.setBlockState(mapCoords.get(c).blockUnderLever, Blocks.NETHERITE_BLOCK.getDefaultState()); //Set player indicator to netherite
-                world.setBlockState(mapCoords.get(c).lampsVoteMarker, Blocks.AIR.getDefaultState()); //Set block to AIR for empty player seat
-                world.setBlockState(mapCoords.get(c).lever, Blocks.AIR.getDefaultState()); //Remove lever
+                world.setBlockState(mapCoords.get(c).lampsVoteMarker, Blocks.LIGHT_GRAY_CARPET.getDefaultState()); //Set block to AIR for empty player seat
+                world.setBlockState(mapCoords.get(c).lever, Blocks.LIGHT_GRAY_CARPET.getDefaultState()); //Remove lever
                 world.setBlockState(mapCoords.get(c).sign, Blocks.AIR.getDefaultState()); //Remove empty signs
                 if (mapSelected.equals(SCHOOL_MAP)) {
                     world.setBlockState(mapCoords.get(c).homeOutside.up(2), Blocks.AIR.getDefaultState()); //Remove empty room signs

@@ -79,7 +79,6 @@ public class BotcGame {
 
         for (BotcPlayer p:players){
             currentColour = possibleColours.get(index);
-            //currentColour = possibleColours.get(index); OLD default sorting
             coloursInUse.add(currentColour);
             p.setColour(currentColour); //Set player colour to current colour
             index++;
