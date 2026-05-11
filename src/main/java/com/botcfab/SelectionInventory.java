@@ -139,12 +139,12 @@ public class SelectionInventory {
             case 6: //Tp players to chair
                 player.sendMessage(Text.literal("Teleporting to chairs")
                         .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
-                teleportPlayers("vote",player.getCommandSource().getServer(),currentGame);
+                teleportPlayers("vote",currentGame);
                 break;
             case 7: //Tp players to homes
                 player.sendMessage(Text.literal("Teleporting to home")
                         .setStyle(Style.EMPTY.withColor(Formatting.GRAY)), true);
-                teleportPlayers("home",player.getCommandSource().getServer(),currentGame);
+                teleportPlayers("home",currentGame);
                 break;
             case 8: //Tp players to homes
                 player.sendMessage(Text.literal("Started discussion time (6min)")

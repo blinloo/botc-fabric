@@ -338,7 +338,7 @@ public class BotcFab implements ModInitializer {
             Set<String> tags = p.getCommandTags();
             if (tags.contains(SPEC)) {
                 p.removeCommandTag(PLAYER);
-                //p.changeGameMode(GameMode.SPECTATOR); //Don't auto change gamemode
+                //p.changeGameMode(GameMode.SPECTATOR); //Don't auto change game mode
             }
             if (tags.contains(PLAYER)) {
                 p.removeCommandTag(STORYTELLER);
@@ -434,7 +434,7 @@ public class BotcFab implements ModInitializer {
             }
             updateVoteStatus(world, player); //player levers and update lamps
         }
-        createOrSetAliveDisplay(scoreboard, srv); //Update/create scoreboard for start of game.
+        createOrSetAliveDisplay(scoreboard); //Update/create scoreboard for start of game.
 
         //Get player total here to help account for players leaving
         playerTotal = currentGame.getTotalPlayers();
@@ -469,7 +469,7 @@ public class BotcFab implements ModInitializer {
                     givePlayerRole(p.getPlayer(),p.getRole());
                 }
             }
-            teleportPlayers("home", srv, currentGame); //teleports onlinePlayers to homes
+            teleportPlayers("home", currentGame); //teleports onlinePlayers to homes
             sendMessageToPlayers(getPlayerOrder(currentGame), playerMgr.getPlayerList()); //Sends player order to all onlinePlayers
             nightFalls(src);
 
@@ -535,7 +535,7 @@ public class BotcFab implements ModInitializer {
         }
         highestVote = 0; //reset highest vote
 
-        createOrSetAliveDisplay(scoreboard, srv); //Updates scoreboard
+        createOrSetAliveDisplay(scoreboard); //Updates scoreboard
         return 1;
     }
 
@@ -722,7 +722,7 @@ public class BotcFab implements ModInitializer {
         team.setShowFriendlyInvisibles(true); //makes invisible onlinePlayers visible
     }
 
-    static void createOrSetAliveDisplay(ServerScoreboard scoreboard, MinecraftServer srv){
+    static void createOrSetAliveDisplay(ServerScoreboard scoreboard){
         if (currentGame != null) {
             int alivePlayers = currentGame.getAlivePlayers();
             int deadPlayers = currentGame.getTotalPlayers() - alivePlayers;
@@ -1094,7 +1094,7 @@ public class BotcFab implements ModInitializer {
                 .then(literal("setupGame")
                     .requires(source -> source.hasPermissionLevel(4))
                     .executes(context -> setupGame(context.getSource())))
-//                .then(literal("presetupColours").then(
+//                .then(literal("pre-setupColours").then(
 //                        CommandManager.argument("players", IntegerArgumentType.integer())
 //                                .requires(source -> source.hasPermissionLevel(4))
 //                                .executes(context -> {
@@ -1278,7 +1278,7 @@ public class BotcFab implements ModInitializer {
                                     option = option.toLowerCase(); //lowercase to account for typos
 
                                     if (tpOptions.contains(option)) {
-                                        teleportPlayers(option, context.getSource().getServer(),currentGame);
+                                        teleportPlayers(option,currentGame);
                                     } else {
                                         context.getSource().sendFeedback(() -> Text.literal("Invalid teleport location"), false);
                                     }

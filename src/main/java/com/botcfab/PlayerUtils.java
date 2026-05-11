@@ -161,7 +161,7 @@ public class PlayerUtils {
                 world.setBlockState(EXECUTE_POS.up(20), Blocks.AIR.getDefaultState()); //remove support for dripstone
                 break;
         }
-        createOrSetAliveDisplay(scoreboard, srv);
+        createOrSetAliveDisplay(scoreboard);
     }
 
     static void updateVoteStatus(ServerWorld world, BotcPlayer player){
@@ -295,10 +295,9 @@ public class PlayerUtils {
         player.teleport(destination.getX()+0.5,destination.getY(),destination.getZ()+0.5,false); //0.5 for centre of block
     }
 
-    static void teleportPlayers(String location, MinecraftServer srv, BotcGame game){
+    static void teleportPlayers(String location, BotcGame game){
         //location either "home" or "vote"
         String colour;
-        ServerWorld world = srv.getOverworld();
         switch (location){
             case "home","house","dorm":
                 for (BotcPlayer player : game.getPlayers()) {
