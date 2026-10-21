@@ -131,7 +131,6 @@ public class PlayerUtils {
                 world.setBlockState(EXECUTE_POS.up(200), Blocks.ANVIL.getDefaultState()); //create anvil 50 blocks up above execution
                 break;
             case SCHOOL_MAP:
-                //TODO open pit here and teleport player
                 //Teleport player next to pit so they can jump in for fun, if they not already in range
                 Vec3d murderZone = new Vec3d(EXECUTE_POS.getX()+0.5, EXECUTE_POS.getY(), EXECUTE_POS.getZ()+0.5); //Get centre of block
                 double distance = player.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
@@ -153,12 +152,15 @@ public class PlayerUtils {
                 break;
             case CIRCUS_MAP:
                 tp(player, EXECUTE_POS); //tp executed player to the cannon
-                //TODO Start timer for levitation and open circus roof
+                //HIATUS Start timer for levitation and open circus roof
                 world.setBlockState(EXECUTE_POS.up(250), Blocks.ANVIL.getDefaultState()); //create anvil 50 blocks up above execution
                 break;
             case WINTER_MAP:
                 tp(player, EXECUTE_POS); //tp executed player to the centre
                 world.setBlockState(EXECUTE_POS.up(20), Blocks.AIR.getDefaultState()); //remove support for dripstone
+                break;
+            case CITY_MAP:
+                //TODO Write execution code for CITY
                 break;
         }
         createOrSetAliveDisplay(scoreboard);
@@ -320,7 +322,7 @@ public class PlayerUtils {
                     }
                 }
                 //Leave vc groups for town square
-                //TODO this needs to only run once, otherwise console spams
+                // this needs to only run once, otherwise console spams
                 //world.setBlockState(TOWN_VC_TRIGGER_POS, Blocks.REDSTONE_BLOCK.getDefaultState());
                 break;
             case "legion","evil":

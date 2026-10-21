@@ -135,7 +135,8 @@ public class BotcFab implements ModInitializer {
     final static String SCHOOL_MAP = "school";
     final static String CIRCUS_MAP = "circus";
     final static String WINTER_MAP = "winter";
-    final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP,CIRCUS_MAP, WINTER_MAP);
+    final static String CITY_MAP = "city";
+    final static List<String> MAPS = Arrays.asList(DEFAULT_MAP,SCHOOL_MAP,CIRCUS_MAP, WINTER_MAP,CITY_MAP);
     static String mapSelected = DEFAULT_MAP; //Defaults to clocktower map
 
     //BLOCK POS FOR CLOCKTOWER MAP
@@ -163,6 +164,7 @@ public class BotcFab implements ModInitializer {
             case SCHOOL_MAP -> modFolder.resolve("school-BOTC-coords-sheet.csv").toFile();
             case CIRCUS_MAP -> modFolder.resolve("circus-BOTC-coords-sheet.csv").toFile();
             case WINTER_MAP -> modFolder.resolve("winter-BOTC-coords-sheet.csv").toFile();
+            case CITY_MAP -> modFolder.resolve("city-BOTC-coords-sheet.csv").toFile();
             default -> null;
         };
     }
@@ -251,6 +253,20 @@ public class BotcFab implements ModInitializer {
                 EXECUTE_TEXT = Text.literal(" has been ")
                         .append(Text.literal("impaled.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
                 break;
+            case CITY_MAP:
+                MEETING_MESSAGE = Text.literal("\nPlease head courtroom");
+                RETURN_MESSAGE = Text.literal("\nPlease return to your homes");
+                DAY_MESSAGE = Text.literal("The clocktower chimes ☀")
+                        .setStyle(Style.EMPTY.withColor(Formatting.GOLD));
+                NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
+                        .setStyle(Style.EMPTY.withColor(Formatting.BLUE));
+                KILL_TEXT = Text.literal(" has been ")
+                        .append(Text.literal("murdered.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
+                REVIVE_TEXT = Text.literal(" has had their verdict ")
+                        .append(Text.literal("appealed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
+                EXECUTE_TEXT = Text.literal(" has been found ")
+                        .append(Text.literal("guilty.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
+                break;
             default: //Default is used for default map as well
                 MEETING_MESSAGE = Text.literal("\nPlease head to the town square");
                 RETURN_MESSAGE = Text.literal("\nPlease return to your houses");
@@ -295,6 +311,15 @@ public class BotcFab implements ModInitializer {
                 MINIGAMES_POS = new BlockPos(-120, -27, -13);
                 LEAVE_VC_TRIGGER_POS = new BlockPos(18,-37,12);
                 TOWN_VC_TRIGGER_POS = new BlockPos(16,-37,12);
+            case CITY_MAP:
+                POSSIBLE_COLOURS = List.of("white","red","orange","yellow","lime","green","cyan","light_blue","blue","purple","magenta","pink");
+                EXECUTE_POS = new BlockPos(6, -29, -2);
+                SPAWN_POS = new BlockPos(83,1,-505);
+                EVIL_ROOM_POS = new BlockPos(126, -28, 57);
+                MINIGAMES_POS = new BlockPos(-120, -27, -13);
+                LEAVE_VC_TRIGGER_POS = new BlockPos(18,-37,12);
+                TOWN_VC_TRIGGER_POS = new BlockPos(16,-37,12);
+                break;
         }
         maxPlayers = POSSIBLE_COLOURS.size();
 
@@ -431,6 +456,17 @@ public class BotcFab implements ModInitializer {
                             break;
                     }
                     break;
+                case CITY_MAP:
+                    signType = Blocks.DARK_OAK_WALL_SIGN.getDefaultState();
+                    switch (assignedColour) {
+                        case "white", "red", "orange", "yellow", "lime", "green":
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.EAST, signText, assignedColour, signType);
+                            break;
+                        case "cyan", "light_blue", "blue", "magenta", "purple", "pink":
+                            placeWallSign(world, mapCoords.get(assignedColour).sign, Direction.WEST, signText, assignedColour, signType);
+                            break;
+                    }
+                    break;
             }
             updateVoteStatus(world, player); //player levers and update lamps
         }
@@ -519,6 +555,7 @@ public class BotcFab implements ModInitializer {
 
         sendMessageToPlayers((DAY_MESSAGE.copy().append(MEETING_MESSAGE)),playerList);
         //Send player death message and update status
+        //TODO change these to manual trigger instead for drama
         for (BotcPlayer deadPlayer:currentGame.getKillFlaggedPlayers()){
             sendMessageToPlayers(getEventText(deadPlayer.getPlayer(),DEATH_FLAG) ,playerList);
             killPlayer(deadPlayer);
@@ -961,6 +998,19 @@ public class BotcFab implements ModInitializer {
                                     world.setBlockState(EXECUTE_POS.up(17), Blocks.POINTED_DRIPSTONE.getDefaultState().with(Properties.VERTICAL_DIRECTION,Direction.DOWN)); //restore dripstone support
                                     world.setBlockState(EXECUTE_POS.up(16), Blocks.POINTED_DRIPSTONE.getDefaultState().with(Properties.VERTICAL_DIRECTION,Direction.DOWN)); //restore dripstone support
                                     //FallingBlockEntity.spawnFromBlock(world,EXECUTE_POS.up(16),Blocks.POINTED_DRIPSTONE.getDefaultState());
+                                    executionFinished = true;
+                                }
+                                break;
+                            case CITY_MAP:
+                                //TODO WRITE THIS BIT
+                                murderZone = new Vec3d(EXECUTE_POS.getX() + 0.5, EXECUTE_POS.getY() + 0.3, EXECUTE_POS.getZ() + 0.5); //Get centre of block
+                                distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
+                                if (distance > 1.9) {
+                                    executee.teleport(murderZone.getX(), murderZone.getY(), murderZone.getZ(), false); //needs accurate tp
+                                    executee.sendMessage(Text.literal("Nice try :)"), false);
+                                }
+                                if (executee.getInventory().contains(new ItemStack(Items.POINTED_DRIPSTONE))) {
+
                                     executionFinished = true;
                                 }
                                 break;
