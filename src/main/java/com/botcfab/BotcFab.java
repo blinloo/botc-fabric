@@ -254,13 +254,13 @@ public class BotcFab implements ModInitializer {
                         .append(Text.literal("impaled.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.RED))));
                 break;
             case CITY_MAP:
-                MEETING_MESSAGE = Text.literal("\nPlease head courtroom");
+                MEETING_MESSAGE = Text.literal("\nThe court is now in session");
                 RETURN_MESSAGE = Text.literal("\nPlease return to your homes");
                 DAY_MESSAGE = Text.literal("The clocktower chimes ☀")
                         .setStyle(Style.EMPTY.withColor(Formatting.GOLD));
                 NIGHT_MESSAGE = Text.literal("Night falls... 🌙")
                         .setStyle(Style.EMPTY.withColor(Formatting.BLUE));
-                KILL_TEXT = Text.literal(" has been ")
+                KILL_TEXT = Text.literal(" has been (allegedly) ")
                         .append(Text.literal("murdered.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.DARK_RED))));
                 REVIVE_TEXT = Text.literal(" has had their verdict ")
                         .append(Text.literal("appealed.").setStyle(Style.EMPTY.withColor(TextColor.fromFormatting(Formatting.YELLOW))));
