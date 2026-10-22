@@ -313,7 +313,7 @@ public class BotcFab implements ModInitializer {
                 TOWN_VC_TRIGGER_POS = new BlockPos(16,-37,12);
             case CITY_MAP:
                 POSSIBLE_COLOURS = List.of("white","red","orange","yellow","lime","green","cyan","light_blue","blue","purple","magenta","pink");
-                EXECUTE_POS = new BlockPos(6, -29, -2);
+                EXECUTE_POS = new BlockPos(79, 0, -535); //Position to place redstone block to trigger execution.
                 SPAWN_POS = new BlockPos(83,1,-505);
                 EVIL_ROOM_POS = new BlockPos(126, -28, 57);
                 MINIGAMES_POS = new BlockPos(-120, -27, -13);
@@ -486,6 +486,10 @@ public class BotcFab implements ModInitializer {
                 if (mapSelected.equals(SCHOOL_MAP)) {
                     world.setBlockState(mapCoords.get(c).homeOutside.up(2), Blocks.AIR.getDefaultState()); //Remove empty room signs
                     world.setBlockState(mapCoords.get(c).sign, Blocks.AIR.getDefaultState()); //Remove empty signs
+                }
+                if (mapSelected.equals(CITY_MAP)) {
+                    world.setBlockState(mapCoords.get(c).lampsVoteMarker, Blocks.WHITE_CARPET.getDefaultState()); //Set lamp to carpet for empty seats
+                    world.setBlockState(mapCoords.get(c).lever, Blocks.WAXED_OXIDIZED_COPPER_TRAPDOOR.getDefaultState()); //Remove lever replace with trapdoor
                 }
             }
         }
@@ -1003,15 +1007,10 @@ public class BotcFab implements ModInitializer {
                                 break;
                             case CITY_MAP:
                                 //TODO WRITE THIS BIT
-                                murderZone = new Vec3d(EXECUTE_POS.getX() + 0.5, EXECUTE_POS.getY() + 0.3, EXECUTE_POS.getZ() + 0.5); //Get centre of block
-                                distance = executee.getPos().squaredDistanceTo(murderZone); //should work with vec3d now
-                                if (distance > 1.9) {
-                                    executee.teleport(murderZone.getX(), murderZone.getY(), murderZone.getZ(), false); //needs accurate tp
-                                    executee.sendMessage(Text.literal("Nice try :)"), false);
-                                }
-                                if (executee.getInventory().contains(new ItemStack(Items.POINTED_DRIPSTONE))) {
-
+                                //Don't need executee location checks
+                                if (world.getBlockState(EXECUTE_POS.east(8)).isOf(Blocks.RED_WOOL) ) { //Checks if red wool for finish marker is set
                                     executionFinished = true;
+                                    world.setBlockState(EXECUTE_POS.east(8),Blocks.AIR.getDefaultState()); //Reset finished execution marker
                                 }
                                 break;
                         }
@@ -1027,6 +1026,7 @@ public class BotcFab implements ModInitializer {
                                     case DEFAULT_MAP -> Text.literal("but they survived!");
                                     case SCHOOL_MAP -> Text.literal("but it was revoked!");
                                     case CIRCUS_MAP -> Text.literal("but they landed safely!");
+                                    case CITY_MAP -> Text.literal("but it was appealed!");
                                     default -> Text.literal("but they didn't die!");
                                 };
                                 sendMessageToPlayers(noDeathMsg, playerList);

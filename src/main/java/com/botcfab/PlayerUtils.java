@@ -161,6 +161,7 @@ public class PlayerUtils {
                 break;
             case CITY_MAP:
                 //TODO Write execution code for CITY
+                world.setBlockState(EXECUTE_POS, Blocks.REDSTONE_BLOCK.getDefaultState()); //Set redstone execution trigger for command blocks.
                 break;
         }
         createOrSetAliveDisplay(scoreboard);
@@ -208,6 +209,16 @@ public class PlayerUtils {
                                 break;
                             case "orange", "yellow":
                                 placeLever(world, mapCoords.get(playerColour).lever, Direction.SOUTH, BlockFace.FLOOR);
+                                break;
+                        }
+                        break;
+                    case CITY_MAP: //Lever directions for city map
+                        switch (playerColour) {
+                            case "white", "red", "orange", "yellow", "lime", "green":
+                                placeLever(world, mapCoords.get(playerColour).lever, Direction.EAST, BlockFace.FLOOR);
+                                break;
+                            case "cyan", "light_blue", "blue", "magenta", "purple", "pink":
+                                placeLever(world, mapCoords.get(playerColour).lever, Direction.WEST, BlockFace.FLOOR);
                                 break;
                         }
                         break;
