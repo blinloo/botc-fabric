@@ -647,10 +647,12 @@ public class BotcFab implements ModInitializer {
                 BlockState lockedVoteState = world.getBlockState(lockedVote);
                 BotcPlayer playerVoting = currentGame.getPlayerAtColour(colour);
                 if (lockedVoteState.getBlock() == Blocks.WAXED_COPPER_BULB && lockedVoteState.get(Properties.LIT)) {
-                    aliveVotesTotal++;
+
                     if (playerVoting != null) {
                         playersVoted.add(playerVoting.getName());//Add player to voted list
-                    }
+                        aliveVotesTotal = aliveVotesTotal + playerVoting.getVoteCount(); //Adds number of votes based on that players vote count.
+                    } else
+                        aliveVotesTotal++;
                 } else if (lockedVoteState.getBlock() == Blocks.SEA_LANTERN) {
                     ghostVotesTotal++;
                     // remove ghost vote and tag from player
@@ -1284,7 +1286,6 @@ public class BotcFab implements ModInitializer {
                                         builder.suggest("NO GAME INITIALISED");
                                     }
                                     return builder.buildFuture();
-
                                 })
                                 .then(CommandManager.argument("player_name", StringArgumentType.string())
                                         .requires(source -> source.hasPermissionLevel(4))
@@ -1315,6 +1316,40 @@ public class BotcFab implements ModInitializer {
                                             }
                                             return 1;
                                         }))))
+                        .then(literal("setVoteCount")
+                                .then(CommandManager.argument("colour", StringArgumentType.string())
+                                        .requires(source -> source.hasPermissionLevel(4))
+                                        .suggests((context, builder) -> {
+                                            if (currentGame != null) {
+                                                for (String c : currentGame.getColours()) {
+                                                    builder.suggest(c); //Adds all possible colours in game to suggestion
+                                                }
+                                            } else {
+                                                //If there is no game initialized, send warning
+                                                builder.suggest("NO GAME INITIALISED");
+                                            }
+                                            return builder.buildFuture();
+                                        })
+                                        .then(CommandManager.argument("count", IntegerArgumentType.integer())
+                                                .requires(source -> source.hasPermissionLevel(4))
+                                                .executes(context -> {
+                                                    String colour = StringArgumentType.getString(context, "colour");
+                                                    colour = colour.toLowerCase(); //lowercase to account for typos
+                                                    int count = IntegerArgumentType.getInteger(context, "count");
+
+                                                    if (currentGame.getColours().contains(colour)){
+                                                        BotcPlayer player = currentGame.getPlayerAtColour(colour);
+                                                        if (player != null){
+                                                            player.setVoteCount(count);
+                                                            context.getSource().sendFeedback(() -> Text.literal("Set " + player.getName() + " vote count to " + count), false);
+                                                        } else {
+                                                            context.getSource().sendFeedback(() -> Text.literal("Player not found at colour"), false);
+                                                        }
+                                                    } else {
+                                                        context.getSource().sendFeedback(() -> Text.literal("Invalid integer"), false);
+                                                    }
+                                                    return 1;
+                                                }))))
                 .then(literal("tpPlayers").then(
                         CommandManager.argument("tp_location", StringArgumentType.string())
                                 .requires(source -> source.hasPermissionLevel(4))

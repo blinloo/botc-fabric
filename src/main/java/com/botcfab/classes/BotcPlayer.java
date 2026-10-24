@@ -18,6 +18,7 @@ public class BotcPlayer {
     boolean willSurviveExecution;
     boolean currentlyBeingExecuted;
     int position;
+    int voteCountsAs; //How many votes this players vote will count as for executions
     String colour; //Colour assigned to player
     Text playerName;
 
@@ -52,6 +53,7 @@ public class BotcPlayer {
             this.player = p;
             this.playerName = p.getStyledDisplayName();
         }
+        this.voteCountsAs = 1;
     }
 
     public void killPlayer(){
@@ -153,6 +155,14 @@ public class BotcPlayer {
 
     public BotcRole getRole(){
         return role;
+    }
+
+    public void setVoteCount(int c){
+        this.voteCountsAs = c;
+    }
+
+    public int getVoteCount(){
+        return this.voteCountsAs;
     }
 
     public boolean isDead(){
