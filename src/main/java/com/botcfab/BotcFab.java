@@ -795,7 +795,7 @@ public class BotcFab implements ModInitializer {
         }
     }
 
-    private static MutableText getEventText(ServerPlayerEntity player, String event){
+    static MutableText getEventText(ServerPlayerEntity player, String event){
         MutableText eventMsg;
         MutableText playerName = player.getStyledDisplayName().copy(); //Should be formatted with player colour from team
         eventMsg = switch (event) {

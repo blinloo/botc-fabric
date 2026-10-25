@@ -96,9 +96,12 @@ public class PlayerUtils {
     static void killPlayer(BotcPlayer player){
         ServerPlayerEntity p = player.getPlayer();
         ServerWorld world = p.getServerWorld();
+        ServerScoreboard scoreboard = world.getServer().getScoreboard();
         if (!player.isDead()) {
             player.killPlayer();
             updateVoteStatus(world,player);
+            createOrSetAliveDisplay(scoreboard);
+            sendMessageToPlayers(getEventText(p,DEATH_FLAG) ,world.getPlayers());
         }
         else {
             world.getServer().getCommandSource().sendFeedback(() -> Text.literal("They're already dead :("),false);
@@ -108,9 +111,12 @@ public class PlayerUtils {
     static void revivePlayer(BotcPlayer player){
         ServerPlayerEntity p = player.getPlayer();
         ServerWorld world = p.getServerWorld();
+        ServerScoreboard scoreboard = world.getServer().getScoreboard();
         if (player.isDead()) {
             player.revivePlayer();
             updateVoteStatus(world,player);
+            createOrSetAliveDisplay(scoreboard);
+            sendMessageToPlayers(getEventText(p,REVIVE_FLAG) ,world.getPlayers());
         }
         else {
             world.getServer().getCommandSource().sendFeedback(() -> Text.literal("They're already alive :)"),false);
