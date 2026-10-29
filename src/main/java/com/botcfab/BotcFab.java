@@ -1461,6 +1461,13 @@ public class BotcFab implements ModInitializer {
                             context.getSource().sendFeedback(() -> Text.literal("Show vote result set to " + currentGame.showVoteResult()), false);
                             return 1;
                         }))
+                .then(literal("resetGhostVotes") //For Ferryman
+                        .requires(source -> source.hasPermissionLevel(4))
+                        .executes(context -> {
+                            currentGame.giveAllPlayersGhostVote(); //Gives all players missing ghost votes them back
+                            context.getSource().sendFeedback(() -> Text.literal("Given players back missing ghost votes "), false);
+                            return 1;
+                        }))
                 .then(literal("toggleInvis")
                         .requires(source -> source.hasPermissionLevel(4))
                         .executes(context -> {

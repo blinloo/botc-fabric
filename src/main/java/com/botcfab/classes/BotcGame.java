@@ -236,4 +236,12 @@ public class BotcGame {
     public void changePlayerInvis(boolean newValue){
         this.playersInvis = newValue;
     }
+
+    public void giveAllPlayersGhostVote() {
+        for (BotcPlayer p:players){
+            if (!p.hasGhostVote()) {//If player does not has ghost vote
+                p.addGhostVote();
+            }
+        }
+    }
 }

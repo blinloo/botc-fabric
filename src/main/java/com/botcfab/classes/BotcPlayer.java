@@ -168,6 +168,7 @@ public class BotcPlayer {
     public boolean isDead(){
         return registerAsDead;
     }
+
     public boolean hasGhostVote(){
         return hasGhostVote;
     }
